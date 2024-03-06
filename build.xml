@@ -1,0 +1,252 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- WARNING: Eclipse auto-generated file.
+              Any modifications will be overwritten.
+              To include a user specific buildfile here, simply create one in the same
+              directory with the processing instruction <?eclipse.ant.import?>
+              as the first entry and export the buildfile again. --><project basedir="." default="build" name="metastabayes">
+    <property environment="env"/>
+    <property name="beast-classic.location" value="../beast-classic"/>
+    <property name="beast2.location" value="../beast2"/>
+    <property name="BeastFX.location" value="../BeastFX"/>
+    <property name="BEASTLabs.location" value="../BEASTLabs"/>
+    <property name="FixedTreeAnalysis.location" value="../FixedTreeAnalysis"/>
+    <property name="feast.location" value="../feast"/>
+    <property name="tidetree.location" value="../tidetree"/>
+    <property name="debuglevel" value="source,lines,vars"/>
+    <property name="target" value="17"/>
+    <property name="source" value="17"/>
+    <path id="beast2.classpath">
+        <pathelement location="${beast2.location}/bin"/>
+        <pathelement location="${beast2.location}/build/dist/BEAST.base.jar"/>
+        <pathelement location="${beast2.location}/build/dist/BEAST.base.src.jar"/>
+        <pathelement location="${beast2.location}/build/dist/beast.test.src.jar"/>
+        <pathelement location="${beast2.location}/build/dist/launcher.jar"/>
+        <pathelement location="${beast2.location}/build/dist/launcher.src.jar"/>
+        <pathelement location="${beast2.location}/build/dist/test.beast.jar"/>
+        <pathelement location="${beast2.location}/lib/antlr-runtime-4.10.1.jar"/>
+        <pathelement location="${beast2.location}/lib/beagle.jar"/>
+        <pathelement location="${beast2.location}/lib/bundler/jarbundler-core-3.3.0.jar"/>
+        <pathelement location="${beast2.location}/lib/bundler/jsign-3.1.jar"/>
+        <pathelement location="${beast2.location}/lib/colt.jar"/>
+        <pathelement location="${beast2.location}/lib/commons-math3-3.6.1.jar"/>
+        <pathelement location="${beast2.location}/lib/junit/junit-platform-console-standalone-1.8.2.jar"/>
+        <pathelement location="${beast2.location}/release/common/tools/DensiTree.jar"/>
+    </path>
+    <path id="BeastFX.classpath">
+        <pathelement location="${BeastFX.location}/bin"/>
+        <pathelement location="${BeastFX.location}/locallib/assertj-core-3.20.2.jar"/>
+        <pathelement location="${BeastFX.location}/locallib/jam.jar"/>
+        <pathelement location="${BeastFX.location}/locallib/testfx.jar"/>
+        <path refid="beast2.classpath"/>
+        <pathelement location="${beast2.location}/lib/junit/junit-platform-console-standalone-1.8.2.jar"/>
+        <pathelement location="${beast2.location}/lib/antlr-runtime-4.10.1.jar"/>
+        <pathelement location="${beast2.location}/lib/beagle.jar"/>
+        <pathelement location="${beast2.location}/lib/colt.jar"/>
+        <pathelement location="${beast2.location}/lib/commons-math3-3.6.1.jar"/>
+    </path>
+    <path id="BEASTLabs.classpath">
+        <pathelement location="${BEASTLabs.location}/bin"/>
+        <pathelement location="${BEASTLabs.location}/lib/junit-4.8.2.jar"/>
+        <pathelement location="${BEASTLabs.location}/lib/nashorn-core-15.3.jar"/>
+        <path refid="beast2.classpath"/>
+        <path refid="BeastFX.classpath"/>
+        <pathelement location="${beast2.location}/lib/junit/junit-platform-console-standalone-1.8.2.jar"/>
+        <pathelement location="${beast2.location}/lib/antlr-runtime-4.10.1.jar"/>
+        <pathelement location="${beast2.location}/lib/beagle.jar"/>
+        <pathelement location="${beast2.location}/lib/colt.jar"/>
+        <pathelement location="${beast2.location}/lib/commons-math3-3.6.1.jar"/>
+        <pathelement location="${BeastFX.location}/locallib/assertj-core-3.20.2.jar"/>
+        <pathelement location="${BeastFX.location}/locallib/jam.jar"/>
+        <pathelement location="${BeastFX.location}/locallib/testfx.jar"/>
+    </path>
+    <path id="beast-classic.classpath">
+        <pathelement location="${beast-classic.location}/bin"/>
+        <pathelement location="${beast-classic.location}/lib/mtj.jar"/>
+        <pathelement location="${beast2.location}/lib/junit/junit-platform-console-standalone-1.8.2.jar"/>
+        <pathelement location="${beast2.location}/lib/antlr-runtime-4.10.1.jar"/>
+        <pathelement location="${beast2.location}/lib/beagle.jar"/>
+        <pathelement location="${beast2.location}/lib/colt.jar"/>
+        <pathelement location="${beast2.location}/lib/commons-math3-3.6.1.jar"/>
+        <pathelement location="${BeastFX.location}/locallib/assertj-core-3.20.2.jar"/>
+        <pathelement location="${BeastFX.location}/locallib/jam.jar"/>
+        <pathelement location="${BeastFX.location}/locallib/testfx.jar"/>
+        <path refid="BeastFX.classpath"/>
+        <path refid="beast2.classpath"/>
+        <path refid="BEASTLabs.classpath"/>
+        <pathelement location="${BEASTLabs.location}/lib/junit-4.8.2.jar"/>
+        <pathelement location="${BEASTLabs.location}/lib/nashorn-core-15.3.jar"/>
+    </path>
+    <path id="FixedTreeAnalysis.classpath">
+        <pathelement location="${FixedTreeAnalysis.location}/bin"/>
+        <path refid="beast2.classpath"/>
+        <path refid="BeastFX.classpath"/>
+        <pathelement location="${beast2.location}/lib/junit/junit-platform-console-standalone-1.8.2.jar"/>
+        <pathelement location="${beast2.location}/lib/antlr-runtime-4.10.1.jar"/>
+        <pathelement location="${beast2.location}/lib/beagle.jar"/>
+        <pathelement location="${beast2.location}/lib/colt.jar"/>
+        <pathelement location="${beast2.location}/lib/commons-math3-3.6.1.jar"/>
+        <pathelement location="${BeastFX.location}/locallib/assertj-core-3.20.2.jar"/>
+        <pathelement location="${BeastFX.location}/locallib/jam.jar"/>
+        <pathelement location="${BeastFX.location}/locallib/testfx.jar"/>
+    </path>
+    <path id="feast.classpath">
+        <pathelement location="${feast.location}/bin"/>
+        <path refid="beast2.classpath"/>
+        <path refid="BeastFX.classpath"/>
+        <pathelement location="${beast2.location}/lib/junit/junit-platform-console-standalone-1.8.2.jar"/>
+        <pathelement location="${beast2.location}/lib/antlr-runtime-4.10.1.jar"/>
+        <pathelement location="${beast2.location}/lib/beagle.jar"/>
+        <pathelement location="${beast2.location}/lib/colt.jar"/>
+        <pathelement location="${beast2.location}/lib/commons-math3-3.6.1.jar"/>
+        <pathelement location="${BeastFX.location}/locallib/assertj-core-3.20.2.jar"/>
+        <pathelement location="${BeastFX.location}/locallib/jam.jar"/>
+        <pathelement location="${BeastFX.location}/locallib/testfx.jar"/>
+    </path>
+    <path id="tidetree.classpath">
+        <pathelement location="${tidetree.location}/bin"/>
+        <path refid="beast2.classpath"/>
+        <path refid="BeastFX.classpath"/>
+        <path refid="feast.classpath"/>
+        <pathelement location="${beast2.location}/lib/junit/junit-platform-console-standalone-1.8.2.jar"/>
+        <pathelement location="${beast2.location}/lib/antlr-runtime-4.10.1.jar"/>
+        <pathelement location="${beast2.location}/lib/beagle.jar"/>
+        <pathelement location="${beast2.location}/lib/colt.jar"/>
+        <pathelement location="${beast2.location}/lib/commons-math3-3.6.1.jar"/>
+        <pathelement location="${BeastFX.location}/locallib/assertj-core-3.20.2.jar"/>
+        <pathelement location="${BeastFX.location}/locallib/jam.jar"/>
+        <pathelement location="${BeastFX.location}/locallib/testfx.jar"/>
+    </path>
+    <path id="metastabayes.classpath">
+        <pathelement location="bin"/>
+        <path refid="beast2.classpath"/>
+        <path refid="beast-classic.classpath"/>
+        <path refid="BeastFX.classpath"/>
+        <path refid="FixedTreeAnalysis.classpath"/>
+        <path refid="tidetree.classpath"/>
+        <pathelement location="${beast-classic.location}/lib/mtj.jar"/>
+        <pathelement location="${beast2.location}/lib/junit/junit-platform-console-standalone-1.8.2.jar"/>
+        <pathelement location="${beast2.location}/lib/antlr-runtime-4.10.1.jar"/>
+        <pathelement location="${beast2.location}/lib/beagle.jar"/>
+        <pathelement location="${beast2.location}/lib/colt.jar"/>
+        <pathelement location="${beast2.location}/lib/commons-math3-3.6.1.jar"/>
+        <pathelement location="${BeastFX.location}/locallib/assertj-core-3.20.2.jar"/>
+        <pathelement location="${BeastFX.location}/locallib/jam.jar"/>
+        <pathelement location="${BeastFX.location}/locallib/testfx.jar"/>
+    </path>
+    <path id="run.metastabayes.classpath">
+        <path refid="metastabayes.classpath"/>
+        <path refid="beast2.classpath"/>
+        <pathelement location="${beast2.location}/build/dist/BEAST.base.jar"/>
+        <pathelement location="${beast2.location}/build/dist/BEAST.base.src.jar"/>
+        <pathelement location="${beast2.location}/build/dist/beast.test.src.jar"/>
+        <pathelement location="${beast2.location}/build/dist/launcher.jar"/>
+        <pathelement location="${beast2.location}/build/dist/launcher.src.jar"/>
+        <pathelement location="${beast2.location}/build/dist/test.beast.jar"/>
+        <pathelement location="${beast2.location}/lib/antlr-runtime-4.10.1.jar"/>
+        <pathelement location="${beast2.location}/lib/beagle.jar"/>
+        <pathelement location="${beast2.location}/lib/bundler/jarbundler-core-3.3.0.jar"/>
+        <pathelement location="${beast2.location}/lib/bundler/jsign-3.1.jar"/>
+        <pathelement location="${beast2.location}/lib/colt.jar"/>
+        <pathelement location="${beast2.location}/lib/commons-math3-3.6.1.jar"/>
+        <pathelement location="${beast2.location}/lib/junit/junit-platform-console-standalone-1.8.2.jar"/>
+        <pathelement location="${beast2.location}/release/common/tools/DensiTree.jar"/>
+        <path refid="beast-classic.classpath"/>
+        <pathelement location="${beast-classic.location}/lib/mtj.jar"/>
+        <pathelement location="${BeastFX.location}/locallib/assertj-core-3.20.2.jar"/>
+        <pathelement location="${BeastFX.location}/locallib/jam.jar"/>
+        <pathelement location="${BeastFX.location}/locallib/testfx.jar"/>
+        <path refid="BeastFX.classpath"/>
+        <path refid="BEASTLabs.classpath"/>
+        <pathelement location="${BEASTLabs.location}/lib/junit-4.8.2.jar"/>
+        <pathelement location="${BEASTLabs.location}/lib/nashorn-core-15.3.jar"/>
+        <path refid="FixedTreeAnalysis.classpath"/>
+        <path refid="tidetree.classpath"/>
+        <path refid="feast.classpath"/>
+    </path>
+    <target name="init">
+        <mkdir dir="bin"/>
+        <copy includeemptydirs="false" todir="bin">
+            <fileset dir="src">
+                <exclude name="**/*.launch"/>
+                <exclude name="**/*.java"/>
+            </fileset>
+        </copy>
+    </target>
+    <target name="clean">
+        <delete dir="bin"/>
+    </target>
+    <target depends="clean" name="cleanall">
+        <ant antfile="build.xml" dir="${beast2.location}" inheritAll="false" target="clean"/>
+        <ant antfile="build.xml" dir="${BeastFX.location}" inheritAll="false" target="clean"/>
+        <ant antfile="build.xml" dir="${FixedTreeAnalysis.location}" inheritAll="false" target="clean"/>
+        <ant antfile="build.xml" dir="${BEASTLabs.location}" inheritAll="false" target="clean"/>
+        <ant antfile="build.xml" dir="${beast-classic.location}" inheritAll="false" target="clean"/>
+        <ant antfile="build.xml" dir="${feast.location}" inheritAll="false" target="clean"/>
+        <ant antfile="build.xml" dir="${tidetree.location}" inheritAll="false" target="clean"/>
+    </target>
+    <target depends="build-subprojects,build-project" name="build"/>
+    <target name="build-subprojects">
+        <ant antfile="build.xml" dir="${beast2.location}" inheritAll="false" target="build-project">
+            <propertyset>
+                <propertyref name="build.compiler"/>
+            </propertyset>
+        </ant>
+        <ant antfile="build.xml" dir="${BeastFX.location}" inheritAll="false" target="build-project">
+            <propertyset>
+                <propertyref name="build.compiler"/>
+            </propertyset>
+        </ant>
+        <ant antfile="build.xml" dir="${FixedTreeAnalysis.location}" inheritAll="false" target="build-project">
+            <propertyset>
+                <propertyref name="build.compiler"/>
+            </propertyset>
+        </ant>
+        <ant antfile="build.xml" dir="${BEASTLabs.location}" inheritAll="false" target="build-project">
+            <propertyset>
+                <propertyref name="build.compiler"/>
+            </propertyset>
+        </ant>
+        <ant antfile="build.xml" dir="${beast-classic.location}" inheritAll="false" target="build-project">
+            <propertyset>
+                <propertyref name="build.compiler"/>
+            </propertyset>
+        </ant>
+        <ant antfile="build.xml" dir="${feast.location}" inheritAll="false" target="build-project">
+            <propertyset>
+                <propertyref name="build.compiler"/>
+            </propertyset>
+        </ant>
+        <ant antfile="build.xml" dir="${tidetree.location}" inheritAll="false" target="build-project">
+            <propertyset>
+                <propertyref name="build.compiler"/>
+            </propertyset>
+        </ant>
+    </target>
+    <target depends="init" name="build-project">
+        <echo message="${ant.project.name}: ${ant.file}"/>
+        <javac debug="true" debuglevel="${debuglevel}" destdir="bin" includeantruntime="false" source="${source}" target="${target}">
+            <src path="src"/>
+            <classpath refid="metastabayes.classpath"/>
+        </javac>
+    </target>
+    <target description="Build all projects which reference this project. Useful to propagate changes." name="build-refprojects"/>
+    <target description="copy Eclipse compiler jars to ant lib directory" name="init-eclipse-compiler">
+        <copy todir="${ant.library.dir}">
+            <fileset dir="${ECLIPSE_HOME}/plugins" includes="org.eclipse.jdt.core_*.jar"/>
+        </copy>
+        <unzip dest="${ant.library.dir}">
+            <patternset includes="jdtCompilerAdapter.jar"/>
+            <fileset dir="${ECLIPSE_HOME}/plugins" includes="org.eclipse.jdt.core_*.jar"/>
+        </unzip>
+    </target>
+    <target description="compile project with Eclipse compiler" name="build-eclipse-compiler">
+        <property name="build.compiler" value="org.eclipse.jdt.core.JDTCompilerAdapter"/>
+        <antcall target="build"/>
+    </target>
+    <target name="metastabayes">
+        <java classname="beastfx.app.beast.BeastMain" failonerror="true" fork="yes">
+            <arg line="-overwrite -working -version_file version.xml examples/oneRate_machina_m5_seed3.xml"/>
+            <classpath refid="run.metastabayes.classpath"/>
+        </java>
+    </target>
+</project>
