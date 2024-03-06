@@ -2,7 +2,6 @@ package metastabayes.substitutionmodel;
 
 import java.io.PrintStream;
 
-import beast.base.evolution.datatype.UserDataType;
 import beastclassic.evolution.substitutionmodel.SVSGeneralSubstitutionModelLogger;
 
 public class OneRateAllTissuesLogger extends SVSGeneralSubstitutionModelLogger{
@@ -15,8 +14,6 @@ public class OneRateAllTissuesLogger extends SVSGeneralSubstitutionModelLogger{
                 : getID();
         String relRatePrefix = mainID + ".relGeoRate_";
 
-        UserDataType dataType = dataTypeInput.get();
-        
         String iStr = "all_tissues";
         out.print(relRatePrefix + iStr);
 
