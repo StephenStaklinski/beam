@@ -2,6 +2,11 @@ package metastabayes.substitutionmodel;
 
 import beast.base.core.Description;
 import beast.base.core.Function;
+import beast.base.core.Input;
+import beast.base.core.Log;
+import beast.base.core.Input.Validate;
+import beast.base.evolution.substitutionmodel.DefaultEigenSystem;
+import beast.base.inference.parameter.BooleanParameter;
 import beast.base.inference.parameter.Parameter;
 import beastclassic.evolution.substitutionmodel.SVSGeneralSubstitutionModel;
 
@@ -9,22 +14,23 @@ import beastclassic.evolution.substitutionmodel.SVSGeneralSubstitutionModel;
 
 public class OneRateAllTissues extends SVSGeneralSubstitutionModel {
 
-    @Override
+	private BooleanParameter rateIndicator;
+	private boolean isSymmetric = false;
+	
+	@Override
     public void initAndValidate(){
-    	
+
+		
         frequencies = frequenciesInput.get();
         updateMatrix = true;
         nrOfStates = frequencies.getFreqs().length;
-        eigenSystem = createEigenSystem();
+		eigenSystem = createEigenSystem();
         rateMatrix = new double[nrOfStates][nrOfStates];
         relativeRates = new double[ratesInput.get().getDimension()];
         storedRelativeRates = new double[ratesInput.get().getDimension()];
-        super.initAndValidate();
-    }
-
-    @Override
-    public Parameter<?> getIndicators() {
-        return null;
+        rateIndicator = indicator.get();
+//        super.initAndValidate();
+//        ((SVSGeneralSubstitutionModel) super).initAndValidate();
     }
     
     @Override

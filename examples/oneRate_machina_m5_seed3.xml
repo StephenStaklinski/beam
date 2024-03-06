@@ -1,4 +1,5 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?><beast beautitemplate='FixedTreeAnalysis' beautistatus='' namespace="beast.core:beast.evolution.alignment:beast.evolution.tree.coalescent:beast.core.util:beast.evolution.nuc:beast.evolution.operators:beast.evolution.sitemodel:beast.evolution.substitutionmodel:beast.base.evolution.alignment:beast.pkgmgmt:beast.base.core:beast.base.inference:beast.base.evolution.tree.coalescent:beast.pkgmgmt:beast.base.core:beast.base.inference.util:beast.evolution.nuc:beast.base.evolution.operator:beast.base.inference.operator:beast.base.evolution.sitemodel:beast.base.evolution.substitutionmodel:beast.base.evolution.likelihood" required="BEAST.base v2.7.6:FixedTreeAnalysis v0.0.2:BEAST_CLASSIC v1.6.3" version="2.7">
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<beast beautitemplate='FixedTreeAnalysis' beautistatus='' namespace="beast.core:beast.evolution.alignment:beast.evolution.tree.coalescent:beast.core.util:beast.evolution.nuc:beast.evolution.operators:beast.evolution.sitemodel:beast.evolution.substitutionmodel:beast.base.evolution.alignment:beast.pkgmgmt:beast.base.core:beast.base.inference:beast.base.evolution.tree.coalescent:beast.pkgmgmt:beast.base.core:beast.base.inference.util:beast.evolution.nuc:beast.base.evolution.operator:beast.base.inference.operator:beast.base.evolution.sitemodel:beast.base.evolution.substitutionmodel:beast.base.evolution.likelihood:metastabayes" required="BEAST.base v2.7.6:FixedTreeAnalysis v0.0.2:BEAST_CLASSIC v1.6.3" version="2.7">
 
     <data
 id="sim1_true"
@@ -8,23 +9,14 @@ name="taxa">
     </data>
 
     <map name="Uniform" >beast.base.inference.distribution.Uniform</map>
-
     <map name="Exponential" >beast.base.inference.distribution.Exponential</map>
-
     <map name="LogNormal" >beast.base.inference.distribution.LogNormalDistributionModel</map>
-
     <map name="Normal" >beast.base.inference.distribution.Normal</map>
-
     <map name="Beta" >beast.base.inference.distribution.Beta</map>
-
     <map name="Gamma" >beast.base.inference.distribution.Gamma</map>
-
     <map name="LaplaceDistribution" >beast.base.inference.distribution.LaplaceDistribution</map>
-
     <map name="prior" >beast.base.inference.distribution.Prior</map>
-
     <map name="InverseGamma" >beast.base.inference.distribution.InverseGamma</map>
-
     <map name="OneOnX" >beast.base.inference.distribution.OneOnX</map>
 
     <run id="mcmc" spec="MCMC" chainLength="1000000">
@@ -36,8 +28,8 @@ name="taxa">
                     <taxon id="0-P" spec="Taxon"/> <taxon id="19-P" spec="Taxon"/> <taxon id="43-P" spec="Taxon"/> <taxon id="44-P" spec="Taxon"/> <taxon id="32-37-38-46-M5" spec="Taxon"/> <taxon id="53-M5" spec="Taxon"/> <taxon id="59-M5" spec="Taxon"/> <taxon id="58-M5" spec="Taxon"/> <taxon id="27-35-36-40-41-42-47-M4" spec="Taxon"/> <taxon id="51-M4" spec="Taxon"/> <taxon id="54-M4" spec="Taxon"/> <taxon id="55-M4" spec="Taxon"/> <taxon id="52-M4" spec="Taxon"/> <taxon id="5-6-8-11-12-16-20-31-34-M3" spec="Taxon"/> <taxon id="48-M3" spec="Taxon"/> <taxon id="50-M3" spec="Taxon"/> <taxon id="1-4-13-14-M2" spec="Taxon"/> <taxon id="25-M2" spec="Taxon"/> <taxon id="26-M2" spec="Taxon"/> <taxon id="3-7-10-M1" spec="Taxon"/> <taxon id="15-M1" spec="Taxon"/> <taxon id="18-M1" spec="Taxon"/> 
                 </taxonset>
             </stateNode>
-            <!-- <stateNode id="rateIndicator.s:tissue" spec="parameter.BooleanParameter" dimension="15">true</stateNode> -->
-            <parameter id="relativeGeoRates.s:tissue" spec="parameter.RealParameter" dimension="15" name="stateNode">1.0</parameter>
+            <!-- <stateNode id="rateIndicator.s:tissue" spec="parameter.BooleanParameter" dimension="1">true</stateNode> -->
+            <parameter id="relativeGeoRates.s:tissue" spec="parameter.RealParameter" dimension="1" name="stateNode">1.0</parameter>
             <parameter id="traitClockRate.c:tissue" spec="parameter.RealParameter" name="stateNode">1.0</parameter>
         </state>
         
@@ -90,7 +82,7 @@ name="taxa">
                         <parameter id="gammaShape.s:tissue" spec="parameter.RealParameter" estimate="false" name="shape">1.0</parameter>
                         <parameter id="proportionInvariant.s:tissue" spec="parameter.RealParameter" estimate="false" lower="0.0" name="proportionInvariant" upper="1.0">0.0</parameter>
                         <!-- <substModel id="svs.s:tissue" spec="beastclassic.evolution.substitutionmodel.SVSGeneralSubstitutionModel" rateIndicator="@rateIndicator.s:tissue" rates="@relativeGeoRates.s:tissue" symmetric="true"> -->
-                        <substModel id="svs.s:tissue" spec="metastabayes.substitutionmodel.OneRateAllTissues" rates="@relativeGeoRates.s:tissue">
+                        <substModel id="svs.s:tissue" spec="metastabayes.substitutionmodel.OneRateAllTissues" rates="@relativeGeoRates.s:tissue" rateIndicator="true">
                             <frequencies id="traitfreqs.s:tissue" spec="Frequencies">
                                 <parameter id="traitfrequencies.s:tissue" spec="parameter.RealParameter" dimension="6" name="frequencies">.1666666666</parameter>
                             </frequencies>
@@ -112,7 +104,7 @@ name="taxa">
             <!-- <log idref="rateIndicator.s:tissue"/> -->
             <log idref="relativeGeoRates.s:tissue"/>
             <log idref="traitClockRate.c:tissue"/>
-            <log id="geoSubstModelLogger.s:tissue" spec="beastclassic.evolution.substitutionmodel.SVSGeneralSubstitutionModelLogger" dataType="@traitDataType.tissue" model="@svs.s:tissue"/>
+            <log id="geoSubstModelLogger.s:tissue" spec="metastabayes.substitutionmodel.OneRateAllTissuesLogger" dataType="@traitDataType.tissue" model="@svs.s:tissue"/>
         </logger>
         <logger id="screenlog" spec="Logger" logEvery="10000">
             <log idref="posterior"/>
