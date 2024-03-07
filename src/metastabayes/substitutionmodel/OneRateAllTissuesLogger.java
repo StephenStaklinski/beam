@@ -22,9 +22,7 @@ public class OneRateAllTissuesLogger extends SVSGeneralSubstitutionModelLogger{
 	// only log one parameter since all tissue transitions are fixed to one rate
     @Override
     public void log(long nSample, PrintStream out) {
-        int count = 0;
-        out.print(model.ratesInput.get().getArrayValue(count)
-                *model.indicator.get().getArrayValue(count) + "\t");
+        out.print(model.ratesInput.get().getArrayValue(0) + "\t");
     }
 	
 }

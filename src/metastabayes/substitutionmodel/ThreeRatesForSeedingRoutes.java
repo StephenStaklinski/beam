@@ -5,9 +5,10 @@ import beast.base.core.Function;
 import beast.base.inference.parameter.Parameter;
 import beastclassic.evolution.substitutionmodel.SVSGeneralSubstitutionModel;
 
-@Description("Substitution model with one rate parameter fixed between all tissues")
+@Description("Substitution model with three rate parameter whre one is fixed for leaving the primary, one fixed for met to met transitions," +
+			"and one fixed for returning to the primary")
 
-public class OneRateAllTissues extends SVSGeneralSubstitutionModel {
+public class ThreeRatesForSeedingRoutes extends SVSGeneralSubstitutionModel {
 
 	@Override
     public void initAndValidate(){
@@ -38,16 +39,32 @@ public class OneRateAllTissues extends SVSGeneralSubstitutionModel {
 
         double [] fFreqs = frequencies.getFreqs();
         
-        // custom rate matrix setup with all rates fixed to a single a parameter
-        int count = 0;
+        // custom asymmetric rate matrix with 3 parameters with rates fixed for one leaving primary, one met to met, and one met to primary.
         for (int i = 0; i < nrOfStates; i++) {
             rateMatrix[i][i] = 0;
-            for (int j = i+1; j <  nrOfStates; j++) {
-                rateMatrix[i][j] = relativeRates[count];
-               	rateMatrix[j][i] = relativeRates[count];
+            // row 1 is all parameter0 for leaving the primary            
+            // column 1 is all parameter2 for returning to the parameter
+            // all others are parameter1 for met to met transitions
+            for (int j = 0; j < i; j++) {
+                if (i == 0) {
+                	rateMatrix[i][j] = relativeRates[0];
+                } else if (j == 0) {
+                	rateMatrix[i][j] = relativeRates[2];
+                } else {
+                	rateMatrix[i][j] = relativeRates[1];
+                }
             }
-
+            for (int j = i + 1; j < nrOfStates; j++) {
+                if (i == 0) {
+                	rateMatrix[i][j] = relativeRates[0];
+                } else if (j == 0) {
+                	rateMatrix[i][j] = relativeRates[2];
+                } else {
+                	rateMatrix[i][j] = relativeRates[1];
+                }
+            }
         }
+        
         // bring in frequencies
         for (int i = 0; i < nrOfStates; i++) {
             for (int j = i + 1; j < nrOfStates; j++) {
