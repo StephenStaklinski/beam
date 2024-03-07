@@ -8,11 +8,10 @@ import beastclassic.evolution.substitutionmodel.SVSGeneralSubstitutionModel;
 @Description("Substitution model with one rate parameter fixed between all tissues")
 
 public class OneRateAllTissues extends SVSGeneralSubstitutionModel {
-
+	
 	@Override
     public void initAndValidate(){
 
-		
         frequencies = frequenciesInput.get();
         updateMatrix = true;
         nrOfStates = frequencies.getFreqs().length;

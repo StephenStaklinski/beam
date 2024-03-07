@@ -33,17 +33,15 @@ public class ThreeRatesForSeedingRoutesLogger extends SVSGeneralSubstitutionMode
     public void log(long nSample, PrintStream out) {
         for (int i=0; i<model.getStateCount(); i++) {
             for (int j=0; j<model.getStateCount(); j++) {
-                if (j==i) {
+                if (j==i)
                 	continue;
-                } else if (i == 0) {
+                if (i == 0) {
                     out.print(model.ratesInput.get().getArrayValue(0) + "\t"); 
                 } else if (j == 0) {
                     out.print(model.ratesInput.get().getArrayValue(2) + "\t");
                 } else {
                     out.print(model.ratesInput.get().getArrayValue(1) + "\t");
                 }
-
-
             }
         }
     }

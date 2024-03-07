@@ -9,7 +9,7 @@ import beastclassic.evolution.substitutionmodel.SVSGeneralSubstitutionModel;
 			"and one fixed for returning to the primary")
 
 public class ThreeRatesForSeedingRoutes extends SVSGeneralSubstitutionModel {
-
+	
 	@Override
     public void initAndValidate(){
 
