@@ -7,5 +7,10 @@
     <provider classname="metastabayes.substitutionmodel.OneRateAllTissuesLogger"/>
     <provider classname="metastabayes.substitutionmodel.ThreeRatesForSeedingRoutes"/>
     <provider classname="metastabayes.substitutionmodel.ThreeRatesForSeedingRoutesLogger"/>
+    <provider classname="tidetree.evolution.datatype.EditData"/>
+    <provider classname="tidetree.substitutionmodel.EditAndSilencingModel"/>
+    <provider classname="tidetree.tree.StartingTree"/>
+    <provider classname="tidetree.distributions.TreeLikelihoodWithEditWindow"/>
+    <provider classname="tidetree.simulation.SimulatedAlignment"/>
   </service>
 </package>
