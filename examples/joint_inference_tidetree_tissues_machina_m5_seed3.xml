@@ -228,7 +228,7 @@
         <log idref="tree" printMetaData="true"/>
     </logger>
     
-    <logger id="treeWithTraitLogger.tissue" spec="Logger" fileName="tissue_tree_with_trait.trees" logEvery="10000" mode="tree">
+    <logger id="treeWithTraitLogger.tissue" spec="Logger" fileName="$(filebase)_tissues.trees" logEvery="10000" mode="tree">
         <log id="treeWithTraitLoggerItem.t:tree" spec="beastclassic.evolution.tree.TreeWithTraitLogger" tree="@tree">
             <metadata idref="posterior"/>
             <metadata idref="traitedtreeLikelihood.tissue"/>
