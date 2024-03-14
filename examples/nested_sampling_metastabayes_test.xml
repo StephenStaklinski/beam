@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><beast beautitemplate='FixedTreeAnalysis' beautistatus='' namespace="beast.core:beast.evolution.alignment:beast.evolution.tree.coalescent:beast.core.util:beast.evolution.nuc:beast.evolution.operators:beast.evolution.sitemodel:beast.evolution.substitutionmodel:beast.base.evolution.alignment:beast.pkgmgmt:beast.base.core:beast.base.inference:beast.base.evolution.tree.coalescent:beast.pkgmgmt:beast.base.core:beast.base.inference.util:beast.evolution.nuc:beast.base.evolution.operator:beast.base.inference.operator:beast.base.evolution.sitemodel:beast.base.evolution.substitutionmodel:beast.base.evolution.likelihood:metastabayes" required="BEAST.base v2.7.6:FixedTreeAnalysis v0.0.2:BEAST_CLASSIC v1.6.3" version="2.7">
+
+    <data
+id="sim1_true"
+spec="Alignment"
+name="taxa">
+        <sequence id="Sequence.0" spec="Sequence" taxon="13-P" totalcount="4" value="?"/> <sequence id="Sequence.1" spec="Sequence" taxon="16-P" totalcount="4" value="?"/> <sequence id="Sequence.2" spec="Sequence" taxon="29-P" totalcount="4" value="?"/> <sequence id="Sequence.3" spec="Sequence" taxon="21-22-24-30-M4" totalcount="4" value="?"/> <sequence id="Sequence.4" spec="Sequence" taxon="38-M4" totalcount="4" value="?"/> <sequence id="Sequence.5" spec="Sequence" taxon="41-M4" totalcount="4" value="?"/> <sequence id="Sequence.6" spec="Sequence" taxon="19-M3" totalcount="4" value="?"/> <sequence id="Sequence.7" spec="Sequence" taxon="34-M3" totalcount="4" value="?"/> <sequence id="Sequence.8" spec="Sequence" taxon="5-11-18-20-23-25-27-28-M2" totalcount="4" value="?"/> <sequence id="Sequence.9" spec="Sequence" taxon="32-M2" totalcount="4" value="?"/> <sequence id="Sequence.10" spec="Sequence" taxon="36-M2" totalcount="4" value="?"/> <sequence id="Sequence.11" spec="Sequence" taxon="35-M2" totalcount="4" value="?"/> <sequence id="Sequence.12" spec="Sequence" taxon="37-M2" totalcount="4" value="?"/> <sequence id="Sequence.13" spec="Sequence" taxon="9-M1" totalcount="4" value="?"/> <sequence id="Sequence.14" spec="Sequence" taxon="10-M1" totalcount="4" value="?"/> <sequence id="Sequence.15" spec="Sequence" taxon="12-M1" totalcount="4" value="?"/> 
+    </data>
+
+    <map name="Uniform" >beast.base.inference.distribution.Uniform</map>
+
+    <map name="Exponential" >beast.base.inference.distribution.Exponential</map>
+
+    <map name="LogNormal" >beast.base.inference.distribution.LogNormalDistributionModel</map>
+
+    <map name="Normal" >beast.base.inference.distribution.Normal</map>
+
+    <map name="Beta" >beast.base.inference.distribution.Beta</map>
+
+    <map name="Gamma" >beast.base.inference.distribution.Gamma</map>
+
+    <map name="LaplaceDistribution" >beast.base.inference.distribution.LaplaceDistribution</map>
+
+    <map name="prior" >beast.base.inference.distribution.Prior</map>
+
+    <map name="InverseGamma" >beast.base.inference.distribution.InverseGamma</map>
+
+    <map name="OneOnX" >beast.base.inference.distribution.OneOnX</map>
+
+    <run id="mcmc" spec="beast.gss.NS" chainLength="1000000" particleCount="10" subChainLength="10000" epsilon="1e-13">
+        <state id="state" spec="State" storeEvery="5000">
+            <stateNode id="Tree.t:tree" spec="fixedtreeanalysis.evolution.tree.FixedTree" IsLabelledNewick="true" adjustTipHeights="false" newick="(((13-P:1,(16-P:1,29-P:1,(21-22-24-30-M4:1,38-M4:1,41-M4:1):1):1,(19-M3:1,34-M3:1):1):1,(5-11-18-20-23-25-27-28-M2:1,(32-M2:1,36-M2:1):1,35-M2:1,37-M2:1):1):1,(9-M1:1,10-M1:1,12-M1:1):1):1">
+                <taxa idref="sim1_true"/>
+                <taxonset id="TaxonSet.1" spec="TaxonSet">
+                    <taxon id="13-P" spec="Taxon"/> <taxon id="16-P" spec="Taxon"/> <taxon id="29-P" spec="Taxon"/> <taxon id="21-22-24-30-M4" spec="Taxon"/> <taxon id="38-M4" spec="Taxon"/> <taxon id="41-M4" spec="Taxon"/> <taxon id="19-M3" spec="Taxon"/> <taxon id="34-M3" spec="Taxon"/> <taxon id="5-11-18-20-23-25-27-28-M2" spec="Taxon"/> <taxon id="32-M2" spec="Taxon"/> <taxon id="36-M2" spec="Taxon"/> <taxon id="35-M2" spec="Taxon"/> <taxon id="37-M2" spec="Taxon"/> <taxon id="9-M1" spec="Taxon"/> <taxon id="10-M1" spec="Taxon"/> <taxon id="12-M1" spec="Taxon"/> 
+                </taxonset>
+            </stateNode>
+            <stateNode id="rateIndicator.s:tissue" spec="parameter.BooleanParameter" dimension="1">true</stateNode>
+            <parameter id="relativeGeoRates.s:tissue" spec="parameter.RealParameter" dimension="1" name="stateNode">1.0</parameter>
+            <parameter id="traitClockRate.c:tissue" spec="parameter.RealParameter" name="stateNode">1.0</parameter>
+        </state>
+        <distribution id="posterior" spec="CompoundDistribution">
+            <distribution id="prior" spec="CompoundDistribution">
+                <distribution id="FixedTreeModel.t:tree" spec="fixedtreeanalysis.evolution.tree.FixedTreeDistribution" tree="@Tree.t:tree"/>
+                <prior id="relativeGeoRatesPrior.s:tissue" name="distribution" x="@relativeGeoRates.s:tissue">
+                    <Gamma id="Gamma.2" name="distr">
+                        <parameter id="RealParameter.8" spec="parameter.RealParameter" estimate="false" name="alpha">1.0</parameter>
+                        <parameter id="RealParameter.9" spec="parameter.RealParameter" estimate="false" name="beta">1.0</parameter>
+                    </Gamma>
+                </prior>
+                <prior id="geoclockPrior.c:tissue" name="distribution" x="@traitClockRate.c:tissue">
+                    <Gamma id="Gamma.1" name="distr">
+                        <parameter id="RealParameter.6" spec="parameter.RealParameter" estimate="false" name="alpha">0.001</parameter>
+                        <parameter id="RealParameter.7" spec="parameter.RealParameter" estimate="false" name="beta">1000.0</parameter>
+                    </Gamma>
+                </prior>
+            </distribution>
+            <distribution id="likelihood" spec="CompoundDistribution" useThreads="true">
+                <distribution id="treeLikelihood.sim1_true" spec="fixedtreeanalysis.evolution.likelihood.FixedTreeLikelihood" data="@sim1_true" tree="@Tree.t:tree">
+                    <siteModel id="FixedSiteModel.s:sim1_true" spec="fixedtreeanalysis.evolution.sitemodel.FixedSiteModel">
+                        <parameter id="RealParameter.0" spec="parameter.RealParameter" estimate="false" lower="0.0" name="mutationRate" upper="1.0">1.0</parameter>
+                        <parameter id="RealParameter.1" spec="parameter.RealParameter" lower="0.0" name="shape" upper="0.0">1.0</parameter>
+                        <parameter id="RealParameter.2" spec="parameter.RealParameter" lower="0.0" name="proportionInvariant" upper="0.0">0.0</parameter>
+                        <substModel id="JC69.s:sim1_true" spec="JukesCantor"/>
+                    </siteModel>
+                    <branchRateModel id="FixedClock.c:sim1_true" spec="fixedtreeanalysis.evolution.branchratemodel.FixedClockModel">
+                        <parameter id="RealParameter.3" spec="parameter.RealParameter" estimate="false" name="clock.rate">1.0</parameter>
+                    </branchRateModel>
+                </distribution>
+                <distribution id="traitedtreeLikelihood.tissue" spec="beastclassic.evolution.likelihood.AncestralStateTreeLikelihood" tag="location" tree="@Tree.t:tree">
+                    <rootFrequencies spec="beast.base.evolution.substitutionmodel.Frequencies" frequencies="1 0 0 0 0" estimate="false"/>
+                    <data
+id="tissue"
+spec="beastclassic.evolution.alignment.AlignmentFromTrait">
+                        <traitSet id="traitSet.tissue" spec="beast.base.evolution.tree.TraitSet" taxa="@TaxonSet.1" traitname="discrete">13-P=P, 16-P=P, 29-P=P, 21-22-24-30-M4=M4, 38-M4=M4, 41-M4=M4, 19-M3=M3, 34-M3=M3, 5-11-18-20-23-25-27-28-M2=M2, 32-M2=M2, 36-M2=M2, 35-M2=M2, 37-M2=M2, 9-M1=M1, 10-M1=M1, 12-M1=M1 </traitSet>
+                        <userDataType id="traitDataType.tissue" spec="beast.base.evolution.datatype.UserDataType" codeMap="P=0,M1=1,M2=2,M3=3,M4=4,? = 0 1 2 3 4" codelength="-1" states="5"/>
+                    </data>
+                    <siteModel id="geoSiteModel.s:tissue" spec="SiteModel" gammaCategoryCount="1">
+                        <parameter id="mutationRate.s:tissue" spec="parameter.RealParameter" estimate="false" name="mutationRate">1.0</parameter>
+                        <parameter id="gammaShape.s:tissue" spec="parameter.RealParameter" estimate="false" name="shape">1.0</parameter>
+                        <parameter id="proportionInvariant.s:tissue" spec="parameter.RealParameter" estimate="false" lower="0.0" name="proportionInvariant" upper="1.0">0.0</parameter>
+                        <substModel id="svs.s:tissue" spec="metastabayes.substitutionmodel.OneRateAllTissues" rates="@relativeGeoRates.s:tissue" rateIndicator="@rateIndicator.s:tissue" symmetric="true">
+                            <frequencies id="traitfreqs.s:tissue" spec="Frequencies">
+                                <parameter id="traitfrequencies.s:tissue" spec="parameter.RealParameter" dimension="5" name="frequencies">.2000000000</parameter>
+                            </frequencies>
+                        </substModel>
+                    </siteModel>
+                    <branchRateModel id="StrictClockModel.c:tissue" spec="beast.base.evolution.branchratemodel.StrictClockModel" clock.rate="@traitClockRate.c:tissue"/>
+                </distribution>
+            </distribution>
+        </distribution>
+        <operator id="georateScaler.s:tissue" spec="ScaleOperator" parameter="@relativeGeoRates.s:tissue" scaleAllIndependently="true" scaleFactor="0.99" weight="30.0"/>
+        <!-- <operator id="indicatorFlip.s:tissue" spec="operator.BitFlipOperator" parameter="@rateIndicator.s:tissue" weight="30.0"/> -->
+        <operator id="geoMuScaler.c:tissue" spec="ScaleOperator" parameter="@traitClockRate.c:tissue" scaleFactor="0.9" weight="3.0"/>
+        <!-- <operator id="BSSVSoperator.c:tissue" spec="beastclassic.evolution.operators.BitFlipBSSVSOperator" indicator="@rateIndicator.s:tissue" mu="@traitClockRate.c:tissue" weight="30.0"/> -->
+        <logger id="tracelog" spec="NSLogger" fileName="$(filebase).log" logEvery="1000" model="@posterior" sanitiseHeaders="true" sort="smart">
+            <log idref="posterior"/>
+            <log idref="likelihood"/>
+            <log idref="prior"/>
+            <log idref="treeLikelihood.sim1_true"/>
+            <!-- <log idref="rateIndicator.s:tissue"/> -->
+            <log idref="relativeGeoRates.s:tissue"/>
+            <log idref="traitClockRate.c:tissue"/>
+            <log id="geoSubstModelLogger.s:tissue" spec="metastabayes.substitutionmodel.OneRateAllTissuesLogger" dataType="@traitDataType.tissue" model="@svs.s:tissue"/>
+        </logger>
+        <logger id="screenlog" spec="Logger" logEvery="10000">
+            <log idref="posterior"/>
+            <log id="ESS.0" spec="util.ESS" arg="@posterior"/>
+            <log idref="likelihood"/>
+            <log idref="prior"/>
+        </logger>
+        <logger id="treelog.t:tree" spec="Logger" fileName="$(filebase).trees" logEvery="1000" mode="tree">
+            <log id="TreeWithMetaDataLogger.t:tree" spec="beast.base.evolution.TreeWithMetaDataLogger" tree="@Tree.t:tree"/>
+        </logger>
+        <logger id="treeWithTraitLogger.tissue" spec="Logger" fileName="$(filebase)_tissues.trees" logEvery="1000" mode="tree">
+            <log id="treeWithTraitLoggerItem.t:tree" spec="beastclassic.evolution.tree.TreeWithTraitLogger" tree="@Tree.t:tree">
+                <metadata idref="posterior"/>
+                <metadata idref="traitedtreeLikelihood.tissue"/>
+            </log>
+        </logger>
+        <operatorschedule id="OperatorSchedule" spec="OperatorSchedule"/>
+    </run>
+
+</beast>
