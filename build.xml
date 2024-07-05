@@ -12,7 +12,6 @@
                 <fileset dir="${dir.workspace}/beast-classic/lib" includes="*.jar"/>
                 <fileset dir="${dir.workspace}/BeastFX/locallib" includes="*.jar"/>
                 <fileset dir="${dir.workspace}/tidetree/bin" includes="*.jar"/>
-                <pathelement location="${dir.workspace}/FixedTreeAnalysis/bin"/>
                 <pathelement path="${dir.workspace}/BeastFX/bin"/>
                 <pathelement path="${dir.workspace}/feast/bin"/>
                 <pathelement location="${dir.workspace}/beast-classic/bin"/>
@@ -51,7 +50,6 @@
             <zipfileset excludes="META-INF/*.SF" src="${dir.workspace}/beast2/release/common/tools/DensiTree.jar"/>
             <fileset dir="${dir.workspace}/BeastFX/bin"/>
             <fileset dir="${dir.workspace}/feast/bin"/>
-            <fileset dir="${dir.workspace}/FixedTreeAnalysis/bin"/>
             <fileset dir="${dir.workspace}/beast-classic/bin"/>
             <fileset dir="${dir.workspace}/BEASTLabs/bin"/>
             <zipfileset excludes="META-INF/*.SF" src="${dir.workspace}/BEASTLabs/lib/junit-4.8.2.jar"/>
