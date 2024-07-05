@@ -1,1 +1,3 @@
-/bin/
+bin
+examples
+.DS_Store
