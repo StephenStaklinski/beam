@@ -1,2 +1,4 @@
-examples
+.log
+.trees
+.state
 .DS_Store

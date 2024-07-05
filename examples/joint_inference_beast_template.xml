@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<beast beautitemplate='MultiTypeBirthDeath' beautistatus='' namespace="beast.core:beast.evolution.alignment
+    :beast.evolution.tree.coalescent:beast.core.util
+    :beast.evolution.nuc
+    :beast.evolution.operators
+    :beast.evolution.sitemodel
+    :beast.evolution.substitutionmodel
+    :beast.base.evolution.alignment
+    :beast.pkgmgmt
+    :beast.base.core
+    :beast.base.inference
+    :beast.base.evolution.tree.coalescent
+    :beast.base.core
+    :beast.base.inference.util
+    :beast.evolution.nuc
+    :beast.base.evolution.operator
+    :beast.base.inference.operator
+    :beast.base.evolution.sitemodel
+    :beast.base.evolution.substitutionmodel
+    :beast.base.evolution.likelihood
+    :metastabayes
+    :tidetree" required="BEAST.base v2.7.6:BEAST_CLASSIC v1.6.3" version="2.7">
+
+<!-- syntactic sugar -->
+<map name="Uniform" >beast.base.inference.distribution.Uniform</map>
+<map name="Exponential" >beast.base.inference.distribution.Exponential</map>
+<map name="LogNormal" >beast.base.inference.distribution.LogNormalDistributionModel</map>
+<map name="Normal" >beast.base.inference.distribution.Normal</map>
+<map name="Beta" >beast.base.inference.distribution.Beta</map>
+<map name="Gamma" >beast.base.inference.distribution.Gamma</map>
+<map name="LaplaceDistribution" >beast.base.inference.distribution.LaplaceDistribution</map>
+<map name="prior" >beast.base.inference.distribution.Prior</map>
+<map name="InverseGamma" >beast.base.inference.distribution.InverseGamma</map>
+<map name="OneOnX" >beast.base.inference.distribution.OneOnX</map>
+
+
+<!-- User inputs -->
+<data  id="s1_c1_data.txt" spec="Alignment" name="alignment">
+    <userDataType spec="tidetree.evolution.datatype.EditData" nrOfStates="1" />
+    <sequence id="15985246" spec="Sequence" taxon="15985246" value="1,0,0,0,2,3,4,5,6,7,0,0,8,9,0,10,0,11,12,13,0,0,0,14,0,0,0,9,0,15,10,16,17,0,18,19,20,18,0,21,0,18,22,0,0,18,0,23,24,0,"/><sequence id="15966935" spec="Sequence" taxon="15966935" value="25,22,0,0,2,3,26,18,0,0,27,21,28,25,8,18,29,30,0,31,0,0,32,33,34,19,10,32,29,0,10,16,17,0,35,36,37,18,0,21,16,38,15,27,20,14,0,8,39,40,"/><sequence id="15737445" spec="Sequence" taxon="15737445" value="41,0,0,35,2,3,0,42,43,0,26,0,8,0,44,45,0,0,46,42,9,15,42,3,0,0,0,47,10,10,10,16,17,12,3,18,0,18,0,21,10,33,40,4,48,1,18,0,10,18,"/><sequence id="15978667" spec="Sequence" taxon="15978667" value="18,0,44,22,2,3,0,46,5,41,32,15,49,32,18,50,0,25,0,9,51,20,10,52,38,23,0,53,0,26,10,16,17,54,0,40,0,18,42,21,1,0,0,16,0,52,55,41,42,48,"/><sequence id="15977655" spec="Sequence" taxon="15977655" value="56,32,38,0,2,3,22,0,4,1,46,53,15,0,27,33,0,57,12,58,0,59,3,0,0,60,43,49,0,5,10,16,17,26,25,4,0,18,0,21,0,42,61,48,0,62,0,20,9,40,"/><sequence id="15987886" spec="Sequence" taxon="15987886" value="0,9,18,0,2,3,27,9,0,0,0,20,0,39,7,21,18,25,39,46,63,0,42,0,0,53,33,33,21,0,10,16,17,32,64,27,0,18,26,21,33,18,65,26,0,38,0,33,0,32,"/><sequence id="15012264" spec="Sequence" taxon="15012264" value="0,0,32,22,2,3,66,0,51,0,16,67,1,0,18,22,16,32,46,16,32,68,0,0,0,10,44,32,69,35,10,16,17,0,22,5,0,18,42,21,0,52,52,0,0,0,0,23,42,22,"/><sequence id="15932694" spec="Sequence" taxon="15932694" value="32,47,60,22,2,3,0,0,33,6,22,8,0,0,5,14,0,18,34,0,0,0,0,0,0,48,5,0,1,0,10,16,17,33,0,70,40,18,0,21,40,0,8,43,71,0,44,26,33,32,"/><sequence id="16106237" spec="Sequence" taxon="16106237" value="24,52,0,22,2,3,1,43,0,27,0,8,49,16,72,0,0,0,0,0,17,0,1,18,0,39,9,0,22,73,10,16,17,16,29,74,4,18,75,0,0,0,0,27,0,22,0,49,57,0,"/><sequence id="15990358" spec="Sequence" taxon="15990358" value="0,25,54,35,2,3,7,0,0,0,18,10,0,42,48,0,10,10,5,25,0,0,65,33,4,0,0,0,32,15,10,16,17,46,48,0,6,18,0,21,39,0,70,16,8,8,22,27,0,10,"/><sequence id="15960500" spec="Sequence" taxon="15960500" value="14,1,32,22,2,3,66,18,51,0,46,67,0,5,18,12,16,32,46,16,0,0,32,32,0,34,44,32,69,35,10,16,17,3,22,32,29,18,42,21,0,52,0,66,33,0,10,22,42,22,"/><sequence id="15963471" spec="Sequence" taxon="15963471" value="0,0,32,22,2,3,66,0,51,0,32,67,5,0,18,76,16,32,46,16,0,0,0,32,44,0,44,32,69,35,10,16,17,0,22,18,72,18,42,21,0,52,9,0,0,64,22,0,42,22,"/><sequence id="16207194" spec="Sequence" taxon="16207194" value="50,0,32,22,2,3,66,16,51,5,10,67,0,0,18,0,16,32,46,16,1,10,0,32,10,41,44,32,69,35,10,16,17,52,22,0,0,18,42,21,0,52,54,74,0,33,28,77,42,22,"/><sequence id="15921937" spec="Sequence" taxon="15921937" value="32,47,18,22,2,3,55,23,33,31,0,8,27,3,69,14,16,0,22,0,0,33,41,60,67,48,45,46,1,40,10,16,17,0,65,0,1,18,0,21,40,0,8,62,0,16,61,27,33,62,"/><sequence id="16175340" spec="Sequence" taxon="16175340" value="32,47,78,22,2,3,0,0,33,0,15,8,8,0,0,14,0,57,63,10,0,0,1,8,0,48,19,0,1,16,10,16,17,18,52,0,79,18,39,21,0,0,8,15,40,5,1,26,33,0,"/><sequence id="15162331" spec="Sequence" taxon="15162331" value="24,52,0,22,2,3,1,43,0,0,0,8,49,16,72,0,0,0,0,12,17,0,1,18,0,39,9,0,22,73,10,16,17,16,29,74,4,18,75,0,0,0,0,27,5,22,0,0,57,0,"/><sequence id="16109759" spec="Sequence" taxon="16109759" value="24,52,0,22,2,3,1,43,0,0,0,8,49,16,72,5,0,52,0,0,17,5,1,18,0,39,9,0,22,73,10,16,17,16,29,74,4,18,75,0,0,16,0,27,0,22,0,0,57,48,"/><sequence id="16053559" spec="Sequence" taxon="16053559" value="5,73,4,22,2,3,0,8,0,52,3,2,40,40,12,52,43,33,15,6,36,0,41,65,78,0,18,50,25,25,10,16,17,0,70,0,69,18,76,21,52,10,5,16,59,41,0,33,75,0,"/><sequence id="16139505" spec="Sequence" taxon="16139505" value="5,0,0,22,2,3,0,8,0,52,0,2,40,40,0,0,43,33,15,6,36,0,41,65,78,2,18,50,0,25,10,16,17,0,6,10,0,18,0,21,0,3,5,16,4,41,50,33,0,39,"/><sequence id="15415015" spec="Sequence" taxon="15415015" value="5,1,40,22,2,3,0,8,0,52,0,2,40,40,0,0,43,33,15,6,36,62,41,65,78,2,18,50,0,25,10,16,17,0,0,62,0,18,46,21,53,3,5,16,0,41,0,33,42,0,"/><sequence id="15515336" spec="Sequence" taxon="15515336" value="39,64,30,46,2,3,27,0,22,52,37,0,16,0,0,7,0,0,27,0,16,0,1,5,18,69,49,53,46,74,10,16,17,0,0,31,16,18,63,21,48,37,0,16,0,0,62,0,0,48,"/><sequence id="16090340" spec="Sequence" taxon="16090340" value="3,0,0,38,2,3,0,18,31,44,2,0,33,0,0,0,0,0,26,55,53,26,2,18,40,12,0,16,32,58,10,16,17,16,0,0,69,18,0,21,48,0,26,65,0,18,37,32,0,32,"/><sequence id="15623186" spec="Sequence" taxon="15623186" value="3,0,46,38,2,3,0,18,31,44,2,70,33,0,0,0,53,19,26,55,53,26,0,18,8,27,0,16,0,58,10,16,17,5,0,0,69,18,0,21,48,0,26,65,0,46,37,0,1,32,"/><sequence id="16090128" spec="Sequence" taxon="16090128" value="3,28,0,38,2,3,0,18,31,44,2,0,33,0,0,0,40,0,26,55,53,26,0,18,22,0,20,16,55,58,10,16,17,0,0,0,69,18,52,21,48,0,26,65,5,48,37,0,1,32,"/><sequence id="16141908" spec="Sequence" taxon="16141908" value="5,73,41,22,2,3,53,8,0,52,4,2,40,40,12,0,43,33,15,6,36,0,41,65,78,0,18,50,0,25,10,16,17,48,5,0,0,18,0,21,59,0,5,16,0,41,1,33,75,0,"/><sequence id="16153856" spec="Sequence" taxon="16153856" value="5,73,0,22,2,3,0,8,56,52,0,2,40,40,12,0,43,33,15,6,36,0,41,65,78,5,18,50,0,25,10,16,17,0,5,33,0,18,4,21,0,46,5,16,80,41,0,33,75,0,"/><sequence id="15652563" spec="Sequence" taxon="15652563" value="5,73,0,22,2,3,52,8,0,52,0,2,40,40,0,54,43,33,15,6,36,0,41,65,78,0,18,50,0,25,10,16,17,0,27,0,0,18,0,21,0,22,5,16,0,41,0,33,75,0,"/><sequence id="15431809" spec="Sequence" taxon="15431809" value="5,73,0,22,2,3,16,8,0,52,0,2,40,40,0,0,43,33,15,6,36,0,41,65,78,10,18,50,0,25,10,16,17,0,10,20,2,18,0,21,0,22,5,16,20,41,0,33,75,0,"/><sequence id="15866919" spec="Sequence" taxon="15866919" value="5,73,0,22,2,3,0,8,43,52,0,2,40,40,10,5,43,33,15,6,36,0,41,65,78,18,18,50,0,25,10,16,17,0,0,0,0,18,64,21,0,81,5,16,0,41,3,33,75,0,"/><sequence id="16056934" spec="Sequence" taxon="16056934" value="5,0,0,22,2,3,0,8,0,52,0,2,40,40,0,0,43,33,15,6,36,0,41,65,78,2,18,50,0,25,10,16,17,23,0,3,0,18,0,21,0,3,5,16,7,41,52,33,0,0,"/><sequence id="16144804" spec="Sequence" taxon="16144804" value="5,27,0,22,2,3,5,8,0,52,55,2,40,40,64,0,43,33,15,6,36,0,41,65,78,2,18,50,0,25,10,16,17,3,0,0,0,18,0,21,0,3,5,16,7,41,0,33,0,0,"/><sequence id="15336356" spec="Sequence" taxon="15336356" value="5,42,18,22,2,3,0,8,0,52,9,2,40,40,2,52,43,33,15,6,36,0,41,65,78,2,18,50,0,25,10,16,17,31,1,0,0,18,0,21,0,3,5,16,0,41,33,33,59,0,"/><sequence id="15571432" spec="Sequence" taxon="15571432" value="5,42,0,22,2,3,0,8,0,52,9,2,40,40,0,0,43,33,15,6,36,0,41,65,78,2,18,50,0,25,10,16,17,31,0,0,32,18,0,21,0,3,5,16,0,41,33,33,28,0,"/><sequence id="15859164" spec="Sequence" taxon="15859164" value="3,0,2,38,2,3,37,18,31,44,2,0,33,0,44,0,0,62,26,55,53,26,0,18,40,0,20,16,0,58,10,16,17,0,53,33,69,18,0,21,48,0,26,65,0,54,37,53,4,32,"/><sequence id="16095513" spec="Sequence" taxon="16095513" value="3,50,0,38,2,3,0,18,31,44,2,0,33,0,55,22,74,0,26,55,53,26,0,18,40,0,2,16,22,58,10,16,17,0,53,0,69,18,60,21,48,0,26,65,0,0,37,29,0,32,"/><sequence id="15639396" spec="Sequence" taxon="15639396" value="5,73,0,22,2,3,0,8,0,52,0,2,40,40,0,0,43,33,15,6,36,0,41,65,78,22,18,50,0,25,10,16,17,0,0,0,0,18,0,21,0,0,5,16,0,41,0,33,75,0,"/><sequence id="16127071" spec="Sequence" taxon="16127071" value="5,73,0,22,2,3,16,8,5,52,0,2,40,40,0,0,43,33,15,6,36,0,41,65,78,22,18,50,0,25,10,16,17,0,0,0,44,18,52,21,0,20,5,16,7,41,0,33,75,0,"/><sequence id="15772422" spec="Sequence" taxon="15772422" value="1,30,0,32,2,3,0,0,3,32,41,0,0,0,22,27,32,58,44,50,50,39,27,77,5,26,25,15,4,22,10,16,17,70,0,0,57,18,0,21,27,12,0,16,0,16,0,70,15,22,"/><sequence id="15297598" spec="Sequence" taxon="15297598" value="1,30,34,32,2,3,16,0,3,32,41,0,0,53,21,27,32,0,44,50,50,39,27,66,5,26,25,15,4,22,10,16,17,70,0,0,0,18,9,21,27,12,0,16,0,16,0,70,0,22,"/><sequence id="16002607" spec="Sequence" taxon="16002607" value="1,30,0,32,2,3,0,0,3,32,41,0,0,0,0,27,32,0,44,50,50,39,27,0,5,26,25,15,4,22,10,16,17,70,40,0,0,18,0,21,27,12,0,16,0,16,21,70,0,22,"/><sequence id="15886285" spec="Sequence" taxon="15886285" value="5,73,15,22,2,3,0,8,45,52,0,2,40,40,0,0,43,33,15,6,36,44,41,65,78,0,18,50,0,25,10,16,17,0,0,0,0,18,16,21,0,0,5,16,12,41,33,33,75,0,"/><sequence id="16128372" spec="Sequence" taxon="16128372" value="5,73,0,22,2,3,22,8,0,52,0,2,40,40,0,32,43,33,15,6,36,0,41,65,78,0,18,50,0,25,10,16,17,0,0,0,0,18,16,21,0,0,5,16,12,41,0,33,75,0,"/><sequence id="16034039" spec="Sequence" taxon="16034039" value="1,30,0,32,2,3,0,58,3,32,41,0,62,0,0,27,32,0,44,50,50,39,27,0,5,26,25,15,4,22,10,16,17,70,0,0,18,18,0,21,27,12,0,16,0,16,0,70,0,22,"/><sequence id="16039668" spec="Sequence" taxon="16039668" value="1,30,0,32,2,3,16,0,3,32,41,8,0,0,0,27,32,0,44,50,50,39,27,0,5,26,25,15,4,22,10,16,17,70,0,55,18,18,2,21,27,12,0,16,0,16,0,70,0,22,"/><sequence id="14635667" spec="Sequence" taxon="14635667" value="1,30,43,32,2,3,0,0,3,32,41,53,1,0,0,27,32,0,44,50,50,39,27,0,5,26,25,15,4,22,10,16,17,70,62,0,18,18,0,21,27,12,35,16,0,16,64,70,0,22,"/><sequence id="16019691" spec="Sequence" taxon="16019691" value="1,30,0,32,2,3,0,17,3,32,41,0,54,0,0,27,32,0,44,50,50,39,27,22,5,26,25,15,4,22,10,16,17,70,0,0,18,18,0,21,27,12,0,16,0,16,2,70,50,22,"/><sequence id="16024979" spec="Sequence" taxon="16024979" value="1,30,22,32,2,3,0,0,3,32,41,0,0,0,0,27,32,0,44,50,50,39,27,0,5,26,25,15,4,22,10,16,17,70,0,0,18,18,0,21,27,12,69,16,0,16,0,70,0,22,"/><sequence id="16024565" spec="Sequence" taxon="16024565" value="1,30,22,32,2,3,0,1,3,32,41,0,0,0,0,27,32,0,44,50,50,39,27,0,5,26,25,15,4,22,10,16,17,70,0,0,18,18,0,21,27,12,0,16,52,16,0,70,0,22,"/><sequence id="16038361" spec="Sequence" taxon="16038361" value="1,30,0,32,2,3,0,0,3,32,41,0,0,0,0,27,32,0,44,50,50,39,27,0,5,26,25,15,4,22,10,16,17,70,5,0,18,18,0,21,27,12,23,16,16,16,0,70,3,22,"/><sequence id="16037363" spec="Sequence" taxon="16037363" value="1,30,0,32,2,3,0,0,3,32,41,64,0,0,0,27,32,2,44,50,50,39,27,0,5,26,25,15,4,22,10,16,17,70,0,0,18,18,0,21,27,12,0,16,16,16,0,70,0,22,"/>
+</data>
+    
+<taxonset id="TaxonSet" spec="TaxonSet">
+    <alignment idref="s1_c1_data.txt"/>
+</taxonset>
+    
+<traitSet id="dateTrait" spec="beast.base.evolution.tree.TraitSet" taxa="@TaxonSet" traitname="date-forward"
+      value="16127071=250,15866919=250,16024565=250,15737445=250,15772422=250,15652563=250,16038361=250,16053559=250,16139505=250,15985246=250,16175340=250,15012264=250,15623186=250,16090340=250,15431809=250,15297598=250,15966935=250,15932694=250,16207194=250,16024979=250,15162331=250,15515336=250,15571432=250,16109759=250,16106237=250,16144804=250,16034039=250,15977655=250,16141908=250,16002607=250,16037363=250,16019691=250,15415015=250,15639396=250,15921937=250,14635667=250,15336356=250,15859164=250,16095513=250,15990358=250,16056934=250,15886285=250,15960500=250,16090128=250,15963471=250,16039668=250,16128372=250,16153856=250,15978667=250,15987886=250,"/>
+
+<data id="tissue" spec="beastclassic.evolution.alignment.AlignmentFromTrait">
+    <traitSet id="traitSet.tissue" spec="beast.base.evolution.tree.TraitSet" taxa="@TaxonSet" traitname="discrete">16127071=M13,15866919=M13,16024565=P,15737445=P,15772422=P,15652563=M16,16038361=P,16053559=M7,16139505=M16,15985246=P,16175340=M17,15012264=M18,15623186=M11,16090340=M11,15431809=M16,15297598=P,15966935=P,15932694=M17,16207194=M18,16024979=P,15162331=M12,15515336=P,15571432=M2,16109759=M12,16106237=M12,16144804=M16,16034039=P,15977655=P,16141908=M16,16002607=P,16037363=P,16019691=P,15415015=M16,15639396=M13,15921937=M17,14635667=P,15336356=M2,15859164=M11,16095513=M11,15990358=P,16056934=M10,15886285=M13,15960500=M18,16090128=M11,15963471=M18,16039668=P,16128372=M13,16153856=M16,15978667=P,15987886=P,</traitSet>
+    <userDataType id="traitDataType.tissue" spec="beast.base.evolution.datatype.UserDataType" codeMap="P=0,M10=1,M11=2,M12=3,M13=4,M16=5,M17=6,M18=7,M2=8,M7=9,? = 0 1 2 3 4 5 6 7 8 9" codelength="-1" states="10"/>
+</data>
+
+<!-- Model declarations-->
+
+<siteModel spec="SiteModel" id="siteModel" mutationRate="0.005" proportionInvariant="0.0" gammaCategoryCount="0">
+    <substModel id="substModel" spec="tidetree.substitutionmodel.EditAndSilencingModel" editRates="@editRate" silencingRate="0.0" editHeight="250" editDuration="250">
+        <!-- frequencies are irrelevant here -->
+        <frequencies spec="beast.base.evolution.substitutionmodel.Frequencies" frequencies="1.0 0 0" estimate="false"/>
+    </substModel>
+</siteModel>
+
+<siteModel id="traitSiteModel" spec="SiteModel" gammaCategoryCount="0" mutationRate="1.0" proportionInvariant="0.0">
+    <substModel id="svs.s:tissue" spec="metastabayes.substitutionmodel.MetastabayesGeneralSubstitutionModel" rates="@relativeGeoRates.s:tissue" matrixStructure="@matrixStructure" rateIndicator="@tissueRateIndicators" symmetric="true">
+        <!-- frequencies are irrelevant here -->
+        <frequencies spec="beast.base.evolution.substitutionmodel.Frequencies" frequencies="1.0 0 0" estimate="false"/>
+    </substModel>
+</siteModel>
+
+<!-- Main MCMC -->
+<run id="mcmc" spec="MCMC" chainLength="20000000">
+        <state id="state" spec="State" storeEvery="5000">
+            <stateNode id="tree" spec="tidetree.tree.StartingTree" rootHeight="250" taxa="@s1_c1_data.txt" editHeight="250" editDuration="250" sequencesAreClustered="false">
+                <trait idref="dateTrait"/>
+                <taxonset idref="TaxonSet"/>
+            </stateNode>
+            <parameter id="editRate" spec="parameter.RealParameter" estimate="true" name="stateNode" dimension="100">0.001891385794602738 0.0024762237066947427 0.006434777250119938 0.022626187451291142 0.0004519611853084519 0.004252307867693467 0.008695199487743388 0.005287228198826541 0.00852515654186136 0.0028375427438811205 0.01630715871347483 0.004283226603781587 0.0067464292466787685 0.016033678821811725 0.01917491749069289 0.0036585141765295664 0.004891872021313965 0.00867199597266662 0.011140999534685158 0.010581282853573013 0.004541688131273875 0.0007617862007893749 0.036165552581349764 0.007900631443893674 0.00019973184290800428 0.009877241632563307 0.005210678254720317 0.004181565880363428 0.017589109966820247 0.0017611954710861511 0.00022959343560415528 0.002994537359426538 0.000801068502385592 0.014061233100234731 0.015163857946017672 0.04639414188685866 0.001504774488150319 0.014571829241040163 0.00011550294775905987 0.0017412028611578365 0.0019912235849203347 0.015435544626458327 0.0026174926141904324 0.03034937733094538 0.005414023081912718 0.015567352766629855 0.0018764294412664411 0.03822133912883424 0.005016017821502824 0.017923582049993315 0.00707709038325807 0.01894418099476499 0.006552348025361078 0.011483251612581855 0.00213045546278859 0.00044723689376124275 0.028216265577151605 0.007500191290250902 9.64495624736785e-06 0.014456941979911852 0.0015131231024375432 0.04034276177940931 0.007743384492752599 0.0012231748469220054 0.018702920184101884 0.0008980883166958691 0.005709122901667588 0.014609172657832641 0.008227991029964507 0.00027099882320938255 0.006800810951957274 0.0016024909826768872 0.002702309545993545 0.013068054552918141 0.021222580867047328 0.006778296749981686 0.005021657046780748 0.03394700190346978 0.01064798652834624 0.0015709747044370804 0.006723215374919598 0.00918494570764104 0.0007148514517145434 0.033386853032898484 0.004952562215118869 0.0016703080977210618 0.008780194621411974 0.0021936132072342554 0.0037054891861055513 0.013720737264473232 0.02129789157325353 0.013693745961487449 0.018491991117775546 0.0011056635477868833 0.0008658270062053632 0.008272143321129521 0.001439189221306065 0.011779293293448219 0.032353702218426296 0.021099922150975396</parameter>
+            <parameter id="relativeGeoRates.s:tissue" spec="parameter.RealParameter" dimension="1" name="stateNode">1.0</parameter>
+            <parameter id="tissueRateIndicators" spec="parameter.BooleanParameter" dimension="1" name="stateNode">true</parameter>
+            <parameter id="matrixStructure" spec="parameter.IntegerParameter" dimension="100" name="stateNode">0</parameter>
+        </state>
+        
+        <distribution id="posterior" spec="CompoundDistribution">
+            <distribution id="prior" spec="CompoundDistribution">
+                <!-- The tree prior (or population dynamic model): the birth death sampling model -->
+                <distribution id="birthDeathSamplingModel" spec="bdsky.evolution.speciation.BirthDeathSkylineModel"
+                          conditionOnSurvival="True" tree="@tree" origin="250.001" contemp="true"
+                          birthRate="0.015" deathRate="0.005" rho="1.0"
+                          samplingRate="0.0" >
+                </distribution>
+                <!-- prior distributions on the substitution model parameters -->
+                <prior id="editRatePrior" name="distribution" x="@editRate">
+                    <Exponential name="distr">
+                        <parameter spec="parameter.RealParameter" estimate="false" name="mean">0.005</parameter>
+                    </Exponential>
+                </prior>
+                <prior id="relativeGeoRatesPrior.s:tissue" name="distribution" x="@relativeGeoRates.s:tissue">
+                   <Exponential name="distr">
+                        <parameter spec="parameter.RealParameter" estimate="false" name="mean">0.002</parameter>
+                    </Exponential>
+                </prior>
+            </distribution>
+            
+            
+            <distribution id="likelihood" spec="CompoundDistribution" useThreads="true">
+                <distribution id="treeLikelihood" spec="tidetree.distributions.TreeLikelihoodWithEditWindow" data="@s1_c1_data.txt" origin="250.001" tree="@tree" siteModel="@siteModel"/>
+                
+                <distribution id="traitedtreeLikelihood.tissue" spec="beastclassic.evolution.likelihood.AncestralStateTreeLikelihood" data="@tissue" tag="location" tree="@tree" siteModel="@traitSiteModel">
+                    <rootFrequencies spec="beast.base.evolution.substitutionmodel.Frequencies" frequencies="1 0 0 0 0 0 0 0 0 0" estimate="false"/>
+                </distribution>
+                
+            </distribution>
+            
+        </distribution>
+        
+    <!-- tree operators -->
+    <operator  spec="Uniform" tree="@tree" weight="30.0"/>
+    <operator  spec="SubtreeSlide" tree="@tree" weight="3.0"/>
+    <operator spec="SubtreeSlide" tree="@tree" weight="3.0" size="30"/>
+    <operator  spec="Exchange" isNarrow="false" tree="@tree" weight="30.0"/>
+
+    <!-- operators on phylogenetic parameters-->
+    <operator id="editRateScaler" spec="DeltaExchangeOperator" parameter="@editRate" weight="3.0"/>
+
+    <!-- operators on ancestral state model parameters -->
+    <operator id="georateScaler.s:tissue" spec="ScaleOperator" parameter="@relativeGeoRates.s:tissue" scaleAllIndependently="true" scaleFactor="0.99" weight="30.0"/>
+    
+    <!-- loggers -->
+    <logger id="tracelog" spec="Logger" fileName="$(filebase).log" logEvery="10000" model="@posterior" sanitiseHeaders="true" sort="smart">
+        <log idref="posterior"/>
+        <log idref="likelihood"/>
+        <log idref="prior"/>
+        <log idref="treeLikelihood"/>
+        <log id="treeHeight" spec="beast.base.evolution.tree.TreeHeightLogger" tree="@tree"/>
+        <log idref="editRate"/>
+        <log idref="traitedtreeLikelihood.tissue"/>
+        <log idref="relativeGeoRates.s:tissue"/>
+        <log id="geoSubstModelLogger.s:tissue" spec="metastabayes.substitutionmodel.MetastabayesGeneralSubstitutionModelLogger" dataType="@traitDataType.tissue" model="@svs.s:tissue"/>
+    </logger>
+    
+    <logger id="screenlog" spec="Logger" logEvery="10000">
+        <log idref="posterior"/>
+        <log id="ESS.0" spec="util.ESS" arg="@posterior"/>
+        <log idref="likelihood"/>
+        <log idref="prior"/>
+    </logger>
+    
+    <!-- <logger id="treelog.t:cluster" spec="Logger" fileName="$(filebase).$(tree).$(seed).trees" logEvery="10000" mode="tree"> -->
+	<logger id="treelog.t:cluster" spec="Logger" fileName="$(filebase).$(tree).trees" logEvery="10000" mode="tree">
+        <log idref="tree" printMetaData="true"/>
+    </logger>
+    
+    <logger id="treeWithTraitLogger.tissue" spec="Logger" fileName="$(filebase)_tissues.trees" logEvery="10000" mode="tree">
+        <log id="treeWithTraitLoggerItem.t:tree" spec="beastclassic.evolution.tree.TreeWithTraitLogger" tree="@tree">
+            <metadata idref="posterior"/>
+            <metadata idref="traitedtreeLikelihood.tissue"/>
+        </log>
+    </logger>
+    
+    <operatorschedule id="OperatorSchedule" spec="OperatorSchedule"/>
+</run>
+
+</beast>

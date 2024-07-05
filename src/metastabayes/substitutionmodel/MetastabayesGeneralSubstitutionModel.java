@@ -1,115 +1,93 @@
 package metastabayes.substitutionmodel;
 
+import beast.base.core.Input;
+import beast.base.core.Input.Validate;
 import beast.base.core.Description;
 import beast.base.core.Function;
+import beast.base.inference.parameter.IntegerParameter;
+import beast.base.inference.parameter.BooleanParameter;
 import beast.base.inference.parameter.Parameter;
 import beastclassic.evolution.substitutionmodel.SVSGeneralSubstitutionModel;
 
-@Description("Substitution model with three rate parameter whre one is fixed for leaving the primary, one fixed for met to met transitions," +
-			"and one fixed for returning to the primary")
+@Description("Substitution model with structure indicators to setup shared rate paramaters between tissues.")
 
 public class MetastabayesGeneralSubstitutionModel extends SVSGeneralSubstitutionModel {
 	
+    public Input<IntegerParameter> structure = new Input<IntegerParameter>("matrixStructure",
+            "integer indices to indicate structure of shared transition rate matrix parameters between diferent tissues", Validate.REQUIRED);
+
+    private IntegerParameter matrixStructure;
+    protected BooleanParameter rateIndicator;
+
 	@Override
     public void initAndValidate(){
-
-		
-        frequencies = frequenciesInput.get();
+        
         updateMatrix = true;
-        nrOfStates = frequencies.getFreqs().length;
+        matrixStructure = structure.get();
+        nrOfStates = (int) Math.sqrt(matrixStructure.getDimension());
+        System.out.println("nr of states" + nrOfStates);
 		eigenSystem = createEigenSystem();
         rateMatrix = new double[nrOfStates][nrOfStates];
         relativeRates = new double[ratesInput.get().getDimension()];
         storedRelativeRates = new double[ratesInput.get().getDimension()];
-        // indicator.get();
+        frequencies = frequenciesInput.get();
+        rateIndicator = indicator.get();
+
     }
-    
+
     @Override
     public void setupRelativeRates() {
 
         Function rates = this.ratesInput.get();
         for (int i = 0; i < relativeRates.length; i++) {
-            relativeRates[i] = rates.getArrayValue(i);
+            relativeRates[i] = rates.getArrayValue(i) * (rateIndicator.getValue(i)?1.:0.);
         }
     }
 
-    // /** sets up rate matrix **/
-    // @Override
-    // public void setupRateMatrix() {
-
-    //     double [] fFreqs = frequencies.getFreqs();
+    /** sets up rate matrix **/
+    @Override
+    public void setupRateMatrix() {
         
-    //     // custom asymmetric rate matrix with 3 parameters with rates fixed for one leaving primary, one met to met, and one met to primary.
-    //     for (int i = 0; i < nrOfStates; i++) {
-    //         rateMatrix[i][i] = 0;
-    //         // row 1 is all parameter0 for leaving the primary            
-    //         // column 1 is all parameter2 for returning to the parameter
-    //         // all others are parameter1 for met to met transitions
-    //         for (int j = 0; j < i; j++) {
-    //             if (i == 0) {
-    //             	rateMatrix[i][j] = relativeRates[0];
-    //             } else if (j == 0) {
-    //             	rateMatrix[i][j] = relativeRates[2];
-    //             } else {
-    //             	rateMatrix[i][j] = relativeRates[1];
-    //             }
-    //         }
-    //         for (int j = i + 1; j < nrOfStates; j++) {
-    //             if (i == 0) {
-    //             	rateMatrix[i][j] = relativeRates[0];
-    //             } else if (j == 0) {
-    //             	rateMatrix[i][j] = relativeRates[2];
-    //             } else {
-    //             	rateMatrix[i][j] = relativeRates[1];
-    //             }
-    //         }
-    //     }
+        int n = 0;
+        for (int i = 0; i < nrOfStates; i++) {
+            for (int j = 0; j < nrOfStates; j++) {
+                rateMatrix[i][j] = relativeRates[matrixStructure.getValue(n)];
+                n++;
+            }
+        }
         
-    //     // bring in frequencies
-    //     for (int i = 0; i < nrOfStates; i++) {
-    //         for (int j = i + 1; j < nrOfStates; j++) {
-    //             rateMatrix[i][j] *= fFreqs[j];
-    //             rateMatrix[j][i] *= fFreqs[i];
-    //         }
-    //     }
-    //     // set up diagonal
-    //     for (int i = 0; i < nrOfStates; i++) {
-    //         double fSum = 0.0;
-    //         for (int j = 0; j < nrOfStates; j++) {
-    //             if (i != j)
-    //                 fSum += rateMatrix[i][j];
-    //         }
-    //         rateMatrix[i][i] = -fSum;
-    //     }
-    //     // normalise rate matrix to one expected substitution per unit time
-    //     double fSubst = 0.0;
-    //     for (int i = 0; i < nrOfStates; i++)
-    //         fSubst += -rateMatrix[i][i] * fFreqs[i];
+        // set up diagonal
+        for (int i = 0; i < nrOfStates; i++) {
+            double fSum = 0.0;
+            for (int j = 0; j < nrOfStates; j++) {
+                if (i != j)
+                    fSum += rateMatrix[i][j];
+            }
+            rateMatrix[i][i] = -fSum;
+        }
+    }
+    
 
-    //     for (int i = 0; i < nrOfStates; i++) {
-    //         for (int j = 0; j < nrOfStates; j++) {
-    //             rateMatrix[i][j] = rateMatrix[i][j] / fSubst;
-    //         }
-    //     }
-    // } // setupRateMatrix
-    
-    
-    // @Override
-    // protected boolean requiresRecalculation() {
-    
-    // 	Function v = ratesInput.get(); 
-    // 	if (v instanceof Parameter<?>) {
-    // 		Parameter.Base<?> p = (Parameter.Base<?>) v;
-    // 		if (p.somethingIsDirty()) {
-    // 			if (frequencies.isDirtyCalculation()) {
-	// 		    	return super.requiresRecalculation();
-    // 			}
-    // 			// no calculation is affected
-    // 			return false;
-    // 		}
-    // 	}
-
-    // 	return super.requiresRecalculation();
-    // }
+    @Override 
+    protected boolean requiresRecalculation() {
+    	// if the rate is only dirty for a value that the indicators block out,
+    	// no recalculation is required, so check this first.
+    	Function v = ratesInput.get(); 
+    	if (v instanceof Parameter<?>) {
+    		Parameter.Base<?> p = (Parameter.Base<?>) v;
+    		if (p.somethingIsDirty()) {
+        		Parameter<Boolean> indicator2 = indicator.get(); 
+    			for (int i = 0; i < p.getDimension(); i++) {
+    				if (indicator2.getValue(i) && p.isDirty(i)) {
+    			    	return super.requiresRecalculation();
+    				}
+    			}
+    			// no calculation is affected
+    			return false;
+    		}
+    	}
+        updateMatrix = true;
+        return true;
+    }
     
 }
