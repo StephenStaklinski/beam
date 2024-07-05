@@ -1,4 +1,4 @@
-package beastclassic.evolution.substitutionmodel;
+package metastabayes.evolution.substitutionmodel;
 
 
 
@@ -24,7 +24,7 @@ import beast.base.evolution.substitutionmodel.DefaultEigenSystem;
  *  * ported from beast1 - author: Marc Suchard
  */
 @Description("SVS General Substitution Model")
-public class SVSGeneralSubstitutionModel extends ComplexSubstitutionModel implements BayesianStochasticSearchVariableSelection {
+public class MetastabayesGeneralSubstitutionModel extends ComplexSubstitutionModel implements BayesianStochasticSearchVariableSelection {
 
     public Input<BooleanParameter> indicator = new Input<BooleanParameter>("rateIndicator",
             "rates to indicate the presence or absence of transition matrix entries", Validate.REQUIRED);

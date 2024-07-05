@@ -1,18 +1,34 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<project default="create_run_jar" name="Create Runnable Jar for Project metastabayes">
-    <!--this file was created by Eclipse Runnable JAR Export Wizard-->
-    <!--ANT 1.7 is required                                        -->
-    <!--define folder properties-->
+<project default="jar" name="create jar for metastabayes">
     <property name="dir.buildfile" value="."/>
     <property name="dir.workspace" value="${dir.buildfile}/.."/>
-    <property name="dir.jarfile" value="${dir.buildfile}"/>
-    <target name="create_run_jar">
-        <jar destfile="${dir.jarfile}/metastabayes.jar" filesetmanifest="mergewithoutmain">
+
+    <target name="compile">
+        <mkdir dir="${dir.buildfile}/bin"/>
+        <javac srcdir="${dir.buildfile}/src" destdir="${dir.buildfile}/bin" includeantruntime="false">
+            <classpath>
+                <fileset dir="${dir.workspace}/beast2/lib" includes="*.jar"/>
+                <fileset dir="${dir.workspace}/beast2/lib/junit" includes="*.jar"/>
+                <fileset dir="${dir.workspace}/beast-classic/lib" includes="*.jar"/>
+                <fileset dir="${dir.workspace}/BeastFX/locallib" includes="*.jar"/>
+                <fileset dir="${dir.workspace}/tidetree/bin" includes="*.jar"/>
+                <pathelement location="${dir.workspace}/FixedTreeAnalysis/bin"/>
+                <pathelement path="${dir.workspace}/BeastFX/bin"/>
+                <pathelement path="${dir.workspace}/feast/bin"/>
+                <pathelement location="${dir.workspace}/beast-classic/bin"/>
+                <pathelement location="${dir.workspace}/beast2/bin"/>
+            </classpath>
+        </javac>
+    </target>
+
+    <target name="jar">
+        <jar destfile="${dir.buildfile}/metastabayes.jar" filesetmanifest="mergewithoutmain">
             <manifest>
                 <attribute name="Main-Class" value="feast.app.FeastMain"/>
                 <attribute name="Class-Path" value="."/>
             </manifest>
-            <fileset dir="${dir.jarfile}/bin"/>
+            <fileset dir="${dir.buildfile}/src" includes="beast_services.xml"/>
+            <fileset dir="${dir.buildfile}/bin"/>
             <zipfileset excludes="META-INF/*.SF" src="${dir.workspace}/beast2/lib/junit/junit-platform-console-standalone-1.8.2.jar"/>
             <zipfileset excludes="META-INF/*.SF" src="${dir.workspace}/beast2/lib/antlr-runtime-4.10.1.jar"/>
             <zipfileset excludes="META-INF/*.SF" src="${dir.workspace}/beast2/lib/beagle.jar"/>
