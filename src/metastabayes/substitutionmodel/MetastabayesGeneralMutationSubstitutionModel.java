@@ -15,7 +15,7 @@ import java.util.stream.Stream;
 
 @Description("Computes the transition probabilities from an unedited state into edited states or a silenced" +
         "state.")
-public class EditAndSilencingModel extends SubstitutionModel.Base {
+public class MetastabayesGeneralMutationSubstitutionModel extends SubstitutionModel.Base {
 
         final public Input<List<RealParameter>> editRatesInput = new Input<>("editRates",
                 "Rates at which edits are introduced into " +
@@ -144,5 +144,10 @@ public class EditAndSilencingModel extends SubstitutionModel.Base {
     }
 
     public double[][] getRateMatrix(){return rateMatrix;}
+
+    @Override
+    public boolean canReturnComplexDiagonalization() {
+        return true;
+    }
 }
 

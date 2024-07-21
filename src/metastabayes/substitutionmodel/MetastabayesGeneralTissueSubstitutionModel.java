@@ -11,7 +11,7 @@ import beastclassic.evolution.substitutionmodel.SVSGeneralSubstitutionModel;
 
 @Description("Substitution model with structure indicators to setup shared rate paramaters between tissues.")
 
-public class MetastabayesGeneralSubstitutionModel extends SVSGeneralSubstitutionModel {
+public class MetastabayesGeneralTissueSubstitutionModel extends SVSGeneralSubstitutionModel {
 	
     public Input<IntegerParameter> structure = new Input<IntegerParameter>("matrixStructure",
             "integer indices to indicate structure of shared transition rate matrix parameters between diferent tissues", Validate.REQUIRED);

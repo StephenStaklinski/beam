@@ -9,9 +9,9 @@ import beast.base.evolution.datatype.UserDataType;
 import java.io.PrintStream;
 
 @Description("Metastabayes General Substitution Model Logger")
-public class MetastabayesGeneralSubstitutionModelLogger extends BEASTObject implements Loggable{
+public class MetastabayesGeneralTissueSubstitutionModelLogger extends BEASTObject implements Loggable{
 
-    public Input<MetastabayesGeneralSubstitutionModel> modelInput = new Input<>(
+    public Input<MetastabayesGeneralTissueSubstitutionModel> modelInput = new Input<>(
             "model",
             "Metastabayes general substitution model.",
             Input.Validate.REQUIRED);
@@ -28,9 +28,9 @@ public class MetastabayesGeneralSubstitutionModelLogger extends BEASTObject impl
                     "rate matrix indices.",
             true);
 
-    protected MetastabayesGeneralSubstitutionModel model;
+    protected MetastabayesGeneralTissueSubstitutionModel model;
 
-    public MetastabayesGeneralSubstitutionModelLogger() { }
+    public MetastabayesGeneralTissueSubstitutionModelLogger() { }
 
     @Override
     public void initAndValidate() {
