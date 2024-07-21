@@ -55,14 +55,14 @@
 <!-- Model declarations-->
 
 <siteModel spec="SiteModel" id="siteModel" mutationRate="0.005" proportionInvariant="0.0" gammaCategoryCount="0">
-    <substModel id="substModel" spec="tidetree.substitutionmodel.EditAndSilencingModel" editRates="@editRate" silencingRate="0.0" editHeight="250" editDuration="250">
+    <substModel id="substModel" spec="metastabayes.substitutionmodel.MetastbayesGeneralMutationSubstitutionModel" editRates="@editRate" silencingRate="0.0">
         <!-- frequencies are irrelevant here -->
         <frequencies spec="beast.base.evolution.substitutionmodel.Frequencies" frequencies="1.0 0 0" estimate="false"/>
     </substModel>
 </siteModel>
 
 <siteModel id="traitSiteModel" spec="SiteModel" gammaCategoryCount="0" mutationRate="1.0" proportionInvariant="0.0">
-    <substModel id="svs.s:tissue" spec="metastabayes.substitutionmodel.MetastabayesGeneralSubstitutionModel" rates="@relativeGeoRates.s:tissue" matrixStructure="@matrixStructure" rateIndicator="@tissueRateIndicators" symmetric="true">
+    <substModel id="svs.s:tissue" spec="metastabayes.substitutionmodel.MetastabayesGeneralTissueSubstitutionModel" rates="@relativeGeoRates.s:tissue" matrixStructure="@matrixStructure" rateIndicator="@tissueRateIndicators" symmetric="true">
         <!-- frequencies are irrelevant here -->
         <frequencies spec="beast.base.evolution.substitutionmodel.Frequencies" frequencies="1.0 0 0" estimate="false"/>
     </substModel>
