@@ -8,7 +8,7 @@ import beast.base.evolution.datatype.UserDataType;
 
 import java.io.PrintStream;
 
-@Description("Metastabayes General Substitution Model Logger")
+@Description("Metastabayes General Substitution Model Logger. This code is modified from the FixedTreeAnalysis package by Andrew Bouckaert")
 public class MetastabayesGeneralTissueSubstitutionModelLogger extends BEASTObject implements Loggable{
 
     public Input<MetastabayesGeneralTissueSubstitutionModel> modelInput = new Input<>(

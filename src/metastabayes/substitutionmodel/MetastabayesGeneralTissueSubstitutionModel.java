@@ -9,7 +9,8 @@ import beast.base.inference.parameter.BooleanParameter;
 import beast.base.inference.parameter.Parameter;
 import beastclassic.evolution.substitutionmodel.SVSGeneralSubstitutionModel;
 
-@Description("Substitution model with structure indicators to setup shared rate paramaters between tissues.")
+@Description("Substitution model with structure indicators to setup shared rate paramaters between tissues." +
+                "This code is loosely based on the FixedTreeAnalysis package by Andrew Bouckaert")
 
 public class MetastabayesGeneralTissueSubstitutionModel extends SVSGeneralSubstitutionModel {
 	

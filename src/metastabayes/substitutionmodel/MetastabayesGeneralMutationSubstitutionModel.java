@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.stream.Stream;
 
 @Description("Computes the transition probabilities from an unedited state into edited states or a silenced" +
-        "state.")
+        "state. This code is modified from the TideTree package by Sophie Seidel.")
 public class MetastabayesGeneralMutationSubstitutionModel extends SubstitutionModel.Base {
 
         final public Input<List<RealParameter>> editRatesInput = new Input<>("editRates",
