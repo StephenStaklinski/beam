@@ -48,9 +48,16 @@ public class MetastabayesGeneralTissueSubstitutionModel extends SVSGeneralSubsti
             }
         }
         
-        // retained from svsGeneralSubstitutionModel code
-        double [] fFreqs = frequencies.getFreqs();
+        // double [] fFreqs = frequencies.getFreqs();
 
+        // // bring in frequencies
+        // for (int i = 0; i < nrOfStates; i++) {
+        //     for (int j = i + 1; j < nrOfStates; j++) {
+        //         rateMatrix[i][j] *= fFreqs[j];
+        //         rateMatrix[j][i] *= fFreqs[i];
+        //     }
+        // }
+        
         // set up diagonal
         for (int i = 0; i < nrOfStates; i++) {
             double fSum = 0.0;
@@ -61,32 +68,16 @@ public class MetastabayesGeneralTissueSubstitutionModel extends SVSGeneralSubsti
             rateMatrix[i][i] = -fSum;
         }
 
-        // bring in frequencies
-        for (int i = 0; i < nrOfStates; i++) {
-            for (int j = i + 1; j < nrOfStates; j++) {
-                rateMatrix[i][j] *= fFreqs[j];
-                rateMatrix[j][i] *= fFreqs[i];
-            }
-        }
-        // set up diagonal
-        for (int i = 0; i < nrOfStates; i++) {
-            double fSum = 0.0;
-            for (int j = 0; j < nrOfStates; j++) {
-                if (i != j)
-                    fSum += rateMatrix[i][j];
-            }
-            rateMatrix[i][i] = -fSum;
-        }
-        // normalise rate matrix to one expected substitution per unit time
-        double fSubst = 0.0;
-        for (int i = 0; i < nrOfStates; i++)
-            fSubst += -rateMatrix[i][i] * fFreqs[i];
+        // // normalise rate matrix to one expected substitution per unit time
+        // double fSubst = 0.0;
+        // for (int i = 0; i < nrOfStates; i++)
+        //     fSubst += -rateMatrix[i][i] * fFreqs[i];
 
-        for (int i = 0; i < nrOfStates; i++) {
-            for (int j = 0; j < nrOfStates; j++) {
-                rateMatrix[i][j] = rateMatrix[i][j] / fSubst;
-            }
-        }
+        // for (int i = 0; i < nrOfStates; i++) {
+        //     for (int j = 0; j < nrOfStates; j++) {
+        //         rateMatrix[i][j] = rateMatrix[i][j] / fSubst;
+        //     }
+        // }
     }
     
 }
