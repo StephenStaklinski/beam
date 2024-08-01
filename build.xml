@@ -16,6 +16,7 @@
                 <pathelement path="${dir.workspace}/feast/bin"/>
                 <pathelement location="${dir.workspace}/beast-classic/bin"/>
                 <pathelement location="${dir.workspace}/beast2/bin"/>
+                <pathelement location="${dir.workspace}/tidetree/bin"/>
             </classpath>
         </javac>
     </target>

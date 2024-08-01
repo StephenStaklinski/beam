@@ -1,4 +1,4 @@
-.log
-.trees
-.state
+*.log
+*.trees
+*.state
 .DS_Store
