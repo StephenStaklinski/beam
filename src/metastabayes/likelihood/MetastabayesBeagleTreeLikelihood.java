@@ -33,6 +33,7 @@ import beast.base.evolution.likelihood.TreeLikelihood;
             "modified to compute the correct likelihood similarly to TideTree.")
 public class MetastabayesBeagleTreeLikelihood extends TreeLikelihood {
 
+    ///// MODIFIED ///// flags indicate the code altered from the original BeagleTreeLikelihood, which could not be extended due to the private declaration of initialize()
 
     ///// MODIFIED /////
     public Input<RealParameter> originInput = new Input<>("origin",
@@ -174,6 +175,12 @@ public class MetastabayesBeagleTreeLikelihood extends TreeLikelihood {
             compactPartialsCount = 0;
         }
 
+        ///// MODIFIED /////
+        if (useOrigin) {
+            m_nNodeCount++;
+        }
+        ///// MODIFIED /////
+
         // one partials buffer for each tip and two for each internal node (for store restore)
         partialBufferHelper = new BufferIndexHelper(m_nNodeCount, tipCount);
 
@@ -185,6 +192,12 @@ public class MetastabayesBeagleTreeLikelihood extends TreeLikelihood {
 
         // one scaling buffer for each internal node plus an extra for the accumulation, then doubled for store/restore
         scaleBufferHelper = new BufferIndexHelper(getScaleBufferCount(), 0);
+
+        ///// MODIFIED /////
+        if (useOrigin) {
+            m_nNodeCount--;
+        }
+        ///// MODIFIED /////
 
         // Attempt to get the resource order from the System Property
         if (resourceOrder == null) {
@@ -417,6 +430,11 @@ public class MetastabayesBeagleTreeLikelihood extends TreeLikelihood {
     
     
     protected int getScaleBufferCount() {
+        ///// MODIFIED /////
+        if (useOrigin) {
+            return internalNodeCount + 2;
+        }
+        ///// MODIFIED /////
         return internalNodeCount + 1;
     }
 
@@ -665,7 +683,13 @@ public class MetastabayesBeagleTreeLikelihood extends TreeLikelihood {
         }
 
         if (operations == null) {
+            ///// MODIFIED /////
+            if (useOrigin) {
+                operations = new int[1][(internalNodeCount + 1) * Beagle.OPERATION_TUPLE_SIZE];
+            } else {
             operations = new int[1][internalNodeCount * Beagle.OPERATION_TUPLE_SIZE];
+            }
+            ///// MODIFIED /////
             operationCount = new int[1];
         }
 
@@ -760,9 +784,23 @@ public class MetastabayesBeagleTreeLikelihood extends TreeLikelihood {
 
         do {
 
+            // DEBUGGING
+            System.out.println("UPDATE PARTIALS");
+
+            System.out.println("Operations[0]: " + operations[0]);
+            System.out.println("OperationCount[0]: " + operationCount[0]);
+
             beagle.updatePartials(operations[0], operationCount[0], Beagle.NONE);
 
+            // DEBUGGING
+            System.out.println("PASS");
+
+            ///// MODIFIED /////
             int rootIndex = partialBufferHelper.getOffsetIndex(root.getNr());
+            if (useOrigin) {
+                rootIndex = partialBufferHelper.getOffsetIndex(root.getNr() + 1);
+            }
+            ///// MODIFIED /////
 
             double[] categoryWeights = m_siteModel.getCategoryProportions(null);
             if (constantPattern != null) {
@@ -813,8 +851,14 @@ public class MetastabayesBeagleTreeLikelihood extends TreeLikelihood {
 
             double[] sumLogLikelihoods = new double[1];
 
+            // DEBUGGING
+            System.out.println("BEAGLE CALCULATE ROOT LOG LIKELIHOODS");
+
             beagle.calculateRootLogLikelihoods(new int[]{rootIndex}, new int[]{0}, new int[]{0},
                     new int[]{cumulateScaleBufferIndex}, 1, sumLogLikelihoods);
+
+            // DEBUGGING
+            System.out.println("PASS BEAGLE CALCULATE ROOT LOG LIKELIHOODS");
 
             logL = sumLogLikelihoods[0];
 
@@ -945,9 +989,9 @@ public class MetastabayesBeagleTreeLikelihood extends TreeLikelihood {
 
         // First update the transition probability matrix(ices) for this branch
         int update = (node.isDirty() | hasDirt);
-//        if (parent!=null) {
-//        	update |= parent.isDirty();
-//        }
+        // if (parent!=null) {
+        // update |= parent.isDirty();
+        // }
         final double branchRate = branchRateModel.getRateForBranch(node);
         final double branchTime = node.getLength() * branchRate;
 
@@ -962,10 +1006,12 @@ public class MetastabayesBeagleTreeLikelihood extends TreeLikelihood {
             ///// MODIFIED /////
             Node parent = node.getParent();
             if(node.isRoot()){
-                parent= new Node();
+                parent = new Node();
                 parent.setHeight(origin.getValue());
             }
             ///// MODIFIED /////
+            
+            
 
             if (flip) {
                 // first flip the matrixBufferHelper
@@ -1060,6 +1106,62 @@ public class MetastabayesBeagleTreeLikelihood extends TreeLikelihood {
 
                 update |= (update1 | update2);
             }
+
+            ///// MODIFIED /////
+            // the root partials would already be established prior, so this calculates the additional root to origin partial, where the origin is now considered the "root"
+            if (node.isRoot()) {
+                if (useOrigin){
+
+                    int originNum = nodeNum + 1;
+
+                    int x = operationCount[operationListCount] * Beagle.OPERATION_TUPLE_SIZE;
+
+                    if (flip) {
+                        // first flip the partialBufferHelper
+                        partialBufferHelper.flipOffset(originNum);
+                    }
+
+                    final int[] operations = this.operations[operationListCount];
+
+                    operations[x] = partialBufferHelper.getOffsetIndex(originNum);
+
+                    if (useScaleFactors) {
+                        // get the index of this scaling buffer
+                        int n = originNum - tipCount;
+
+                        if (recomputeScaleFactors) {
+                            // flip the indicator: can take either n or (internalNodeCount + 1) - n
+                            scaleBufferHelper.flipOffset(n);
+
+                            // store the index
+                            scaleBufferIndices[n] = scaleBufferHelper.getOffsetIndex(n);
+
+                            operations[x + 1] = scaleBufferIndices[n]; // Write new scaleFactor
+                            operations[x + 2] = Beagle.NONE;
+
+                        } else {
+                            operations[x + 1] = Beagle.NONE;
+                            operations[x + 2] = scaleBufferIndices[n]; // Read existing scaleFactor
+                        }
+
+                    } else {
+
+                        if (useAutoScaling) {
+                            scaleBufferIndices[nodeNum - tipCount] = partialBufferHelper.getOffsetIndex(originNum);
+                        }
+                        operations[x + 1] = Beagle.NONE; // Not using scaleFactors
+                        operations[x + 2] = Beagle.NONE;
+                    }
+
+                    operations[x + 2] = partialBufferHelper.getOffsetIndex(nodeNum); // source node 1
+                    operations[x + 3] = matrixBufferHelper.getOffsetIndex(nodeNum); // source matrix 1
+                    operations[x + 4] = Beagle.NONE;
+                    operations[x + 5] = Beagle.NONE;
+
+                    operationCount[operationListCount]++;
+                }
+            }
+            ///// MODIFIED /////
         }
         return update;
     }
