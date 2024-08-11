@@ -42,5 +42,6 @@ public class MetastabayesGeneralMutationSubstitutionModel extends EditAndSilenci
     public boolean canReturnComplexDiagonalization() {
         return true;
     }
+
 }
 
