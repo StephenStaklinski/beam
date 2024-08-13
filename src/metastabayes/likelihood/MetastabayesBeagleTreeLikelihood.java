@@ -117,7 +117,10 @@ public class MetastabayesBeagleTreeLikelihood extends TreeLikelihood {
         m_branchLengths = new double[m_nNodeCount];
         storedBranchLengths = new double[m_nNodeCount];
 
-        m_nStateCount = dataInput.get().getMaxStateCount();
+        ///// MODIFIED /////
+        m_nStateCount = substitutionModel.getStateCount();
+        ///// MODIFIED /////
+        
         patternCount = dataInput.get().getPatternCount();
 
         //System.err.println("Attempt to load BEAGLE TreeLikelihood");
@@ -130,7 +133,9 @@ public class MetastabayesBeagleTreeLikelihood extends TreeLikelihood {
 	        for (int i = 0; i < categoryRates.length; i++) {
 	        	if (categoryRates[i] == 0) {
 	        		proportionInvariant = m_siteModel.getRateForCategory(i, null);
-	                int stateCount = dataInput.get().getMaxStateCount();
+                    ///// MODIFIED /////
+	                int stateCount = m_nStateCount;
+                    ///// MODIFIED /////
 	                int patterns = dataInput.get().getPatternCount();
 	                calcConstantPatternIndices(patterns, stateCount);
 	                invariantCategory = i;
@@ -160,7 +165,11 @@ public class MetastabayesBeagleTreeLikelihood extends TreeLikelihood {
 
         this.categoryCount = m_siteModel.getCategoryCount() - (invariantCategory >= 0 ? 1 : 0);
         
-        probabilities = new double[(m_nStateCount + 1) * (m_nStateCount + 1)];
+        ///// MODIFIED /////
+        int matrixSize = (m_nStateCount + 1) * (m_nStateCount + 1);
+        probabilities = new double[matrixSize];
+        ///// MODIFIED /////
+        
         Arrays.fill(probabilities, 1.0);
         matrices = new double[m_nStateCount * m_nStateCount * categoryCount];
 
@@ -813,6 +822,48 @@ public class MetastabayesBeagleTreeLikelihood extends TreeLikelihood {
 
             double[] sumLogLikelihoods = new double[1];
 
+            ///// MODIFIED /////
+            ///// replace partials with new partials at the origin based on these calculations external to BEAGLE
+            if(useOrigin) {
+
+                // // DEBUGGING
+                // System.out.println("Start origin calculations");
+
+                // only need to change the root partials if the root is not already the origin
+                if (root.getHeight() != origin.getValue()) {
+                    // get the BEAGLE calculated root partials
+                    double[] rootPartials = new double[patternCount * m_nStateCount * categoryCount];
+                    beagle.getPartials(rootIndex, Beagle.NONE, rootPartials);
+
+                    // // DEBUGGING
+                    // System.out.println("Root Partials found: " + Arrays.toString(rootPartials));
+
+                    // get the root node transition matrix, normally ignored but computed based on the height from root to origin
+                    double[] rootTransitionMatrix = new double[m_nStateCount * m_nStateCount * categoryCount];
+                    int rootNodeNum = root.getNr();
+                    int matrixIndex = matrixBufferHelper.getOffsetIndex(rootNodeNum);
+                    beagle.getTransitionMatrix(matrixIndex, rootTransitionMatrix);
+
+                    // // DEBUGGING  
+                    // System.out.println("Root transition matrix retrieved: " + Arrays.toString(rootTransitionMatrix));
+
+                    // define where the origin partials will be stored
+                    double[] originPartials = new double[patternCount * m_nStateCount * categoryCount];
+
+                    // calculate the origin partials
+                    calculateOriginPartials(rootPartials, rootTransitionMatrix, originPartials);
+
+                    // // DEBUGGING
+                    // System.out.println("Origin partials calculated: " + Arrays.toString(originPartials));
+                    // System.out.println("Exiting with status 0 (normal termination).");
+                    // System.exit(0);
+
+                    // replace the root partials with the origin partials in BEAGLE to allow for the final likelihood calculation in in BEAGLE
+                    setPartials(rootNodeNum, originPartials);
+                }
+            }
+            ///// MODIFIED /////
+
             beagle.calculateRootLogLikelihoods(new int[]{rootIndex}, new int[]{0}, new int[]{0},
                     new int[]{cumulateScaleBufferIndex}, 1, sumLogLikelihoods);
 
@@ -949,20 +1000,20 @@ public class MetastabayesBeagleTreeLikelihood extends TreeLikelihood {
         final double branchRate = branchRateModel.getRateForBranch(node);
         final double branchTime = node.getLength() * branchRate;
 
-        if (!node.isRoot() && (update != Tree.IS_CLEAN || branchTime != m_branchLengths[nodeNum])) {
+        ///// MODIFIED /////
+        if ( (!node.isRoot() || (node.isRoot() && useOrigin)) &&  (update != Tree.IS_CLEAN || branchTime != m_branchLengths[nodeNum]) ) {
+            double parentHeight;
+            if(node.isRoot()) {
+                parentHeight = origin.getValue();
+            } else {
+                parentHeight = node.getParent().getHeight();
+            }
+        ///// MODIFIED /////
+
             m_branchLengths[nodeNum] = branchTime;
             if (branchTime < 0.0) {
                 throw new RuntimeException("Negative branch length: " + branchTime);
             }
-
-            ///// MODIFIED /////
-            Node parent = node.getParent();
-            double parentHeight = parent.getHeight();
-            if (useOrigin && parent.isRoot()) {
-                double originDist = origin.getValue() - parentHeight;
-                parentHeight = parentHeight + originDist;
-            }
-            ///// MODIFIED /////
 
             if (flip) {
                 // first flip the matrixBufferHelper
@@ -992,6 +1043,7 @@ public class MetastabayesBeagleTreeLikelihood extends TreeLikelihood {
             branchUpdateCount[eigenIndex]++;
 
             update |= Tree.IS_DIRTY;
+
         }
 
         // If the node is internal, update the partial likelihoods.
@@ -1223,5 +1275,30 @@ public class MetastabayesBeagleTreeLikelihood extends TreeLikelihood {
         beagle.getSiteLogLikelihoods(patternLogLikelihoods);
 		return patternLogLikelihoods.clone();
 	}
+
+    ///// MODIFIED /////
+    // calculate partials for single child nodes which is the origin here
+    protected double[] calculateOriginPartials(double[] partials1, double[] matrices1, double[] partials3) {
+        double sum1;
+        int u = 0;
+        int v = 0;
+        for (int l = 0; l < categoryCount; l++) {
+            for (int k = 0; k < patternCount; k++) {
+                int w = l * matrixSize;
+                for (int i = 0; i < m_nStateCount; i++) {
+                    sum1 = 0.0;
+                    for (int j = 0; j < m_nStateCount; j++) {
+                        sum1 += matrices1[w] * partials1[v + j];
+                        w++;
+                    }
+                    partials3[u] = sum1;
+                    u++;
+                }
+                v += m_nStateCount;
+            }
+        }
+        return partials3;
+    }
+    ///// MODIFIED /////
 
 }
