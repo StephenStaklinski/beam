@@ -29,8 +29,9 @@ import beast.base.evolution.likelihood.TreeLikelihood;
  * @author Stephen Staklinski
  */
 
-@Description("Uses Beagle library to calculate Tree likelihood," +
-            "modified to compute the correct likelihood similarly to TideTree.")
+@Description("Uses the BEAGLE library to calculate the tree likelihood by modifying the BeagleTreeLikelihood" +
+            "code to include the origin node branch and output a log likelihood identical to TideTree" +
+            "for the case when editing occurs the entire duration of the experiment.")
 public class MetastabayesBeagleTreeLikelihood extends TreeLikelihood {
 
 
