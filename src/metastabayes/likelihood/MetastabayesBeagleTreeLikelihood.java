@@ -826,11 +826,9 @@ public class MetastabayesBeagleTreeLikelihood extends TreeLikelihood {
             ///// replace partials with new partials at the origin based on these calculations external to BEAGLE
             if(useOrigin) {
 
-                // // DEBUGGING
-                // System.out.println("Start origin calculations");
-
                 // only need to change the root partials if the root is not already the origin
                 if (root.getHeight() != origin.getValue()) {
+
                     // get the BEAGLE calculated root partials
                     double[] rootPartials = new double[patternCount * m_nStateCount * categoryCount];
                     beagle.getPartials(rootIndex, Beagle.NONE, rootPartials);

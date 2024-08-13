@@ -4,7 +4,7 @@
 
   <service type="beast.base.core.BEASTInterface">
     <provider classname="metastabayes.likelihood.MetastabayesBeagleTreeLikelihood"/>
-    <provider classname="metastabayes.tree.MetastabayesStartingTree"/>
+    <provider classname="metastabayes.tree.MetastabayesStartingTreeFromNewick"/>
     <provider classname="metastabayes.substitutionmodel.MetastabayesGeneralMutationSubstitutionModel"/>
     <provider classname="metastabayes.substitutionmodel.MetastabayesGeneralTissueSubstitutionModel"/>
     <provider classname="metastabayes.substitutionmodel.MetastabayesGeneralTissueSubstitutionModelLogger"/>
