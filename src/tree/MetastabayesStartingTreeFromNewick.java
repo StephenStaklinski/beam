@@ -21,9 +21,9 @@ import java.util.stream.IntStream;
             " while also taking in the required inputs for the TideTree model.")
 public class MetastabayesStartingTreeFromNewick extends TreeParser {
     
-    final public Input<RealParameter> rootHeightInput = new Input<>("rootHeight", "Time from beginning of the experiment until sequencing", Input.Validate.REQUIRED);
-    final public Input<RealParameter> editDurationInput = new Input<>("editDuration", "Time duration from edit start to edit stop", Input.Validate.REQUIRED);
-    final public Input<RealParameter> editHeightInput = new Input<>("editHeight", "Time from the onset of edit until sequencing", Input.Validate.REQUIRED);
+    final public Input<RealParameter> rootHeightInput = new Input<>("rootHeight", "Time from beginning of the experiment until sequencing", Input.Validate.OPTIONAL);
+    final public Input<RealParameter> editDurationInput = new Input<>("editDuration", "Time duration from edit start to edit stop", Input.Validate.OPTIONAL);
+    final public Input<RealParameter> editHeightInput = new Input<>("editHeight", "Time from the onset of edit until sequencing", Input.Validate.OPTIONAL);
 
     // set up useful parameters
     double editHeight;
@@ -33,12 +33,20 @@ public class MetastabayesStartingTreeFromNewick extends TreeParser {
     @Override
     public void initAndValidate() {
 
-        rootHeight = rootHeightInput.get().getValue();
-        editDuration = editDurationInput.get().getValue();
-        editHeight = editHeightInput.get().getValue();
+        if (rootHeightInput.get() != null) {
+            rootHeight = rootHeightInput.get().getValue();
+        }
+        if (editDurationInput.get() != null) {
+            editDuration = editDurationInput.get().getValue();
+        }
+        if (editHeightInput.get() != null) {
+            editHeight = editHeightInput.get().getValue();
+        }
 
-        if (editHeight > rootHeight){
-            throw new RuntimeException("editHeight has to be smaller or equal than rootHeight");
+        if (editHeightInput.get() != null && rootHeightInput.get() != null){
+            if (editHeight > rootHeight){
+                throw new RuntimeException("editHeight has to be smaller or equal than rootHeight");
+            }
         }
         super.initAndValidate();
     }

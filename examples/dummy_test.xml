@@ -64,9 +64,9 @@
 
 <run id="mcmc" spec="MCMC" chainLength="1">
         <state id="state" spec="State" storeEvery="5000">
-            <!-- <stateNode id="tree" spec="tidetree.tree.StartingTree" initial="@treeInput" rootHeight="250" taxa="@s1_c1_data.txt" editHeight="250" editDuration="250" sequencesAreClustered="false"> -->
-            <stateNode id="tree" spec="metastabayes.tree.MetastabayesStartingTreeFromNewick" rootHeight="250" taxa="@s1_c1_data.txt" editHeight="250" editDuration="250" newick="((((c12568278:105,c12575869:105):25,c12553033:155):5,c12580981:135):50,c12569290:185):0">
-                <trait idref="dateTrait"/>
+            <!-- <stateNode id="tree" spec="tidetree.tree.StartingTree" rootHeight="250" taxa="@s1_c1_data.txt" editHeight="250" editDuration="250" sequencesAreClustered="false"> -->
+            <stateNode id="tree" spec="metastabayes.tree.MetastabayesStartingTreeFromNewick" IsLabelledNewick="true" adjustTipHeights="false" rootHeight="250" taxa="@s1_c1_data.txt" editHeight="250" editDuration="250" newick="((((c12568278:50,c12575869:50):0,c12553033:50):0,c12580981:50):0,c12569290:50):0">
+                <!-- <trait idref="dateTrait"/> -->
                 <taxonset idref="TaxonSet"/>
             </stateNode>
             <!-- find the definition of the scarring, loss rate and clock rate in the TiDeTree manuscript -->
@@ -180,8 +180,8 @@
             
             <distribution id="likelihood" spec="CompoundDistribution" useThreads="true">
                 
-                <!-- <distribution id="treeLikelihood" spec="tidetree.distributions.TreeLikelihoodWithEditWindow" data="@s1_c1_data.txt" origin="@origin" tree="@tree" siteModel="@siteModel"> -->
-                <distribution id="treeLikelihood" spec="metastabayes.likelihood.MetastabayesBeagleTreeLikelihood" data="@s1_c1_data.txt" origin="@origin" tree="@tree" siteModel="@siteModel">
+                <distribution id="treeLikelihood" spec="tidetree.distributions.TreeLikelihoodWithEditWindow" data="@s1_c1_data.txt" origin="@origin" tree="@tree" siteModel="@siteModel">
+                <!-- <distribution id="treeLikelihood" spec="metastabayes.likelihood.MetastabayesBeagleTreeLikelihood" data="@s1_c1_data.txt" origin="@origin" tree="@tree" siteModel="@siteModel"> -->
                         <branchRateModel spec="beast.base.evolution.branchratemodel.StrictClockModel" clock.rate="@clockRate.c"/>
                 </distribution>
                 
@@ -256,6 +256,7 @@
         <log idref="posterior"/>
         <log id="ESS.0" spec="util.ESS" arg="@posterior"/>
         <log idref="likelihood"/>
+        <log idref="treeLikelihood"/>
         <log idref="traitedtreeLikelihood.tissue"/>
         <log idref="prior"/>
     </logger>
