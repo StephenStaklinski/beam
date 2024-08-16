@@ -40,6 +40,7 @@
             <zipfileset excludes="META-INF/*.SF" src="${dir.workspace}/BeastFX/locallib/testfx.jar"/>
             <fileset dir="${dir.workspace}/tidetree/bin"/>
             <fileset dir="${dir.workspace}/beast2/bin"/>
+            <fileset dir="${dir.workspace}/beast-classic/bin"/>
             <zipfileset excludes="META-INF/*.SF" src="${dir.workspace}/beast2/build/dist/BEAST.base.jar"/>
             <zipfileset excludes="META-INF/*.SF" src="${dir.workspace}/beast2/build/dist/BEAST.base.src.jar"/>
             <zipfileset excludes="META-INF/*.SF" src="${dir.workspace}/beast2/build/dist/beast.test.src.jar"/>
@@ -51,7 +52,6 @@
             <zipfileset excludes="META-INF/*.SF" src="${dir.workspace}/beast2/release/common/tools/DensiTree.jar"/>
             <fileset dir="${dir.workspace}/BeastFX/bin"/>
             <fileset dir="${dir.workspace}/feast/bin"/>
-            <fileset dir="${dir.workspace}/beast-classic/bin"/>
             <fileset dir="${dir.workspace}/BEASTLabs/bin"/>
             <zipfileset excludes="META-INF/*.SF" src="${dir.workspace}/BEASTLabs/lib/junit-4.8.2.jar"/>
             <zipfileset excludes="META-INF/*.SF" src="${dir.workspace}/BEASTLabs/lib/nashorn-core-15.3.jar"/>

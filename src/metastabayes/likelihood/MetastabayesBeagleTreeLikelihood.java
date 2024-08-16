@@ -1271,6 +1271,7 @@ public class MetastabayesBeagleTreeLikelihood extends TreeLikelihood {
         double sum1;
         int u = 0;
         int v = 0;
+
         for (int l = 0; l < categoryCount; l++) {
             for (int k = 0; k < patternCount; k++) {
                 int w = l * matrixSize;

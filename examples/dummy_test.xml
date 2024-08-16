@@ -62,7 +62,7 @@
 <siteModel spec="SiteModel" id="siteModel" mutationRate="@mutationRate" proportionInvariant="@proportionInvariant" gammaCategoryCount="0" substModel="@substModel"></siteModel>
 
 
-<run id="mcmc" spec="MCMC" chainLength="1">
+<run id="mcmc" spec="MCMC" chainLength="100">
         <state id="state" spec="State" storeEvery="5000">
             <!-- <stateNode id="tree" spec="tidetree.tree.StartingTree" rootHeight="250" taxa="@s1_c1_data.txt" editHeight="250" editDuration="250" sequencesAreClustered="false"> -->
             <stateNode id="tree" spec="metastabayes.tree.MetastabayesStartingTreeFromNewick" IsLabelledNewick="true" adjustTipHeights="false" rootHeight="250" taxa="@s1_c1_data.txt" editHeight="250" editDuration="250" newick="((((c12568278:50,c12575869:50):0,c12553033:50):0,c12580981:50):0,c12569290:50):0">
@@ -93,7 +93,7 @@
             <!-- tissue rates for oneRate model -->
             <!-- <parameter id="relativeGeoRates.s:tissue" spec="parameter.RealParameter" dimension="1" name="stateNode">1.0</parameter> -->
             <!-- tissue rates for asym model-->
-            <parameter id="relativeGeoRates.s:tissue" spec="parameter.RealParameter" dimension="6" name="stateNode">1.0</parameter>
+            <parameter id="relativeGeoRates.s:tissue" spec="parameter.RealParameter" dimension="6" name="stateNode">1 5 10 3 4 2</parameter>
 
             <parameter id="traitClockRate.c:tissue" spec="parameter.RealParameter" name="stateNode">1.0</parameter>
             <parameter id="tissueRateIndicators" spec="parameter.BooleanParameter" dimension="6" name="stateNode">true</parameter>
@@ -180,15 +180,16 @@
             
             <distribution id="likelihood" spec="CompoundDistribution" useThreads="true">
                 
-                <distribution id="treeLikelihood" spec="tidetree.distributions.TreeLikelihoodWithEditWindow" data="@s1_c1_data.txt" origin="@origin" tree="@tree" siteModel="@siteModel">
-                <!-- <distribution id="treeLikelihood" spec="metastabayes.likelihood.MetastabayesBeagleTreeLikelihood" data="@s1_c1_data.txt" origin="@origin" tree="@tree" siteModel="@siteModel"> -->
+                <!-- <distribution id="treeLikelihood" spec="tidetree.distributions.TreeLikelihoodWithEditWindow" data="@s1_c1_data.txt" origin="@origin" tree="@tree" siteModel="@siteModel">
+                <distribution id="treeLikelihood" spec="metastabayes.likelihood.MetastabayesBeagleTreeLikelihood" data="@s1_c1_data.txt" origin="@origin" tree="@tree" siteModel="@siteModel">
                         <branchRateModel spec="beast.base.evolution.branchratemodel.StrictClockModel" clock.rate="@clockRate.c"/>
-                </distribution>
+                </distribution> -->
                 
-                <distribution id="traitedtreeLikelihood.tissue" spec="beastclassic.evolution.likelihood.AncestralStateTreeLikelihood" tag="location" tree="@tree">
+                <!-- <distribution id="traitedtreeLikelihood.tissue" spec="beastclassic.evolution.likelihood.AncestralStateTreeLikelihood" tag="location" tree="@tree"> -->
+                <distribution id="traitedtreeLikelihood.tissue" spec="metastabayes.likelihood.MetastabayesAncestralStateBeagleTreeLikelihood" origin="@origin" tag="location" tree="@tree">
                     <rootFrequencies spec="beast.base.evolution.substitutionmodel.Frequencies" frequencies="1 0 0" estimate="false"/>
                     <data id="tissue" spec="beastclassic.evolution.alignment.AlignmentFromTrait">
-                        <traitSet id="traitSet.tissue" spec="beast.base.evolution.tree.TraitSet" taxa="@TaxonSet" traitname="discrete">c12568278=P,c12580981=P,c12553033=P,c12575869=M1,c12569290=M2</traitSet>
+                        <traitSet id="traitSet.tissue" spec="beast.base.evolution.tree.TraitSet" taxa="@TaxonSet" traitname="discrete">c12568278=M1,c12580981=M1,c12553033=M1,c12575869=M1,c12569290=M2</traitSet>
                         <userDataType id="traitDataType.tissue" spec="beast.base.evolution.datatype.UserDataType" codeMap="P=0,M1=1,M2=2,? = 0 1 2" codelength="-1" states="3"/>
                     </data>
                     <siteModel id="geoSiteModel.s:tissue" spec="SiteModel" gammaCategoryCount="1">
@@ -237,7 +238,7 @@
         <log idref="posterior"/>
         <log idref="likelihood"/>
         <log idref="prior"/>
-        <log idref="treeLikelihood"/>
+        <!-- <log idref="treeLikelihood"/> -->
         <log id="treeHeight" spec="beast.base.evolution.tree.TreeHeightLogger" tree="@tree"/>
         <log idref="editRate"/>
         <log idref="silencingRate" />
@@ -256,7 +257,7 @@
         <log idref="posterior"/>
         <log id="ESS.0" spec="util.ESS" arg="@posterior"/>
         <log idref="likelihood"/>
-        <log idref="treeLikelihood"/>
+        <!-- <log idref="treeLikelihood"/> -->
         <log idref="traitedtreeLikelihood.tissue"/>
         <log idref="prior"/>
     </logger>
