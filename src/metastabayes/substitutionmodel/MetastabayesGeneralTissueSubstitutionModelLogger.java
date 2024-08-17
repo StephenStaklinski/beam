@@ -8,7 +8,11 @@ import beast.base.evolution.datatype.UserDataType;
 
 import java.io.PrintStream;
 
-@Description("Metastabayes General Substitution Model Logger. This code is modified from the FixedTreeAnalysis package by Andrew Bouckaert")
+/**
+ * @author Stephen Staklinski
+ **/
+
+@Description("Metastabayes General Substitution Model Logger. This code is modified from the FixedTreeAnalysis package by Remco Bouckaert")
 public class MetastabayesGeneralTissueSubstitutionModelLogger extends BEASTObject implements Loggable{
 
     public Input<MetastabayesGeneralTissueSubstitutionModel> modelInput = new Input<>(
@@ -77,10 +81,14 @@ public class MetastabayesGeneralTissueSubstitutionModelLogger extends BEASTObjec
     @Override
     public void log(long nSample, PrintStream out) {
         int count = 0;
-        for (int i=0; i<model.getStateCount(); i++) {
-            for (int j=0; j<model.getStateCount(); j++) {
-                if (j==i)
+        int nrOfStates = (int) Math.sqrt(model.structure.get().getDimension());
+
+        for (int i=0; i<nrOfStates; i++) {
+            for (int j=0; j<nrOfStates; j++) {
+                if (j==i) {
+                    count += 1;
                     continue;
+                }
 
                 int ms = model.structure.get().getValue(count);
                 out.print(model.ratesInput.get().getArrayValue(ms) + "\t");
