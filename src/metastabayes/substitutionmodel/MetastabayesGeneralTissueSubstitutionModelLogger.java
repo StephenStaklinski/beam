@@ -63,7 +63,7 @@ public class MetastabayesGeneralTissueSubstitutionModelLogger extends BEASTObjec
         for (int i=0; i<model.getStateCount(); i++) {
             String iStr = getLocationString(i);
 
-            for (int j=model.isSymmetricInput.get() ? i+1 : 0 ; j<model.getStateCount(); j++) {
+            for (int j=0 ; j<model.getStateCount(); j++) {
                 if (j==i)
                     continue;
 
@@ -78,13 +78,12 @@ public class MetastabayesGeneralTissueSubstitutionModelLogger extends BEASTObjec
     public void log(long nSample, PrintStream out) {
         int count = 0;
         for (int i=0; i<model.getStateCount(); i++) {
-            for (int j=model.isSymmetricInput.get() ? i+1 : 0; j<model.getStateCount(); j++) {
+            for (int j=0; j<model.getStateCount(); j++) {
                 if (j==i)
                     continue;
 
                 int ms = model.structure.get().getValue(count);
-                out.print(model.ratesInput.get().getArrayValue(ms)
-                        *model.indicator.get().getArrayValue(ms) + "\t");
+                out.print(model.ratesInput.get().getArrayValue(ms) + "\t");
 
                 count += 1;
             }

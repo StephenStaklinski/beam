@@ -62,7 +62,7 @@
 <siteModel spec="SiteModel" id="siteModel" mutationRate="@mutationRate" proportionInvariant="@proportionInvariant" gammaCategoryCount="0" substModel="@substModel"></siteModel>
 
 
-<run id="mcmc" spec="MCMC" chainLength="100">
+<run id="mcmc" spec="MCMC" chainLength="30001">
         <state id="state" spec="State" storeEvery="5000">
             <!-- <stateNode id="tree" spec="tidetree.tree.StartingTree" rootHeight="250" taxa="@s1_c1_data.txt" editHeight="250" editDuration="250" sequencesAreClustered="false"> -->
             <stateNode id="tree" spec="metastabayes.tree.MetastabayesStartingTreeFromNewick" IsLabelledNewick="true" adjustTipHeights="false" rootHeight="250" taxa="@s1_c1_data.txt" editHeight="250" editDuration="250" newick="((((c12568278:50,c12575869:50):0,c12553033:50):0,c12580981:50):0,c12569290:50):0">
@@ -180,10 +180,10 @@
             
             <distribution id="likelihood" spec="CompoundDistribution" useThreads="true">
                 
-                <!-- <distribution id="treeLikelihood" spec="tidetree.distributions.TreeLikelihoodWithEditWindow" data="@s1_c1_data.txt" origin="@origin" tree="@tree" siteModel="@siteModel">
+                <!-- <distribution id="treeLikelihood" spec="tidetree.distributions.TreeLikelihoodWithEditWindow" data="@s1_c1_data.txt" origin="@origin" tree="@tree" siteModel="@siteModel"> -->
                 <distribution id="treeLikelihood" spec="metastabayes.likelihood.MetastabayesBeagleTreeLikelihood" data="@s1_c1_data.txt" origin="@origin" tree="@tree" siteModel="@siteModel">
                         <branchRateModel spec="beast.base.evolution.branchratemodel.StrictClockModel" clock.rate="@clockRate.c"/>
-                </distribution> -->
+                </distribution>
                 
                 <!-- <distribution id="traitedtreeLikelihood.tissue" spec="beastclassic.evolution.likelihood.AncestralStateTreeLikelihood" tag="location" tree="@tree"> -->
                 <distribution id="traitedtreeLikelihood.tissue" spec="metastabayes.likelihood.MetastabayesAncestralStateBeagleTreeLikelihood" origin="@origin" tag="location" tree="@tree">

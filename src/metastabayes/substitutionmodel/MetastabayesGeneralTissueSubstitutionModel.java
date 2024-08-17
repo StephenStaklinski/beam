@@ -1,5 +1,7 @@
 package metastabayes.substitutionmodel;
 
+import java.util.HashMap; 
+
 import beast.base.core.Input;
 import beast.base.core.Input.Validate;
 import beast.base.core.Description;
@@ -7,32 +9,41 @@ import beast.base.core.Function;
 import beast.base.inference.parameter.IntegerParameter;
 import beast.base.inference.parameter.BooleanParameter;
 import beast.base.inference.parameter.Parameter;
-import beastclassic.evolution.substitutionmodel.SVSGeneralSubstitutionModel;
+import beast.base.evolution.substitutionmodel.ComplexSubstitutionModel;
 
-@Description("Substitution model with structure indicators to setup shared rate paramaters between tissues." +
-                "This code is loosely based on the FixedTreeAnalysis package by Andrew Bouckaert")
+/**
+ * @author Stephen Staklinski
+ **/
 
-public class MetastabayesGeneralTissueSubstitutionModel extends SVSGeneralSubstitutionModel {
+@Description("Substitution model with structure indicators to setup shared rate paramaters between tissues")
+
+public class MetastabayesGeneralTissueSubstitutionModel extends ComplexSubstitutionModel {
 	
     public Input<IntegerParameter> structure = new Input<IntegerParameter>("matrixStructure",
-            "integer indices to indicate structure of shared transition rate matrix parameters between diferent tissues", Validate.REQUIRED);
+            "integer indices to indicate structure of shared transition rate matrix parameters between diferent tissues", Validate.OPTIONAL);
 
     private IntegerParameter matrixStructure;
-    protected BooleanParameter rateIndicator;
 
 	@Override
     public void initAndValidate(){
-        
-        updateMatrix = true;
+
+        super.initAndValidate();
+
         matrixStructure = structure.get();
         nrOfStates = (int) Math.sqrt(matrixStructure.getDimension());
-		eigenSystem = createEigenSystem();
         rateMatrix = new double[nrOfStates][nrOfStates];
-        relativeRates = new double[ratesInput.get().getDimension()];
-        storedRelativeRates = new double[ratesInput.get().getDimension()];
-        frequencies = frequenciesInput.get();
-        rateIndicator = indicator.get();
 
+        int numRelativeRates = relativeRates.length;
+
+        HashMap<Integer,Integer> uniqueMatrixStructure = new HashMap<Integer,Integer>();
+        for (int j = 0; j < matrixStructure.getDimension(); j++) {   
+            uniqueMatrixStructure.put(matrixStructure.getValue(j), j);   
+        }
+        int countUniqueMatrixStructure = uniqueMatrixStructure.keySet().size();
+
+        if (numRelativeRates != countUniqueMatrixStructure) {
+            throw new IllegalArgumentException("Number of relative rates must match the number of unique rates specified in the matrix structure.");
+        }
     }
 
     /** sets up rate matrix **/
@@ -47,68 +58,35 @@ public class MetastabayesGeneralTissueSubstitutionModel extends SVSGeneralSubsti
                 n++;
             }
         }
-        
-        // double [] fFreqs = frequencies.getFreqs();
 
-        // // bring in frequencies
-        // for (int i = 0; i < nrOfStates; i++) {
-        //     for (int j = i + 1; j < nrOfStates; j++) {
-        //         rateMatrix[i][j] *= fFreqs[j];
-        //         rateMatrix[j][i] *= fFreqs[i];
-        //     }
-        // }
+        // bring in frequencies
+        double [] freqs = frequencies.getFreqs();
+        for (int i = 0; i < nrOfStates; i++) {
+            for (int j = i + 1; j < nrOfStates; j++) {
+                rateMatrix[i][j] *= freqs[j];
+                rateMatrix[j][i] *= freqs[i];
+            }
+        }
         
         // set up diagonal
         for (int i = 0; i < nrOfStates; i++) {
-            double fSum = 0.0;
+            double sum = 0.0;
             for (int j = 0; j < nrOfStates; j++) {
                 if (i != j)
-                    fSum += rateMatrix[i][j];
+                    sum += rateMatrix[i][j];
             }
-            rateMatrix[i][i] = -fSum;
+            rateMatrix[i][i] = -sum;
         }
 
-        // // normalise rate matrix to one expected substitution per unit time
-        // double fSubst = 0.0;
-        // for (int i = 0; i < nrOfStates; i++)
-        //     fSubst += -rateMatrix[i][i] * fFreqs[i];
+        // normalise rate matrix to one expected substitution per unit time
+        double subst = 0.0;
+        for (int i = 0; i < nrOfStates; i++)
+            subst += -rateMatrix[i][i] * freqs[i];
 
-        // for (int i = 0; i < nrOfStates; i++) {
-        //     for (int j = 0; j < nrOfStates; j++) {
-        //         rateMatrix[i][j] = rateMatrix[i][j] / fSubst;
-        //     }
-        // }
-    }
-    
-
-     @Override
-    public void setupRelativeRates() {
-
-        Function rates = this.ratesInput.get();
-        for (int i = 0; i < relativeRates.length; i++) {
-            relativeRates[i] = rates.getArrayValue(i) * (rateIndicator.getValue(i)?1.:0.);
+        for (int i = 0; i < nrOfStates; i++) {
+            for (int j = 0; j < nrOfStates; j++) {
+                rateMatrix[i][j] = rateMatrix[i][j] / subst;
+            }
         }
-    }
-
-    @Override 
-    protected boolean requiresRecalculation() {
-    	// if the rate is only dirty for a value that the indicators block out,
-    	// no recalculation is required, so check this first.
-    	Function v = ratesInput.get(); 
-    	if (v instanceof Parameter<?>) {
-    		Parameter.Base<?> p = (Parameter.Base<?>) v;
-    		if (p.somethingIsDirty()) {
-        		Parameter<Boolean> indicator2 = indicator.get(); 
-    			for (int i = 0; i < p.getDimension(); i++) {
-    				if (indicator2.getValue(i) && p.isDirty(i)) {
-    			    	return super.requiresRecalculation();
-    				}
-    			}
-    			// no calculation is affected
-    			return false;
-    		}
-    	}
-        updateMatrix = true;
-        return true;
     }
 }
