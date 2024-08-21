@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+
+<beast beautitemplate='MultiTypeBirthDeath' beautistatus='' namespace="beast.core:beast.evolution.alignment
+    :beast.evolution.tree.coalescent:beast.core.util
+    :beast.evolution.nuc
+    :beast.evolution.operators
+    :beast.evolution.sitemodel
+    :beast.evolution.substitutionmodel
+    :beast.base.evolution.alignment
+    :beast.pkgmgmt
+    :beast.base.core
+    :beast.base.inference
+    :beast.base.evolution.tree.coalescent
+    :beast.base.core
+    :beast.base.inference.util
+    :beast.evolution.nuc
+    :beast.base.evolution.operator
+    :beast.base.inference.operator
+    :beast.base.evolution.sitemodel
+    :beast.base.evolution.substitutionmodel
+    :beast.base.evolution.likelihood
+    :metastabayes
+    :tidetree" required="BEAST.base v2.7.6:FixedTreeAnalysis v0.0.2:BEAST_CLASSIC v1.6.3" version="2.7">
+
+<!-- syntactic sugar -->
+<map name="Uniform" >beast.base.inference.distribution.Uniform</map>
+<map name="Exponential" >beast.base.inference.distribution.Exponential</map>
+<map name="LogNormal" >beast.base.inference.distribution.LogNormalDistributionModel</map>
+<map name="Normal" >beast.base.inference.distribution.Normal</map>
+<map name="Beta" >beast.base.inference.distribution.Beta</map>
+<map name="Gamma" >beast.base.inference.distribution.Gamma</map>
+<map name="LaplaceDistribution" >beast.base.inference.distribution.LaplaceDistribution</map>
+<map name="prior" >beast.base.inference.distribution.Prior</map>
+<map name="InverseGamma" >beast.base.inference.distribution.InverseGamma</map>
+<map name="OneOnX" >beast.base.inference.distribution.OneOnX</map>
+
+    
+<!-- input data -->
+
+<data  id="alignment" spec="feast.fileio.AlignmentFromFasta" fileName="$(repo)/examples/pR_298.fasta">
+    <userDataType spec="tidetree.evolution.datatype.EditData" nrOfStates="87"/>
+</data>
+
+<taxonset id="taxonset" spec="TaxonSet" alignment="@alignment"/>
+
+<traitSet id="dateTrait" spec="feast.fileio.TraitSetFromXSV" taxa="@taxonset" fileName="$(repo)/examples/pR_298_date_traits.csv" sep="," taxonNameCol="0" traitValueCol="1" skipFirstRow="false" traitname="date-forward"/>
+
+
+<!-- <substModel id="substModel" spec="tidetree.substitutionmodel.EditAndSilencingModel" editRates="@editRate" silencingRate="@silencingRate" editHeight="250" editDuration="250"> -->
+<substModel id="substModel" spec="metastabayes.substitutionmodel.MetastabayesGeneralMutationSubstitutionModel" editRates="@editRate" silencingRate="@silencingRate" editHeight="250" editDuration="250">
+    <frequencies spec="beast.base.evolution.substitutionmodel.Frequencies" frequencies="1.0 0 0" estimate="false"/>
+</substModel>
+
+<siteModel spec="SiteModel" id="siteModel" mutationRate="@mutationRate" proportionInvariant="@proportionInvariant" gammaCategoryCount="0" substModel="@substModel"></siteModel>
+
+<run id="mcmc" spec="MCMC" chainLength="10000000">
+        <state id="state" spec="State" storeEvery="5000">
+            <stateNode id="tree" spec="tidetree.tree.StartingTree" rootHeight="250" taxa="@alignment" editHeight="250" editDuration="250" sequencesAreClustered="false">
+                <trait idref="dateTrait"/>
+                <taxonset idref="taxonset"/>
+            </stateNode>
+            <!-- find the definition of the scarring, loss rate and clock rate in the TiDeTree manuscript -->
+            <parameter id="editRate" spec="parameter.RealParameter" estimate="true" name="stateNode" dimension="85">1.0 0.25806451612903225 0.3225806451612903 1.2258064516129032 0.03225806451612903 0.41935483870967744 0.1935483870967742 1.6129032258064515 0.0967741935483871 1.5806451612903225 0.3870967741935484 0.2903225806451613 1.032258064516129 0.45161290322580644 0.6451612903225806 0.22580645161290322 0.2903225806451613 0.6774193548387096 1.5161290322580645 0.9354838709677419 2.161290322580645 0.12903225806451613 0.12903225806451613 1.064516129032258 2.096774193548387 0.6451612903225806 0.4838709677419355 1.935483870967742 0.6774193548387096 0.2903225806451613 1.4193548387096775 1.2258064516129032 0.2903225806451613 0.03225806451612903 0.0967741935483871 2.6774193548387095 1.7096774193548387 0.5483870967741935 0.16129032258064516 0.22580645161290322 0.6774193548387096 0.16129032258064516 0.8387096774193549 1.1935483870967742 0.9354838709677419 1.0 0.06451612903225806 0.41935483870967744 0.25806451612903225 5.580645161290323 0.0967741935483871 0.8387096774193549 0.06451612903225806 0.22580645161290322 0.3548387096774194 0.16129032258064516 0.5806451612903226 0.4838709677419355 0.12903225806451613 1.2903225806451613 0.25806451612903225 0.22580645161290322 0.2903225806451613 1.064516129032258 0.22580645161290322 0.16129032258064516 0.06451612903225806 0.3870967741935484 0.03225806451612903 0.2903225806451613 0.967741935483871 0.06451612903225806 0.03225806451612903 0.03225806451612903 0.12903225806451613 0.25806451612903225 0.03225806451612903 0.0967741935483871 0.06451612903225806 0.22580645161290322 0.12903225806451613 0.03225806451612903 0.06451612903225806 0.03225806451612903 0.25806451612903225</parameter>
+            <parameter id="silencingRate" spec="parameter.RealParameter" dimension="1" lower="0.0" name="stateNode" upper="1000"> 0.0</parameter>
+            <!-- the clock rate is the rate of acquiring edited state 2  -->
+            <parameter id="clockRate.c" spec="parameter.RealParameter" name="stateNode">.0000160000</parameter>
+            <!-- the mutation rate could be another rate multiplier, but we leave it fixed to 1 -->
+            <parameter spec="parameter.RealParameter" estimate="false" id="mutationRate" name="stateNode">1.0</parameter>
+            <parameter spec="parameter.RealParameter" estimate="false" lower="0.0" id="proportionInvariant" name="stateNode" upper="1.0">0.0</parameter>
+            <!-- the following parameters belong to the extended birth-death sampling model by Stadler2013 -->
+            <!-- birth rate corresponds to cell division rate -->
+            <!-- <parameter id="birthRate" spec="parameter.RealParameter" dimension="1" lower="0.0" name="stateNode" upper="5">0.6</parameter> -->
+            <!-- death rate corresponds to apoptosis rate -->
+            <!-- <parameter id="deathRate" spec="parameter.RealParameter" dimension="1" lower="0.0" name="stateNode" upper="5">0.01</parameter> -->
+            <!-- sampling rate is a rate of sampling through time; since cells are only collected at single time point we set
+            this to 0 and specify the sampling proportion at present: rho -->
+            <!-- <parameter id="samplingRate" spec="parameter.RealParameter" lower="0.0" name="stateNode" upper="1.0"> 0 </parameter>
+            <parameter id="rho" spec="parameter.RealParameter" lower="0.0" name="stateNode" upper="1.0"> 1.0</parameter> -->
+            <!-- The origin is the start of the population process (see Stadler2013), i.e. in most applications the time that passed
+             from the start of the experiment until the cells are sequenced. Here this is in h. -->
+            <parameter id="origin" spec="parameter.RealParameter" name="stateNode" upper="250.0001">250.001</parameter>
+
+            <!-- tissue rates for oneRate model -->
+            <!-- <parameter id="relativeGeoRates.s:tissue" spec="parameter.RealParameter" dimension="1" name="stateNode">1.0</parameter> -->
+            <!-- tissue rates for asym model-->
+            <parameter id="relativeGeoRates.s:tissue" spec="parameter.RealParameter" lower="0.0" upper="1000" dimension="72"  name="stateNode">1.0</parameter>
+
+            <parameter id="traitClockRate.c:tissue" spec="parameter.RealParameter" name="stateNode">1.0</parameter>
+
+            <parameter id="tissueRateIndicators" spec="parameter.BooleanParameter" dimension="72" name="stateNode">true</parameter>
+        </state>
+        
+        
+        <distribution id="posterior" spec="CompoundDistribution">
+            
+            <distribution id="prior" spec="CompoundDistribution">
+                <!-- The tree prior (or population dynamic model): the birth death sampling model -->
+                <!-- <distribution id="birthDeathSamplingModel" spec="bdsky.evolution.speciation.BirthDeathSkylineModel"
+                          conditionOnSurvival="True" tree="@tree" origin="@origin" contemp="true"
+                          birthRate="@birthRate" deathRate="@deathRate" rho="@rho"
+                          samplingRate="@samplingRate" >
+                </distribution> -->
+
+                <distribution id="birthDeathSamplingModel" spec="bdsky.evolution.speciation.BirthDeathSkylineModel"
+                          conditionOnSurvival="True" tree="@tree" origin="@origin" contemp="true"
+                          birthRate="0.6" deathRate="0.01" rho="1.0"
+                          samplingRate="0.0" >
+                </distribution>
+                
+                <!-- prior distributions on the substitution model parameters -->
+                <!-- <prior id="editRatePrior" name="distribution" x="@editRate">
+                    <LogNormal name="distr">
+                      <parameter  spec="parameter.RealParameter" estimate="false" name="M">-4.0</parameter>
+                      <parameter  spec="parameter.RealParameter" estimate="false" lower="0.0" name="S" upper="20.0">1.0</parameter>
+                    </LogNormal>
+                </prior>
+
+                <prior id="ClockPrior.c" name="distribution" x="@clockRate.c">
+                    <LogNormal name="distr" M="-7" S="1.0"/>
+                </prior> -->
+
+                <prior id="editRatePrior" name="distribution" x="@editRate">
+                    <Exponential name="distr">
+                        <parameter spec="parameter.RealParameter" estimate="false" name="mean">1.0</parameter>
+                    </Exponential>
+                </prior>
+
+                <prior id="ClockPrior.c" name="distribution" x="@clockRate.c">
+                    <Exponential name="distr">
+                        <parameter spec="parameter.RealParameter" estimate="false" name="mean">0.005</parameter>
+                    </Exponential>
+                </prior>
+
+
+                <!-- prior distributions on phylodynamic parameters -->
+                <!-- [0.4, 2.7] -->
+                <!-- <prior id="birthRatePrior" name="distribution" x="@birthRate">
+                    <LogNormal name="distr" M="0" S="0.6"/>
+                </prior> -->
+                <!-- [0.01, 1.4] -->
+                <!-- <prior id="deathRatePrior" name="distribution" x="@deathRate">
+                   <LogNormal name="distr" M="-2" S="1.4"/>
+                </prior> -->
+                
+                <!-- <prior id="relativeGeoRatesPrior.s:tissue" name="distribution" x="@relativeGeoRates.s:tissue">
+                    <Gamma id="Gamma.2" name="distr">
+                        <parameter id="RealParameter.8" spec="parameter.RealParameter" estimate="false" name="alpha">1.0</parameter>
+                        <parameter id="RealParameter.9" spec="parameter.RealParameter" estimate="false" name="beta">1.0</parameter>
+                    </Gamma>
+                </prior>
+                <prior id="geoclockPrior.c:tissue" name="distribution" x="@traitClockRate.c:tissue">
+                    <Gamma id="Gamma.1" name="distr">
+                        <parameter id="RealParameter.6" spec="parameter.RealParameter" estimate="false" name="alpha">0.001</parameter>
+                        <parameter id="RealParameter.7" spec="parameter.RealParameter" estimate="false" name="beta">1000.0</parameter>
+                    </Gamma>
+                </prior> -->
+
+                <prior id="relativeGeoRatesPrior.s:tissue" name="distribution" x="@relativeGeoRates.s:tissue">
+                    <Exponential name="distr">
+                        <parameter spec="parameter.RealParameter" estimate="false" name="mean">1.0</parameter>
+                    </Exponential>
+                </prior>
+                <prior id="geoclockPrior.c:tissue" name="distribution" x="@traitClockRate.c:tissue">
+                    <Exponential name="distr">
+                        <parameter spec="parameter.RealParameter" estimate="false" name="mean">1.0</parameter>
+                    </Exponential>
+                </prior>
+
+
+            </distribution>
+            
+            
+            <distribution id="likelihood" spec="CompoundDistribution" useThreads="true">
+                
+                <!-- <distribution id="treeLikelihood" spec="tidetree.distributions.TreeLikelihoodWithEditWindow" origin="250.001" data="@alignment" tree="@tree" siteModel="@siteModel"> -->
+                <distribution id="treeLikelihood" spec="metastabayes.likelihood.MetastabayesBeagleTreeLikelihood" data="@alignment" tree="@tree" siteModel="@siteModel">
+                    <branchRateModel spec="beast.base.evolution.branchratemodel.StrictClockModel" clock.rate="@clockRate.c"/>
+                </distribution>
+                
+                <!-- <distribution id="traitLikelihood" spec="beastclassic.evolution.likelihood.AncestralStateTreeLikelihood" tag="location" tree="@tree"> -->
+                <distribution id="traitLikelihood" spec="metastabayes.likelihood.MetastabayesAncestralStateBeagleTreeLikelihood" origin="250.001" scaling="_default" tag="location" tree="@tree">
+                    <rootFrequencies spec="beast.base.evolution.substitutionmodel.Frequencies" frequencies="1 0 0 0 0 0 0 0 0" estimate="false"/>
+                    <data id="tissue" spec="beastclassic.evolution.alignment.AlignmentFromTrait">
+                        <traitSet id="traitset" spec="feast.fileio.TraitSetFromXSV" fileName="$(repo)/examples/pR_298_tip_tissues.csv" taxa="@taxonset" taxonNameCol="0" skipFirstRow="false" sep="," traitname="discrete"/>
+                        <userDataType id="codeMap" spec="beast.base.evolution.datatype.UserDataType" codeMap="P=0,M1=1,M3=2,M4=3,M5=4,M6=5,M7=6,M8=7,M9=8,? = 0 1 2 3 4 5 6 7 8 " codelength="-1" states="9"/>
+                    </data>
+                    <siteModel id="geoSiteModel.s:tissue" spec="SiteModel" gammaCategoryCount="1">
+                        <parameter id="mutationRate.s:tissue" spec="parameter.RealParameter" estimate="false" name="mutationRate">1.0</parameter>
+                        <parameter id="gammaShape.s:tissue" spec="parameter.RealParameter" estimate="false" name="shape">1.0</parameter>
+                        <parameter id="proportionInvariant.s:tissue" spec="parameter.RealParameter" estimate="false" lower="0.0" name="proportionInvariant" upper="1.0">0.0</parameter>
+                        <substModel id="svs.s:tissue" spec="beastclassic.evolution.substitutionmodel.SVSGeneralSubstitutionModel" rates="@relativeGeoRates.s:tissue" rateIndicator="@tissueRateIndicators" symmetric="false">
+                            <frequencies id="traitfreqs.s:tissue" spec="Frequencies">
+                                <parameter id="traitfrequencies.s:tissue" spec="parameter.RealParameter" dimension="9" name="frequencies">0.1111111111</parameter>
+                            </frequencies>
+                        </substModel>
+                    </siteModel>
+                    <branchRateModel id="StrictClockModel.c:tissue" spec="beast.base.evolution.branchratemodel.StrictClockModel" clock.rate="@traitClockRate.c:tissue"/>
+                </distribution>
+                
+            </distribution>
+            
+        </distribution>
+        
+    <!-- tree operators -->
+    <operator  spec="Uniform" tree="@tree" weight="30.0"/>
+    <operator  spec="SubtreeSlide" tree="@tree" weight="3.0"/>
+    <operator spec="SubtreeSlide" tree="@tree" weight="3.0" size="30"/>
+    <operator  spec="Exchange" isNarrow="false" tree="@tree" weight="30.0"/>
+
+    <!-- operators on phylogenetic parameters-->
+    <!-- operator on edit probabilities while keeping their sum fixed to 1 -->
+    <operator id="editRateScaler" spec="DeltaExchangeOperator" parameter="@editRate" weight="3.0"/>
+    <operator id="clockRateScaler" spec="ScaleOperator" parameter="@clockRate.c" scaleFactor="0.8" weight="3.0"/>
+
+    <!-- operators on phylodynamic parameters -->
+    <!-- <operator id="birthRateScaler" spec="ScaleOperator" parameter="@birthRate" scaleFactor="0.8" weight="3.0"/>
+    <operator id="deathRateScaler" spec="ScaleOperator" parameter="@deathRate" scaleFactor="0.8" weight="3.0"/>
+
+    <operator id="updownBD.t" spec="UpDownOperator" scaleFactor="0.8" weight="30.0">
+            <up idref="birthRate"/>
+            <down idref="deathRate"/>
+    </operator> -->
+        
+    <!-- operators on ancestral state model parameters -->
+    <operator id="georateScaler.s:tissue" spec="ScaleOperator" parameter="@relativeGeoRates.s:tissue" scaleAllIndependently="true" scaleFactor="0.99" weight="30.0"/>
+    <operator id="geoMuScaler.c:tissue" spec="ScaleOperator" parameter="@traitClockRate.c:tissue" scaleFactor="0.9" weight="3.0"/>
+    
+    <!-- loggers -->
+        <logger id="tracelog" spec="Logger" fileName="$(filebase).log" logEvery="10000" model="@posterior" sanitiseHeaders="true" sort="smart">
+            <log idref="posterior"/>
+            <log idref="likelihood"/>
+            <log idref="prior"/>
+            <log id="treeHeight" spec="beast.base.evolution.tree.TreeHeightLogger" tree="@tree"/>
+            <log idref="editRate"/>
+            <log idref="silencingRate" />
+            <log idref="clockRate.c"/>
+            <!-- <log idref="birthRate"/>
+            <log idref="rho"/>
+            <log idref="deathRate"/> -->
+            <log idref="relativeGeoRates.s:tissue"/>
+            <log idref="traitClockRate.c:tissue"/>
+            <log id="geoSubstModelLogger.s:tissue" spec="beastclassic.evolution.substitutionmodel.SVSGeneralSubstitutionModelLogger" dataType="@codeMap" model="@svs.s:tissue"/>
+            <log idref="treeLikelihood"/>
+            <log idref="traitLikelihood"/>
+        </logger>
+
+        <logger id="screenlog" spec="Logger" logEvery="10000">
+            <log idref="posterior"/>
+            <log id="ESS" spec="util.ESS" arg="@posterior"/>
+            <log idref="likelihood"/>
+            <log idref="prior"/>
+        </logger>
+
+        <logger id="treeWithTraitLogger" spec="Logger" fileName="$(filebase).trees" logEvery="10000" mode="tree">
+                <log id="treeWithTraitLoggerItem" spec="beastclassic.evolution.tree.TreeWithTraitLogger" tree="@tree">
+                    <metadata idref="posterior"/>
+                    <metadata idref="treeLikelihood"/>
+                    <metadata idref="traitLikelihood"/>
+                </log>
+        </logger>
+
+    <operatorschedule id="OperatorSchedule" spec="OperatorSchedule"/>
+</run>
+
+</beast>

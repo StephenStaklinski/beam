@@ -60,13 +60,8 @@ public class MetastabayesBeagleTreeLikelihood extends TreeLikelihood {
     private static final String SCALING_PROPERTY = "beagle.scaling";
     private static final String RESCALE_FREQUENCY_PROPERTY = "beagle.rescale";
 
-    ///// MODIFIED /////
-    // // Which scheme to use if choice not specified (or 'default' is selected):
-    // private static final PartialsRescalingScheme DEFAULT_RESCALING_SCHEME = PartialsRescalingScheme.DYNAMIC;
-
-    // Turn off scaling just as TideTree had done
-    private static final PartialsRescalingScheme DEFAULT_RESCALING_SCHEME = PartialsRescalingScheme.NONE;
-    ///// MODIFIED /////
+    // Which scheme to use if choice not specified (or 'default' is selected):
+    private static final PartialsRescalingScheme DEFAULT_RESCALING_SCHEME = PartialsRescalingScheme.DYNAMIC;
 
     private static int instanceCount = 0;
     private static List<Integer> resourceOrder = null;
@@ -902,6 +897,12 @@ public class MetastabayesBeagleTreeLikelihood extends TreeLikelihood {
             }
 
             if (Double.isNaN(logL) || Double.isInfinite(logL)) {
+
+                // DEBUGGING
+                if (!everUnderflowed) {
+                    System.out.println("Underflow in likelihood calculation.");
+                }
+
                 everUnderflowed = true;
                 logL = Double.NEGATIVE_INFINITY;
 
