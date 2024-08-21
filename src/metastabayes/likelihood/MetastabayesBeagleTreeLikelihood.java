@@ -59,8 +59,14 @@ public class MetastabayesBeagleTreeLikelihood extends TreeLikelihood {
     private static final String REQUIRED_FLAGS_PROPERTY = "beagle.required.flags";
     private static final String SCALING_PROPERTY = "beagle.scaling";
     private static final String RESCALE_FREQUENCY_PROPERTY = "beagle.rescale";
-    // Which scheme to use if choice not specified (or 'default' is selected):
-    private static final PartialsRescalingScheme DEFAULT_RESCALING_SCHEME = PartialsRescalingScheme.DYNAMIC;
+
+    ///// MODIFIED /////
+    // // Which scheme to use if choice not specified (or 'default' is selected):
+    // private static final PartialsRescalingScheme DEFAULT_RESCALING_SCHEME = PartialsRescalingScheme.DYNAMIC;
+
+    // Turn off scaling just as TideTree had done
+    private static final PartialsRescalingScheme DEFAULT_RESCALING_SCHEME = PartialsRescalingScheme.NONE;
+    ///// MODIFIED /////
 
     private static int instanceCount = 0;
     private static List<Integer> resourceOrder = null;
@@ -176,7 +182,9 @@ public class MetastabayesBeagleTreeLikelihood extends TreeLikelihood {
 
         tipCount = treeInput.get().getLeafNodeCount();
 
+        ///// MODIFIED /////
         internalNodeCount = m_nNodeCount - tipCount;
+        ///// MODIFIED /////
 
         int compactPartialsCount = tipCount;
         if (m_bUseAmbiguities) {
@@ -675,8 +683,8 @@ public class MetastabayesBeagleTreeLikelihood extends TreeLikelihood {
         }
 
         if (operations == null) {
-            operations = new int[1][internalNodeCount * Beagle.OPERATION_TUPLE_SIZE];
-            operationCount = new int[1];
+                operations = new int[1][internalNodeCount * Beagle.OPERATION_TUPLE_SIZE];
+                operationCount = new int[1];
         }
 
         recomputeScaleFactors = false;
@@ -805,7 +813,7 @@ public class MetastabayesBeagleTreeLikelihood extends TreeLikelihood {
             }
 
             // these could be set only when they change but store/restore would need to be considered
-            
+
             for (int i = 0; i < categoryWeights.length; i++) {
             	if (categoryWeights[i] != currentCategoryWeights[i]) {
                     beagle.setCategoryWeights(0, categoryWeights);
@@ -824,7 +832,7 @@ public class MetastabayesBeagleTreeLikelihood extends TreeLikelihood {
             double[] sumLogLikelihoods = new double[1];
 
             ///// MODIFIED /////
-            ///// replace partials with new partials at the origin based on these calculations external to BEAGLE
+            /// replace partials with new partials at the origin based on these calculations external to BEAGLE
             if(useOrigin) {
 
                 // only need to change the root partials if the root is not already the origin
@@ -832,7 +840,7 @@ public class MetastabayesBeagleTreeLikelihood extends TreeLikelihood {
 
                     // get the BEAGLE calculated root partials
                     double[] rootPartials = new double[patternCount * m_nStateCount * categoryCount];
-                    beagle.getPartials(rootIndex, Beagle.NONE, rootPartials);
+                    beagle.getPartials(rootIndex, Beagle.NONE, rootPartials);  // get the root partials, which are scaled if scaling is on
 
                     // get the root node transition matrix, normally ignored but computed based on the height from root to origin
                     double[] rootTransitionMatrix = new double[m_nStateCount * m_nStateCount * categoryCount];
@@ -856,9 +864,9 @@ public class MetastabayesBeagleTreeLikelihood extends TreeLikelihood {
 
                     // calculate the likelihood with the new partials
                     beagle.calculateRootLogLikelihoods(new int[]{rootIndex}, new int[]{0}, new int[]{0},
-                    new int[]{cumulateScaleBufferIndex}, 1, sumLogLikelihoods);
+                    new int[]{cumulateScaleBufferIndex}, 1, sumLogLikelihoods);  // Already using the unscaled partials for the origin branch, so do not reapply the conversion from scaled to unscaled partials. 
 
-                    // restore the original root partials in case the step is rejected
+                    // restore the original root partials in case the step is rejected or rescaling is required
                     setPartials(rootNodeNum, rootPartials);
                 }
             } else {
