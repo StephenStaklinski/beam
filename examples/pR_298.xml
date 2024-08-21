@@ -53,7 +53,7 @@
 
 <siteModel spec="SiteModel" id="siteModel" mutationRate="@mutationRate" proportionInvariant="@proportionInvariant" gammaCategoryCount="0" substModel="@substModel"></siteModel>
 
-<run id="mcmc" spec="MCMC" chainLength="10000000">
+<run id="mcmc" spec="MCMC" chainLength="1000000">
         <state id="state" spec="State" storeEvery="5000">
             <stateNode id="tree" spec="tidetree.tree.StartingTree" rootHeight="250" taxa="@alignment" editHeight="250" editDuration="250" sequencesAreClustered="false">
                 <trait idref="dateTrait"/>
