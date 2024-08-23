@@ -854,56 +854,56 @@ public class MetastabayesBeagleTreeLikelihood extends TreeLikelihood {
                     // calculate the origin partials
                     calculateOriginPartials(rootPartials, rootTransitionMatrix, originPartials);
 
-                    // // DEBUGGING
-                    // System.out.println("Root Partials: " + Arrays.toString(rootPartials));
-                    // System.out.println("Origin Partials: " + Arrays.toString(originPartials));
+                    // // // DEBUGGING
+                    // // System.out.println("Root Partials: " + Arrays.toString(rootPartials));
+                    // // System.out.println("Origin Partials: " + Arrays.toString(originPartials));
 
-                    // scale origin partials if scaling is on
-                    if (useScaleFactors) {
-                        double[] originScaleFactors = new double[patternCount];
-                        int u = 0;
-                        for (int i = 0; i < patternCount; i++) {
-                            double scaleFactor = 0.0;
-                            int v = u;
-                            for (int k = 0; k < categoryCount; k++) {
-                                for (int j = 0; j < m_nStateCount; j++) {
-                                    if (originPartials[v] > scaleFactor) {
-                                        scaleFactor = originPartials[v];
-                                    }
-                                    v++;
-                                }
-                                v += (patternCount - 1) * m_nStateCount;
-                            }
-                            if (scaleFactor < scalingThreshold) {
-                                v = u;
-                                for (int k = 0; k < categoryCount; k++) {
-                                    for (int j = 0; j < m_nStateCount; j++) {
-                                        originPartials[v] /= scaleFactor;
-                                        v++;
-                                    }
-                                    v += (patternCount - 1) * m_nStateCount;
-                                }
-                                originScaleFactors[i] = Math.log(scaleFactor);
+                    // // scale origin partials if scaling is on
+                    // if (useScaleFactors) {
+                    //     double[] originScaleFactors = new double[patternCount];
+                    //     int u = 0;
+                    //     for (int i = 0; i < patternCount; i++) {
+                    //         double scaleFactor = 0.0;
+                    //         int v = u;
+                    //         for (int k = 0; k < categoryCount; k++) {
+                    //             for (int j = 0; j < m_nStateCount; j++) {
+                    //                 if (originPartials[v] > scaleFactor) {
+                    //                     scaleFactor = originPartials[v];
+                    //                 }
+                    //                 v++;
+                    //             }
+                    //             v += (patternCount - 1) * m_nStateCount;
+                    //         }
+                    //         if (scaleFactor < scalingThreshold) {
+                    //             v = u;
+                    //             for (int k = 0; k < categoryCount; k++) {
+                    //                 for (int j = 0; j < m_nStateCount; j++) {
+                    //                     originPartials[v] /= scaleFactor;
+                    //                     v++;
+                    //                 }
+                    //                 v += (patternCount - 1) * m_nStateCount;
+                    //             }
+                    //             originScaleFactors[i] = Math.log(scaleFactor);
 
-                            } else {
-                                originScaleFactors[i] = 0.0;
-                            }
-                            u += m_nStateCount;
-                        }
+                    //         } else {
+                    //             originScaleFactors[i] = 0.0;
+                    //         }
+                    //         u += m_nStateCount;
+                    //     }
 
-                        //////
-                        // NOT SURE HOW TO UPDATE THE CUMULATIVE SCALE BUFFER TO INCLUDE A SUM WITH THE ORIGIN SCALE FACTORS???
-                        //////
-                        // I think this is necessary to ensure the likelihood is calculated correctly on the original scale, otherwise the
-                        // likelihood will be calculated on the scaled partials that artificially inflates the likelihood and traps the MCMC chain
-                        // due to any Metropolis-Hastings proposals always being rejected
-                        //////
+                    //     //////
+                    //     // NOT SURE HOW TO UPDATE THE CUMULATIVE SCALE BUFFER TO INCLUDE A SUM WITH THE ORIGIN SCALE FACTORS???
+                    //     //////
+                    //     // I think this is necessary to ensure the likelihood is calculated correctly on the original scale, otherwise the
+                    //     // likelihood will be calculated on the scaled partials that artificially inflates the likelihood and traps the MCMC chain
+                    //     // due to any Metropolis-Hastings proposals always being rejected
+                    //     //////
 
-                        // // DEBUGGING
-                        // System.out.println("Origin Partials scaled: " + Arrays.toString(originPartials));
-                        // System.out.println("Origin Partials scale factors: " + Arrays.toString(originScaleFactors));
+                    //     // // DEBUGGING
+                    //     // System.out.println("Origin Partials scaled: " + Arrays.toString(originPartials));
+                    //     // System.out.println("Origin Partials scale factors: " + Arrays.toString(originScaleFactors));
 
-                    }
+                    // }
 
                     // replace the root partials with the origin partials in BEAGLE to allow for the final likelihood calculation in in BEAGLE
                     setPartials(rootNodeNum, originPartials);
