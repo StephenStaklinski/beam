@@ -26,13 +26,21 @@ I have been using `build.xml` to run `ant compile && ant jar` after developing s
 ../tidetree
 ```
 
-which can be obtained from:
-- [beast2](https://github.com/CompEvol/beast2)
-- [beast-classic](https://github.com/BEAST2-Dev/beast-classic)
-- [BeastFX](https://github.com/CompEvol/BeastFX)
-- [BEASTLabs](https://github.com/BEAST2-Dev/BEASTLabs)
-- [feast](https://github.com/tgvaughan/feast)
-- [tidetree](https://github.com/seidels/tidetree)
+An initial install will obtain these by running:
+```
+mkdir metastabayes_dev
+cd metastabayes_dev
+gh repo clone StephenStaklinski/metastabayes
+gh repo clone CompEvol/beast2
+gh repo clone BEAST2-Dev/beast-classic
+gh repo clone CompEvol/BeastFX
+gh repo clone BEAST2-Dev/BEASTLabs
+gh repo clone tgvaughan/feast
+gh repo clone seidels/tidetree
+cd metastabayes
+ant compile
+ant jar
+```
 
 
 
