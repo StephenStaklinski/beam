@@ -3,9 +3,15 @@
     <property name="dir.buildfile" value="."/>
     <property name="dir.workspace" value="${dir.buildfile}/.."/>
 
-    <import file="${dir.workspace}/beast2/build.xml"/>
     <target name="compile-beast2">
-        <antcall target="build_jar_all_BEAST_NoJUnitTest"/>
+        <mkdir dir="${dir.workspace}/beast2/build"/>
+        <javac srcdir="${dir.workspace}/beast2/src" destdir="${dir.workspace}/beast2/build" includeantruntime="false">
+            <classpath>
+                <fileset dir="${dir.workspace}/beast2/lib" includes="*.jar"/>
+                <fileset dir="${dir.workspace}/beast2/lib/junit" includes="*.jar"/>
+                <fileset dir="${dir.workspace}/BeastFX/locallib" includes="*.jar"/>
+            </classpath>
+        </javac>
     </target>
 
     <target name="compile-beastfx">
@@ -26,56 +32,60 @@
     </target>
 
     <target name="compile-feast">
-        <mkdir dir="${dir.workspace}/feast/bin"/>
-        <javac srcdir="${dir.workspace}/feast/src" destdir="${dir.workspace}/feast/bin" includeantruntime="false">
+        <mkdir dir="${dir.workspace}/feast/build"/>
+        <javac srcdir="${dir.workspace}/feast/src" destdir="${dir.workspace}/feast/build" includeantruntime="false">
             <classpath>
+                <fileset dir="${dir.workspace}/beast2/lib" includes="*.jar"/>
+                <fileset dir="${dir.workspace}/beast2/lib/junit" includes="*.jar"/>
+                <fileset dir="${dir.workspace}/BeastFX/locallib" includes="*.jar"/>
                 <pathelement location="${dir.workspace}/beast2/build"/>
-                <pathelement location="${dir.workspace}/beastfx/bin"/>
+                <pathelement location="${dir.workspace}/beastfx/build"/>
             </classpath>
         </javac>
     </target>
 
     <target name="compile-beastlabs">
-        <javac srcdir="${dir.workspace}/BEASTLabs/src" destdir="${dir.workspace}/BEASTLabs/bin" includeantruntime="false">
+        <mkdir dir="${dir.workspace}/BEASTLabs/build"/>
+        <javac srcdir="${dir.workspace}/BEASTLabs/src" destdir="${dir.workspace}/BEASTLabs/build" includeantruntime="false">
             <classpath>
                 <fileset dir="${dir.workspace}/BEASTLabs/lib" includes="*.jar"/>
                 <fileset dir="${dir.workspace}/beast2/lib" includes="*.jar"/>
                 <fileset dir="${dir.workspace}/beast2/lib/junit" includes="*.jar"/>
                 <pathelement location="${dir.workspace}/beast2/build"/>
-                <pathelement location="${dir.workspace}/beastfx/bin"/>
+                <pathelement location="${dir.workspace}/beastfx/build"/>
             </classpath>
         </javac>
     </target>
 
     <target name="compile-tidetree">
-        <mkdir dir="${dir.workspace}/tidetree/bin"/>
-        <javac srcdir="${dir.workspace}/tidetree/src" destdir="${dir.workspace}/tidetree/bin" includeantruntime="false">
+        <mkdir dir="${dir.workspace}/tidetree/build"/>
+        <javac srcdir="${dir.workspace}/tidetree/src" destdir="${dir.workspace}/tidetree/build" includeantruntime="false">
             <classpath>
                 <fileset dir="${dir.workspace}/beast2/lib" includes="*.jar"/>
                 <fileset dir="${dir.workspace}/beast2/lib/junit" includes="*.jar"/>
                 <fileset dir="${dir.workspace}/beast-classic/lib" includes="*.jar"/>
                 <fileset dir="${dir.workspace}/BeastFX/locallib" includes="*.jar"/>
-                <pathelement path="${dir.workspace}/BeastFX/bin"/>
-                <pathelement path="${dir.workspace}/feast/bin"/>
+                <pathelement path="${dir.workspace}/BeastFX/build"/>
+                <pathelement path="${dir.workspace}/feast/build"/>
                 <pathelement location="${dir.workspace}/beast2/build"/>
             </classpath>
         </javac>
     </target>
 
     <target name="compile" depends="compile-beast2,compile-beastfx,compile-beastclassic,compile-feast,compile-beastlabs,compile-tidetree">
-        <mkdir dir="${dir.buildfile}/bin"/>
-        <javac srcdir="${dir.buildfile}/src" destdir="${dir.buildfile}/bin" includeantruntime="false">
+        <mkdir dir="${dir.buildfile}/build"/>
+        <javac srcdir="${dir.buildfile}/src" destdir="${dir.buildfile}/build" includeantruntime="false">
             <classpath>
                 <fileset dir="${dir.workspace}/beast2/lib" includes="*.jar"/>
                 <fileset dir="${dir.workspace}/beast2/lib/junit" includes="*.jar"/>
                 <fileset dir="${dir.workspace}/beast-classic/lib" includes="*.jar"/>
                 <fileset dir="${dir.workspace}/BeastFX/locallib" includes="*.jar"/>
-                <fileset dir="${dir.workspace}/tidetree/bin" includes="*.jar"/>
-                <pathelement path="${dir.workspace}/BeastFX/bin"/>
-                <pathelement path="${dir.workspace}/feast/bin"/>
-                <pathelement location="${dir.workspace}/beast-classic/bin"/>
-                <pathelement location="${dir.workspace}/beast2/bin"/>
-                <pathelement location="${dir.workspace}/tidetree/bin"/>
+                <fileset dir="${dir.workspace}/tidetree/build" includes="*.jar"/>
+                <pathelement path="${dir.workspace}/BeastFX/build"/>
+                <pathelement path="${dir.workspace}/feast/build"/>
+                <pathelement location="${dir.workspace}/beast-classic/build"/>
+                <pathelement location="${dir.workspace}/beast2/build"/>
+                <pathelement location="${dir.workspace}/tidetree/build"/>
             </classpath>
         </javac>
     </target>
@@ -87,7 +97,7 @@
                 <attribute name="Class-Path" value="."/>
             </manifest>
             <fileset dir="${dir.buildfile}/src" includes="beast_services.xml"/>
-            <fileset dir="${dir.buildfile}/bin"/>
+            <fileset dir="${dir.buildfile}/build"/>
             <zipfileset excludes="META-INF/*.SF" src="${dir.workspace}/beast2/lib/junit/junit-platform-console-standalone-1.8.2.jar"/>
             <zipfileset excludes="META-INF/*.SF" src="${dir.workspace}/beast2/lib/antlr-runtime-4.10.1.jar"/>
             <zipfileset excludes="META-INF/*.SF" src="${dir.workspace}/beast2/lib/beagle.jar"/>
@@ -97,9 +107,9 @@
             <zipfileset excludes="META-INF/*.SF" src="${dir.workspace}/BeastFX/locallib/assertj-core-3.20.2.jar"/>
             <zipfileset excludes="META-INF/*.SF" src="${dir.workspace}/BeastFX/locallib/jam.jar"/>
             <zipfileset excludes="META-INF/*.SF" src="${dir.workspace}/BeastFX/locallib/testfx.jar"/>
-            <fileset dir="${dir.workspace}/tidetree/bin"/>
-            <fileset dir="${dir.workspace}/beast2/bin"/>
-            <fileset dir="${dir.workspace}/beast-classic/bin"/>
+            <fileset dir="${dir.workspace}/tidetree/build"/>
+            <fileset dir="${dir.workspace}/beast2/build"/>
+            <fileset dir="${dir.workspace}/beast-classic/build"/>
             <zipfileset excludes="META-INF/*.SF" src="${dir.workspace}/beast2/build/dist/BEAST.base.jar"/>
             <zipfileset excludes="META-INF/*.SF" src="${dir.workspace}/beast2/build/dist/BEAST.base.src.jar"/>
             <zipfileset excludes="META-INF/*.SF" src="${dir.workspace}/beast2/build/dist/beast.test.src.jar"/>
@@ -109,9 +119,9 @@
             <zipfileset excludes="META-INF/*.SF" src="${dir.workspace}/beast2/lib/bundler/jarbundler-core-3.3.0.jar"/>
             <zipfileset excludes="META-INF/*.SF" src="${dir.workspace}/beast2/lib/bundler/jsign-3.1.jar"/>
             <zipfileset excludes="META-INF/*.SF" src="${dir.workspace}/beast2/release/common/tools/DensiTree.jar"/>
-            <fileset dir="${dir.workspace}/BeastFX/bin"/>
-            <fileset dir="${dir.workspace}/feast/bin"/>
-            <fileset dir="${dir.workspace}/BEASTLabs/bin"/>
+            <fileset dir="${dir.workspace}/BeastFX/build"/>
+            <fileset dir="${dir.workspace}/feast/build"/>
+            <fileset dir="${dir.workspace}/BEASTLabs/build"/>
             <zipfileset excludes="META-INF/*.SF" src="${dir.workspace}/BEASTLabs/lib/junit-4.8.2.jar"/>
             <zipfileset excludes="META-INF/*.SF" src="${dir.workspace}/BEASTLabs/lib/nashorn-core-15.3.jar"/>
         </jar>
