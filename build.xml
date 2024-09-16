@@ -3,7 +3,66 @@
     <property name="dir.buildfile" value="."/>
     <property name="dir.workspace" value="${dir.buildfile}/.."/>
 
-    <target name="compile">
+    <import file="${dir.workspace}/beast2/build.xml"/>
+    <target name="compile-beast2">
+        <antcall target="build_jar_all_BEAST_NoJUnitTest"/>
+    </target>
+
+    <target name="compile-beastfx">
+        <mkdir dir="${dir.workspace}/BeastFX/build"/>
+        <javac srcdir="${dir.workspace}/BeastFX/src" destdir="${dir.workspace}/BeastFX/build" includeantruntime="false">
+            <classpath>
+                <fileset dir="${dir.workspace}/beast2/lib" includes="*.jar"/>
+                <fileset dir="${dir.workspace}/beast2/lib/junit" includes="*.jar"/>
+                <fileset dir="${dir.workspace}/BeastFX/locallib" includes="*.jar"/>
+                <pathelement location="${dir.workspace}/beast2/build"/>
+            </classpath>
+        </javac>
+    </target>
+
+    <import file="${dir.workspace}/beast-classic/build.xml"/>
+    <target name="compile-beastclassic">
+        <antcall target="build_jar_all_BEAST_CLASSIC_NoJUnitTest"/>
+    </target>
+
+    <target name="compile-feast">
+        <mkdir dir="${dir.workspace}/feast/bin"/>
+        <javac srcdir="${dir.workspace}/feast/src" destdir="${dir.workspace}/feast/bin" includeantruntime="false">
+            <classpath>
+                <pathelement location="${dir.workspace}/beast2/build"/>
+                <pathelement location="${dir.workspace}/beastfx/bin"/>
+            </classpath>
+        </javac>
+    </target>
+
+    <target name="compile-beastlabs">
+        <javac srcdir="${dir.workspace}/BEASTLabs/src" destdir="${dir.workspace}/BEASTLabs/bin" includeantruntime="false">
+            <classpath>
+                <fileset dir="${dir.workspace}/BEASTLabs/lib" includes="*.jar"/>
+                <fileset dir="${dir.workspace}/beast2/lib" includes="*.jar"/>
+                <fileset dir="${dir.workspace}/beast2/lib/junit" includes="*.jar"/>
+                <pathelement location="${dir.workspace}/beast2/build"/>
+                <pathelement location="${dir.workspace}/beastfx/bin"/>
+            </classpath>
+        </javac>
+    </target>
+
+    <target name="compile-tidetree">
+        <mkdir dir="${dir.workspace}/tidetree/bin"/>
+        <javac srcdir="${dir.workspace}/tidetree/src" destdir="${dir.workspace}/tidetree/bin" includeantruntime="false">
+            <classpath>
+                <fileset dir="${dir.workspace}/beast2/lib" includes="*.jar"/>
+                <fileset dir="${dir.workspace}/beast2/lib/junit" includes="*.jar"/>
+                <fileset dir="${dir.workspace}/beast-classic/lib" includes="*.jar"/>
+                <fileset dir="${dir.workspace}/BeastFX/locallib" includes="*.jar"/>
+                <pathelement path="${dir.workspace}/BeastFX/bin"/>
+                <pathelement path="${dir.workspace}/feast/bin"/>
+                <pathelement location="${dir.workspace}/beast2/build"/>
+            </classpath>
+        </javac>
+    </target>
+
+    <target name="compile" depends="compile-beast2,compile-beastfx,compile-beastclassic,compile-feast,compile-beastlabs,compile-tidetree">
         <mkdir dir="${dir.buildfile}/bin"/>
         <javac srcdir="${dir.buildfile}/src" destdir="${dir.buildfile}/bin" includeantruntime="false">
             <classpath>
