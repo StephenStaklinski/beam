@@ -24,30 +24,18 @@ An initial install will obtain dependencies for developing on the code base by r
 mkdir metastabayes_dev
 cd metastabayes_dev
 
-# download dependencies
-gh repo clone StephenStaklinski/metastabayes
-gh repo clone CompEvol/beast2
-gh repo clone BEAST2-Dev/beast-classic
-gh repo clone CompEvol/BeastFX
-gh repo clone BEAST2-Dev/BEASTLabs
-gh repo clone seidels/tidetree
+# handle feast external to ant
+# specify path to Java FX (or OpenJDK) and compile feast
 gh repo clone tgvaughan/feast
-
-# specify path to Java FX and compile feast code, can also be an OpenJDK install
 cd feast
 JAVA_FX_HOME="/Users/staklins/bin/zulu17.46.19-ca-fx-jdk17.0.9-macosx_aarch64/lib" ant
 
 # compile metastabayes code and related dependencies
 cd ../metastabayes
-ant compile
-ant jar
+ant
 ```
 
-Then, any further changes in the code base can be reflected by running the following in the `metastabayes_dev/metastabayes` directory:
-```
-ant compile
-ant jar
-```
+Then, any further changes in the code base can be reflected by running `ant` in the `metastabayes_dev/metastabayes` directory.
 
 
 

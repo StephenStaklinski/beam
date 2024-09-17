@@ -5,7 +5,30 @@
     <property name="dir.buildfile" value="."/>
     <property name="dir.workspace" value="${dir.buildfile}/.."/>
 
-    <target name="compile-beast2">
+    <target name="check-dependencies">
+        <exec executable="sh">
+            <arg value="-c"/>
+            <arg value="if [ ! -d '${dir.workspace}/beast2' ]; then gh repo clone CompEvol/beast2 ${dir.workspace}/beast2; fi"/>
+        </exec>
+        <exec executable="sh">
+            <arg value="-c"/>
+            <arg value="if [ ! -d '${dir.workspace}/beast-classic' ]; then gh repo clone BEAST2-Dev/beast-classic ${dir.workspace}/beast-classic; fi"/>
+        </exec>
+        <exec executable="sh">
+            <arg value="-c"/>
+            <arg value="if [ ! -d '${dir.workspace}/BeastFX' ]; then gh repo clone CompEvol/BeastFX ${dir.workspace}/BeastFX; fi"/>
+        </exec>
+        <exec executable="sh">
+            <arg value="-c"/>
+            <arg value="if [ ! -d '${dir.workspace}/BEASTLabs' ]; then gh repo clone BEAST2-Dev/BEASTLabs ${dir.workspace}/BEASTLabs; fi"/>
+        </exec>
+        <exec executable="sh">
+            <arg value="-c"/>
+            <arg value="if [ ! -d '${dir.workspace}/tidetree' ]; then gh repo clone seidels/tidetree ${dir.workspace}/tidetree; fi"/>
+        </exec>
+    </target>
+
+    <target name="compile-beast2" depends="check-dependencies">
         <mkdir dir="${dir.workspace}/beast2/build"/>
         <javac srcdir="${dir.workspace}/beast2/src" destdir="${dir.workspace}/beast2/build" includeantruntime="false">
             <classpath>
@@ -16,7 +39,7 @@
         </javac>
     </target>
 
-    <target name="compile-beastfx">
+    <target name="compile-beastfx" depends="check-dependencies">
         <mkdir dir="${dir.workspace}/BeastFX/build"/>
         <javac srcdir="${dir.workspace}/BeastFX/src" destdir="${dir.workspace}/BeastFX/build" includeantruntime="false">
             <classpath>
@@ -28,12 +51,11 @@
         </javac>
     </target>
 
-    <import file="${dir.workspace}/beast-classic/build.xml"/>
-    <target name="compile-beastclassic">
-        <antcall target="build_jar_all_BEAST_CLASSIC_NoJUnitTest"/>
+    <target name="compile-beastclassic" depends="check-dependencies">
+        <ant dir="${dir.workspace}/beast-classic" target="build_jar_all_BEAST_CLASSIC_NoJUnitTest"/>
     </target>
 
-    <target name="compile-beastlabs">
+    <target name="compile-beastlabs" depends="check-dependencies">
         <mkdir dir="${dir.workspace}/BEASTLabs/build"/>
         <javac srcdir="${dir.workspace}/BEASTLabs/src" destdir="${dir.workspace}/BEASTLabs/build" includeantruntime="false">
             <classpath>
@@ -46,7 +68,7 @@
         </javac>
     </target>
 
-    <target name="compile-tidetree">
+    <target name="compile-tidetree" depends="check-dependencies">
         <mkdir dir="${dir.workspace}/tidetree/build"/>
         <javac srcdir="${dir.workspace}/tidetree/src" destdir="${dir.workspace}/tidetree/build" includeantruntime="false">
             <classpath>
@@ -61,7 +83,7 @@
         </javac>
     </target>
 
-    <target name="compile" depends="compile-beast2,compile-beastfx,compile-beastclassic,compile-beastlabs,compile-tidetree">
+    <target name="compile" depends="check-dependencies,compile-beast2,compile-beastfx,compile-beastclassic,compile-beastlabs,compile-tidetree">
         <mkdir dir="${dir.buildfile}/build"/>
         <javac srcdir="${dir.buildfile}/src" destdir="${dir.buildfile}/build" includeantruntime="false">
             <classpath>
@@ -79,7 +101,7 @@
         </javac>
     </target>
 
-    <target name="jar">
+    <target name="jar" depends="compile">
         <jar destfile="${dir.buildfile}/metastabayes.jar" filesetmanifest="mergewithoutmain">
             <manifest>
                 <attribute name="Main-Class" value="feast.app.FeastMain"/>
