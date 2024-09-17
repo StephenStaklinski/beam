@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <project default="jar" name="create jar for metastabayes">
+
+    <property environment="env"/>
     <property name="dir.buildfile" value="."/>
     <property name="dir.workspace" value="${dir.buildfile}/.."/>
 
@@ -31,19 +33,6 @@
         <antcall target="build_jar_all_BEAST_CLASSIC_NoJUnitTest"/>
     </target>
 
-    <target name="compile-feast">
-        <mkdir dir="${dir.workspace}/feast/build"/>
-        <javac srcdir="${dir.workspace}/feast/src" destdir="${dir.workspace}/feast/build" includeantruntime="false">
-            <classpath>
-                <fileset dir="${dir.workspace}/beast2/lib" includes="*.jar"/>
-                <fileset dir="${dir.workspace}/beast2/lib/junit" includes="*.jar"/>
-                <fileset dir="${dir.workspace}/BeastFX/locallib" includes="*.jar"/>
-                <pathelement location="${dir.workspace}/beast2/build"/>
-                <pathelement location="${dir.workspace}/beastfx/build"/>
-            </classpath>
-        </javac>
-    </target>
-
     <target name="compile-beastlabs">
         <mkdir dir="${dir.workspace}/BEASTLabs/build"/>
         <javac srcdir="${dir.workspace}/BEASTLabs/src" destdir="${dir.workspace}/BEASTLabs/build" includeantruntime="false">
@@ -72,7 +61,7 @@
         </javac>
     </target>
 
-    <target name="compile" depends="compile-beast2,compile-beastfx,compile-beastclassic,compile-feast,compile-beastlabs,compile-tidetree">
+    <target name="compile" depends="compile-beast2,compile-beastfx,compile-beastclassic,compile-beastlabs,compile-tidetree">
         <mkdir dir="${dir.buildfile}/build"/>
         <javac srcdir="${dir.buildfile}/src" destdir="${dir.buildfile}/build" includeantruntime="false">
             <classpath>

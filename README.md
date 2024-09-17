@@ -26,7 +26,7 @@ I have been using `build.xml` to run `ant compile && ant jar` after developing s
 ../tidetree
 ```
 
-An initial install will obtain these by running:
+An initial install will obtain these by running the following with the path to Java FX specified:
 ```
 mkdir metastabayes_dev
 cd metastabayes_dev
@@ -37,7 +37,9 @@ gh repo clone CompEvol/BeastFX
 gh repo clone BEAST2-Dev/BEASTLabs
 gh repo clone tgvaughan/feast
 gh repo clone seidels/tidetree
-cd metastabayes
+cd feast
+JAVA_FX_HOME="/Users/staklins/bin/zulu17.46.19-ca-fx-jdk17.0.9-macosx_aarch64/lib" ant
+cd ../metastabayes
 ant compile
 ant jar
 ```
