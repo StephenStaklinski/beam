@@ -287,7 +287,7 @@ public class MetastabayesBeagleTreeLikelihood extends TreeLikelihood {
         instanceCount++;
 
         try {
-	        beagle = BeagleFactory.loadBeagleInstance(
+            beagle = BeagleFactory.loadBeagleInstance(
 	                tipCount,
 	                partialBufferHelper.getBufferCount(),
 	                compactPartialsCount,
@@ -828,100 +828,107 @@ public class MetastabayesBeagleTreeLikelihood extends TreeLikelihood {
 
             ///// MODIFIED /////
             /// replace partials with new partials at the origin based on these calculations external to BEAGLE since BEAGLE cannot handle nodes with only a single child
-            if(useOrigin) {
+            if (useOrigin && root.getHeight() != origin.getValue()) {
 
-                // only need to change the root partials if the root is not already the origin
-                if (root.getHeight() != origin.getValue()) {
+                // get the BEAGLE calculated root partials
+                double[] rootPartials = new double[patternCount * m_nStateCount * categoryCount];
+                beagle.getPartials(rootIndex, Beagle.NONE, rootPartials);
 
-                    // get the BEAGLE calculated root partials
-                    double[] rootPartials = new double[patternCount * m_nStateCount * categoryCount];
-                    beagle.getPartials(rootIndex, Beagle.NONE, rootPartials);  // get the root partials, which are scaled if scaling is on
+                // get the root node transition matrix, normally ignored but computed based on the height from root to origin
+                double[] rootTransitionMatrix = new double[m_nStateCount * m_nStateCount * categoryCount];
+                int rootNodeNum = root.getNr();
 
-                    // get the root node transition matrix, normally ignored but computed based on the height from root to origin
-                    double[] rootTransitionMatrix = new double[m_nStateCount * m_nStateCount * categoryCount];
-                    int rootNodeNum = root.getNr();
+                double br = branchRateModel.getRateForBranch(root);
+                for (int i = 0; i < m_siteModel.getCategoryCount(); i++) {
+                    double jointbr = m_siteModel.getRateForCategory(i, root) * br;
+                    substitutionModel.getTransitionProbabilities(root, origin.getValue(), root.getHeight(), jointbr, probabilities);
+                    System.arraycopy(probabilities, 0, rootTransitionMatrix,  m_nStateCount * m_nStateCount * i, m_nStateCount * m_nStateCount);
+                }
 
-                    double br = branchRateModel.getRateForBranch(root);
-                    for (int i = 0; i < m_siteModel.getCategoryCount(); i++) {
-                        double jointbr = m_siteModel.getRateForCategory(i, root) * br;
-                        substitutionModel.getTransitionProbabilities(root, origin.getValue(), root.getHeight(), jointbr, probabilities);
-                        System.arraycopy(probabilities, 0, rootTransitionMatrix,  m_nStateCount * m_nStateCount * i, m_nStateCount * m_nStateCount);
+                // define where the origin partials will be stored
+                double[] originPartials = new double[patternCount * m_nStateCount * categoryCount];
+
+                // calculate the origin partials (NOTE: NOT SETUP PROPERLY TO DO THIS FOR A MODEL WITH MULTIPLE SITE RATE CATEGORIES)
+                calculateOriginPartials(rootPartials, rootTransitionMatrix, originPartials);
+
+                // scale origin partials if scaling is on
+                double originScaleFactorsSum = 0.0;
+                if (useScaleFactors) {
+                    double[] originScaleFactors = new double[patternCount];
+                    int u = 0;
+                    for (int i = 0; i < patternCount; i++) {
+                        double scaleFactor = 0.0;
+                        int v = u;
+                        for (int k = 0; k < categoryCount; k++) {
+                            for (int j = 0; j < m_nStateCount; j++) {
+                                if (originPartials[v] > scaleFactor) {
+                                    scaleFactor = originPartials[v];
+                                }
+                                v++;
+                            }
+                            v += (patternCount - 1) * m_nStateCount;
+                        }
+
+                        if (scaleFactor < scalingThreshold) {
+                            v = u;
+                            for (int k = 0; k < categoryCount; k++) {
+                                for (int j = 0; j < m_nStateCount; j++) {
+                                    originPartials[v] /= scaleFactor;
+                                    v++;
+                                }
+                                v += (patternCount - 1) * m_nStateCount;
+                            }
+                            originScaleFactors[i] = Math.log(scaleFactor);
+
+                        } else {
+                            originScaleFactors[i] = 0.0;
+                        }
+                        u += m_nStateCount;
                     }
 
-                    // define where the origin partials will be stored
-                    double[] originPartials = new double[patternCount * m_nStateCount * categoryCount];
 
-                    // calculate the origin partials
-                    calculateOriginPartials(rootPartials, rootTransitionMatrix, originPartials);
+                    // get the root cumulative scale factors in a round about way singe beagle.getLogScaleFactors() is not working properly
+                    double[] sumLogLikelihoodsNoScaling = new double[1];
+                    beagle.calculateRootLogLikelihoods(new int[]{rootIndex}, new int[]{0}, new int[]{0}, new int[]{Beagle.NONE}, 1, sumLogLikelihoodsNoScaling);
+                    double[] sumLogLikelihoodsWithScaling = new double[1];
+                    beagle.calculateRootLogLikelihoods(new int[]{rootIndex}, new int[]{0}, new int[]{0}, new int[]{cumulateScaleBufferIndex}, 1, sumLogLikelihoodsWithScaling);
+                    
+                    // subtrace scaling - no scaling to get the scaling factors since the algorithm sums the cumulative scale factors to the log likelihood
+                    // this is not setup for multiple rate categories since the sumLogLikelihoods is by default only 1 value
+                    double rootScaleFactors = sumLogLikelihoodsWithScaling[0] - sumLogLikelihoodsNoScaling[0];
+                    originScaleFactorsSum = originScaleFactors[0] + rootScaleFactors;
 
-                    // // // DEBUGGING
-                    // // System.out.println("Root Partials: " + Arrays.toString(rootPartials));
-                    // // System.out.println("Origin Partials: " + Arrays.toString(originPartials));
+                    // // DEBUGGING
+                    // System.out.println("Root likelihood No Scaling: " + sumLogLikelihoodsNoScaling[0]);
+                    // System.out.println("Root likelihood With Scaling: " + sumLogLikelihoodsWithScaling[0]);
+                    // System.out.println("Root Scale Factors: " + rootScaleFactors);
+                    // System.out.println("Origin Scale Factors: " + originScaleFactors[0]);
+                    // System.out.println("Scale Factors Sum: " + originScaleFactorsSum);
 
-                    // // scale origin partials if scaling is on
-                    // if (useScaleFactors) {
-                    //     double[] originScaleFactors = new double[patternCount];
-                    //     int u = 0;
-                    //     for (int i = 0; i < patternCount; i++) {
-                    //         double scaleFactor = 0.0;
-                    //         int v = u;
-                    //         for (int k = 0; k < categoryCount; k++) {
-                    //             for (int j = 0; j < m_nStateCount; j++) {
-                    //                 if (originPartials[v] > scaleFactor) {
-                    //                     scaleFactor = originPartials[v];
-                    //                 }
-                    //                 v++;
-                    //             }
-                    //             v += (patternCount - 1) * m_nStateCount;
-                    //         }
-                    //         if (scaleFactor < scalingThreshold) {
-                    //             v = u;
-                    //             for (int k = 0; k < categoryCount; k++) {
-                    //                 for (int j = 0; j < m_nStateCount; j++) {
-                    //                     originPartials[v] /= scaleFactor;
-                    //                     v++;
-                    //                 }
-                    //                 v += (patternCount - 1) * m_nStateCount;
-                    //             }
-                    //             originScaleFactors[i] = Math.log(scaleFactor);
 
-                    //         } else {
-                    //             originScaleFactors[i] = 0.0;
-                    //         }
-                    //         u += m_nStateCount;
-                    //     }
-
-                    //     //////
-                    //     // NOT SURE HOW TO UPDATE THE CUMULATIVE SCALE BUFFER TO INCLUDE A SUM WITH THE ORIGIN SCALE FACTORS???
-                    //     //////
-                    //     // I think this is necessary to ensure the likelihood is calculated correctly on the original scale, otherwise the
-                    //     // likelihood will be calculated on the scaled partials that artificially inflates the likelihood and traps the MCMC chain
-                    //     // due to any Metropolis-Hastings proposals always being rejected
-                    //     //////
-
-                    //     // // DEBUGGING
-                    //     // System.out.println("Origin Partials scaled: " + Arrays.toString(originPartials));
-                    //     // System.out.println("Origin Partials scale factors: " + Arrays.toString(originScaleFactors));
-
-                    // }
-
-                    // replace the root partials with the origin partials in BEAGLE to allow for the final likelihood calculation in in BEAGLE
-                    setPartials(rootNodeNum, originPartials);
-
-                    // calculate the likelihood with the new partials
-                    beagle.calculateRootLogLikelihoods(new int[]{rootIndex}, new int[]{0}, new int[]{0},
-                    new int[]{cumulateScaleBufferIndex}, 1, sumLogLikelihoods);  // Already using the unscaled partials for the origin branch, so do not reapply the conversion from scaled to unscaled partials. 
-
-                    // restore the original root partials in case the step is rejected or rescaling is required
-                    setPartials(rootNodeNum, rootPartials);
                 }
-            } else {
-                beagle.calculateRootLogLikelihoods(new int[]{rootIndex}, new int[]{0}, new int[]{0},
-                    new int[]{cumulateScaleBufferIndex}, 1, sumLogLikelihoods);
+
+                // replace the root partials with the origin partials in BEAGLE to allow for the final likelihood calculation in in BEAGLE
+                setPartials(rootNodeNum, originPartials);
+
+                // calculate the likelihood with the new partials
+                beagle.calculateRootLogLikelihoods(new int[]{rootIndex}, new int[]{0}, new int[]{0}, new int[]{Beagle.NONE}, 1, sumLogLikelihoods);
+                logL = sumLogLikelihoods[0] + originScaleFactorsSum;
+
+                // // DEBUGGING
+                // System.out.println("Origin likelihood before scaling: " + sumLogLikelihoods[0]);
+                // System.out.println("Origin likelihood after scaling: " + logL);
+            
+                
+                // // restore the original root partials in case the step is rejected or rescaling is required
+                // // I dont think this is really necessary if the scaling is done correctly
+                // setPartials(rootNodeNum, rootPartials);
+            }
+            else {
+                beagle.calculateRootLogLikelihoods(new int[]{rootIndex}, new int[]{0}, new int[]{0}, new int[]{cumulateScaleBufferIndex}, 1, sumLogLikelihoods);
+                logL = sumLogLikelihoods[0];
             }
             ///// MODIFIED /////
-
-            logL = sumLogLikelihoods[0];
 
             if (ascertainedSitePatterns) {
                 
@@ -1212,7 +1219,9 @@ public class MetastabayesBeagleTreeLikelihood extends TreeLikelihood {
     /**
      * the BEAGLE library instance
      */
+    ///// MODIFIED /////
     protected Beagle beagle;
+    ///// MODIFIED /////
     
     public Beagle getBeagle() {return beagle;}
 
