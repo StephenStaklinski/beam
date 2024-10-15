@@ -53,7 +53,7 @@
 
 <siteModel spec="SiteModel" id="siteModel" mutationRate="@mutationRate" proportionInvariant="@proportionInvariant" gammaCategoryCount="0" substModel="@substModel"></siteModel>
 
-<run id="mcmc" spec="MCMC" chainLength="1000000">
+<run id="mcmc" spec="MCMC" chainLength="1000000000">
         <state id="state" spec="State" storeEvery="5000">
             <stateNode id="tree" spec="tidetree.tree.StartingTree" rootHeight="250" taxa="@alignment" editHeight="250" editDuration="250" sequencesAreClustered="false">
                 <trait idref="dateTrait"/>
@@ -177,7 +177,7 @@
                     <branchRateModel spec="beast.base.evolution.branchratemodel.StrictClockModel" clock.rate="@clockRate.c"/>
                 </distribution>
                 
-                <!-- <distribution id="traitLikelihood" spec="beastclassic.evolution.likelihood.AncestralStateTreeLikelihood" tag="location" tree="@tree"> -->
+                <!-- <distribution id="traitLikelihood" spec="beastclassic.evolution.likelihood.AncestralStateTreeLikelihood" tag="location" scaling="always" tree="@tree"> -->
                 <distribution id="traitLikelihood" spec="metastabayes.likelihood.MetastabayesAncestralStateBeagleTreeLikelihood" origin="250.001" scaling="_default" tag="location" tree="@tree">
                     <rootFrequencies spec="beast.base.evolution.substitutionmodel.Frequencies" frequencies="1 0 0 0 0 0 0 0 0" estimate="false"/>
                     <data id="tissue" spec="beastclassic.evolution.alignment.AlignmentFromTrait">
