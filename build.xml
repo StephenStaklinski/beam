@@ -30,7 +30,7 @@
 
     <target name="compile-beast2" depends="check-dependencies">
         <mkdir dir="${dir.workspace}/beast2/build"/>
-        <javac srcdir="${dir.workspace}/beast2/src" destdir="${dir.workspace}/beast2/build" includeantruntime="false" debug="true">
+        <javac srcdir="${dir.workspace}/beast2/src" destdir="${dir.workspace}/beast2/build" includeantruntime="false">
             <classpath>
                 <fileset dir="${dir.workspace}/beast2/lib" includes="*.jar"/>
                 <fileset dir="${dir.workspace}/beast2/lib/junit" includes="*.jar"/>
@@ -41,7 +41,7 @@
 
     <target name="compile-beastfx" depends="check-dependencies">
         <mkdir dir="${dir.workspace}/BeastFX/build"/>
-        <javac srcdir="${dir.workspace}/BeastFX/src" destdir="${dir.workspace}/BeastFX/build" includeantruntime="false" debug="true">
+        <javac srcdir="${dir.workspace}/BeastFX/src" destdir="${dir.workspace}/BeastFX/build" includeantruntime="false">
             <classpath>
                 <fileset dir="${dir.workspace}/beast2/lib" includes="*.jar"/>
                 <fileset dir="${dir.workspace}/beast2/lib/junit" includes="*.jar"/>
@@ -57,13 +57,13 @@
 
     <target name="compile-beastlabs" depends="check-dependencies">
         <mkdir dir="${dir.workspace}/BEASTLabs/build"/>
-        <javac srcdir="${dir.workspace}/BEASTLabs/src" destdir="${dir.workspace}/BEASTLabs/build" includeantruntime="false" debug="true">
+        <javac srcdir="${dir.workspace}/BEASTLabs/src" destdir="${dir.workspace}/BEASTLabs/build" includeantruntime="false">
             <classpath>
                 <fileset dir="${dir.workspace}/BEASTLabs/lib" includes="*.jar"/>
                 <fileset dir="${dir.workspace}/beast2/lib" includes="*.jar"/>
                 <fileset dir="${dir.workspace}/beast2/lib/junit" includes="*.jar"/>
                 <pathelement location="${dir.workspace}/beast2/build"/>
-                <pathelement location="${dir.workspace}/beastfx/build"/>
+                <pathelement location="${dir.workspace}/BeastFX/build"/>
             </classpath>
         </javac>
     </target>
