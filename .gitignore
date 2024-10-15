@@ -2,3 +2,4 @@
 *.trees
 *.state
 .DS_Store
+build
