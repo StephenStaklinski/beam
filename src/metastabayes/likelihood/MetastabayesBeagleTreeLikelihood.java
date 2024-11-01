@@ -956,10 +956,10 @@ public class MetastabayesBeagleTreeLikelihood extends TreeLikelihood {
 
             if (Double.isNaN(logL) || Double.isInfinite(logL)) {
 
-                // DEBUGGING
-                if (!everUnderflowed) {
-                    System.out.println("Underflow in likelihood calculation.");
-                }
+                // // DEBUGGING
+                // if (!everUnderflowed) {
+                //     System.out.println("Underflow in likelihood calculation.");
+                // }
 
                 everUnderflowed = true;
                 logL = Double.NEGATIVE_INFINITY;
