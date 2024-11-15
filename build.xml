@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<project default="jar" name="create jar for metastabayes">
+<project default="jar" name="create jar for BEAMs">
 
     <property environment="env"/>
     <property name="dir.buildfile" value="."/>
@@ -102,7 +102,7 @@
     </target>
 
     <target name="jar" depends="compile">
-        <jar destfile="${dir.buildfile}/metastabayes.jar" filesetmanifest="mergewithoutmain">
+        <jar destfile="${dir.buildfile}/beam.jar" filesetmanifest="mergewithoutmain">
             <manifest>
                 <attribute name="Main-Class" value="feast.app.FeastMain"/>
                 <attribute name="Class-Path" value="."/>

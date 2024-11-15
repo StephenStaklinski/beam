@@ -1,14 +1,14 @@
-<package name="metastabayes" version="1.0.0">
+<package name="beam" version="1.0.0">
   <depends on="BEAST.base" atleast="2.7.4"/>
   <depends on="BEAST.app" atleast="2.7.4"/>
 
   <service type="beast.base.core.BEASTInterface">
-    <provider classname="metastabayes.likelihood.MetastabayesBeagleTreeLikelihood"/>
-    <provider classname="metastabayes.likelihood.MetastabayesAncestralStateBeagleTreeLikelihood"/>
-    <provider classname="metastabayes.tree.MetastabayesStartingTreeFromNewick"/>
-    <provider classname="metastabayes.substitutionmodel.MetastabayesGeneralMutationSubstitutionModel"/>
-    <provider classname="metastabayes.substitutionmodel.MetastabayesGeneralTissueSubstitutionModel"/>
-    <provider classname="metastabayes.substitutionmodel.MetastabayesGeneralTissueSubstitutionModelLogger"/>
+    <provider classname="beam.likelihood.BeamBeagleTreeLikelihood"/>
+    <provider classname="beam.likelihood.beamAncestralStateBeagleTreeLikelihood"/>
+    <provider classname="beam.tree.BeamStartingTreeFromNewick"/>
+    <provider classname="beam.substitutionmodel.BeamGeneralMutationSubstitutionModel"/>
+    <provider classname="beam.substitutionmodel.BeamGeneralTissueSubstitutionModel"/>
+    <provider classname="beam.substitutionmodel.BeamGeneralTissueSubstitutionModelLogger"/>
     <provider classname="tidetree.evolution.datatype.EditData"/>
     <provider classname="tidetree.substitutionmodel.EditAndSilencingModel"/>
     <provider classname="tidetree.tree.StartingTree"/>
