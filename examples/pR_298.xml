@@ -19,7 +19,7 @@
     :beast.base.evolution.sitemodel
     :beast.base.evolution.substitutionmodel
     :beast.base.evolution.likelihood
-    :metastabayes
+    :beam
     :tidetree" required="BEAST.base v2.7.6:FixedTreeAnalysis v0.0.2:BEAST_CLASSIC v1.6.3" version="2.7">
 
 <!-- syntactic sugar -->
@@ -47,7 +47,7 @@
 
 
 <!-- <substModel id="substModel" spec="tidetree.substitutionmodel.EditAndSilencingModel" editRates="@editRate" silencingRate="@silencingRate" editHeight="250" editDuration="250"> -->
-<substModel id="substModel" spec="metastabayes.substitutionmodel.MetastabayesGeneralMutationSubstitutionModel" editRates="@editRate" silencingRate="@silencingRate" editHeight="250" editDuration="250">
+<substModel id="substModel" spec="beam.substitutionmodel.BeamGeneralMutationSubstitutionModel" editRates="@editRate" silencingRate="@silencingRate" editHeight="250" editDuration="250">
     <frequencies spec="beast.base.evolution.substitutionmodel.Frequencies" frequencies="1.0 0 0" estimate="false"/>
 </substModel>
 
@@ -173,12 +173,12 @@
             <distribution id="likelihood" spec="CompoundDistribution" useThreads="true">
                 
                 <!-- <distribution id="treeLikelihood" spec="tidetree.distributions.TreeLikelihoodWithEditWindow" origin="250.001" data="@alignment" tree="@tree" siteModel="@siteModel"> -->
-                <distribution id="treeLikelihood" spec="metastabayes.likelihood.MetastabayesBeagleTreeLikelihood" data="@alignment" tree="@tree" siteModel="@siteModel">
+                <distribution id="treeLikelihood" spec="beam.likelihood.BeamBeagleTreeLikelihood" data="@alignment" tree="@tree" siteModel="@siteModel">
                     <branchRateModel spec="beast.base.evolution.branchratemodel.StrictClockModel" clock.rate="@clockRate.c"/>
                 </distribution>
                 
                 <!-- <distribution id="traitLikelihood" spec="beastclassic.evolution.likelihood.AncestralStateTreeLikelihood" tag="location" scaling="always" tree="@tree"> -->
-                <distribution id="traitLikelihood" spec="metastabayes.likelihood.MetastabayesAncestralStateBeagleTreeLikelihood" origin="250.001" scaling="_default" tag="location" tree="@tree">
+                <distribution id="traitLikelihood" spec="beam.likelihood.BeamAncestralStateBeagleTreeLikelihood" origin="250.001" scaling="_default" tag="location" tree="@tree">
                     <rootFrequencies spec="beast.base.evolution.substitutionmodel.Frequencies" frequencies="1 0 0 0 0 0 0 0 0" estimate="false"/>
                     <data id="tissue" spec="beastclassic.evolution.alignment.AlignmentFromTrait">
                         <traitSet id="traitset" spec="feast.fileio.TraitSetFromXSV" fileName="$(repo)/examples/pR_298_tip_tissues.csv" taxa="@taxonset" taxonNameCol="0" skipFirstRow="false" sep="," traitname="discrete"/>
