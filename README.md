@@ -1,5 +1,5 @@
 # Bayesian Evolutionary Analysis of Metastasis (BEAM) BEAST2 package for Bayesian cancer migration graph inference from CRISPR cell lineage tracing data
-
+![BEAM Logo](logo.jpg)
 ## Inference
 
 Install java+fx 17.0.9 and BEAGLE and set the path to it in `BEAGLE_LIB_PATH`. Then, the provided `beam.jar` file is all that is needed to run the method with:
