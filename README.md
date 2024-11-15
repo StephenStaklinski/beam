@@ -1,7 +1,7 @@
 # Bayesian Evolutionary Analysis of Metastasis (BEAM)
 ![BEAM Logo](logo.jpg)
 
-BEAM is a BEAST2 package for Bayesian cancer migration graph inference from CRISPR cell lineage tracing data. The key to the method is that is provides a joint model of the lineage and migration history from the raw data, avoiding any need to condition on a single phylogeny while inferring a distribution of migration graphs.
+BEAM is a BEAST2 package for Bayesian cancer migration graph inference from CRISPR cell lineage tracing data. BEAM provides a joint model of lineage reconstruction and migration history inference from the raw data, avoiding the need to condition on a single phylogeny while instead inferring a distribution of migration graphs.
 
 
 ## Inference
