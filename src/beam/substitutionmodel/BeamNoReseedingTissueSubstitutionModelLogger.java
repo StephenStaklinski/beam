@@ -86,7 +86,6 @@ public class BeamNoReseedingTissueSubstitutionModelLogger extends BEASTObject im
         for (int i=0; i<nrOfStates; i++) {
             for (int j=0; j<nrOfStates; j++) {
                 if (j==i) {
-                    count += 1;
                     continue;
                 }
 
