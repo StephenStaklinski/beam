@@ -15,47 +15,31 @@ import beast.base.evolution.substitutionmodel.ComplexSubstitutionModel;
  * @author Stephen Staklinski
  **/
 
-@Description("Substitution model with structure indicators to setup shared rate paramaters between tissues")
+@Description("Substitution model that fixes reseeding rates to zero.")
 
-public class BeamGeneralTissueSubstitutionModel extends ComplexSubstitutionModel {
-	
-    public Input<IntegerParameter> structure = new Input<IntegerParameter>("matrixStructure",
-            "integer indices to indicate structure of shared transition rate matrix parameters between diferent tissues", Validate.OPTIONAL);
-
-    private IntegerParameter matrixStructure;
+public class BeamNoReseedingTissueSubstitutionModel extends ComplexSubstitutionModel {
 
 	@Override
     public void initAndValidate(){
-
         super.initAndValidate();
 
-        matrixStructure = structure.get();
-        nrOfStates = (int) Math.sqrt(matrixStructure.getDimension());
+        nrOfStates = frequencies.getFreqs().length;
         rateMatrix = new double[nrOfStates][nrOfStates];
-
-        int numRelativeRates = relativeRates.length;
-
-        HashMap<Integer,Integer> uniqueMatrixStructure = new HashMap<Integer,Integer>();
-        for (int j = 0; j < matrixStructure.getDimension(); j++) {   
-            uniqueMatrixStructure.put(matrixStructure.getValue(j), j);   
-        }
-        int countUniqueMatrixStructure = uniqueMatrixStructure.keySet().size();
-
-        if (numRelativeRates != countUniqueMatrixStructure) {
-            throw new IllegalArgumentException("Number of relative rates must match the number of unique rates specified in the matrix structure.");
-        }
     }
 
     /** sets up rate matrix **/
     @Override
     public void setupRateMatrix() {
 
-        // new code to allow specification of the rate matrix structure for parameter sharing
         int n = 0;
         for (int i = 0; i < nrOfStates; i++) {
             for (int j = 0; j < nrOfStates; j++) {
-                rateMatrix[i][j] = relativeRates[matrixStructure.getValue(n)];
-                n++;
+                if (i == j || j == 0) {
+                    rateMatrix[i][j] = 0;
+                } else {
+                    rateMatrix[i][j] = relativeRates[n];
+                    n++;
+                }
             }
         }
 
@@ -85,8 +69,12 @@ public class BeamGeneralTissueSubstitutionModel extends ComplexSubstitutionModel
 
         for (int i = 0; i < nrOfStates; i++) {
             for (int j = 0; j < nrOfStates; j++) {
-                rateMatrix[i][j] = rateMatrix[i][j] / subst;
+                // to prevent division with zero in the numerator
+                if (j != 0 || (j == 0 && i == 0)) {
+                    rateMatrix[i][j] = rateMatrix[i][j] / subst;
+                }
             }
         }
+
     }
 }

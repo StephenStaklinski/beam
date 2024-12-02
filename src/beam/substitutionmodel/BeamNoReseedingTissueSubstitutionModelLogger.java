@@ -13,9 +13,9 @@ import java.io.PrintStream;
  **/
 
 @Description("Beam General Substitution Model Logger. This code is modified from the FixedTreeAnalysis package by Remco Bouckaert")
-public class BeamGeneralTissueSubstitutionModelLogger extends BEASTObject implements Loggable{
+public class BeamNoReseedingTissueSubstitutionModelLogger extends BEASTObject implements Loggable{
 
-    public Input<BeamGeneralTissueSubstitutionModel> modelInput = new Input<>(
+    public Input<BeamNoReseedingTissueSubstitutionModel> modelInput = new Input<>(
             "model",
             "Beam general substitution model.",
             Input.Validate.REQUIRED);
@@ -32,9 +32,9 @@ public class BeamGeneralTissueSubstitutionModelLogger extends BEASTObject implem
                     "rate matrix indices.",
             true);
 
-    protected BeamGeneralTissueSubstitutionModel model;
+    protected BeamNoReseedingTissueSubstitutionModel model;
 
-    public BeamGeneralTissueSubstitutionModelLogger() { }
+    public BeamNoReseedingTissueSubstitutionModelLogger() { }
 
     @Override
     public void initAndValidate() {
@@ -81,7 +81,7 @@ public class BeamGeneralTissueSubstitutionModelLogger extends BEASTObject implem
     @Override
     public void log(long nSample, PrintStream out) {
         int count = 0;
-        int nrOfStates = (int) Math.sqrt(model.structure.get().getDimension());
+        int nrOfStates = model.getStateCount();
 
         for (int i=0; i<nrOfStates; i++) {
             for (int j=0; j<nrOfStates; j++) {
@@ -90,10 +90,11 @@ public class BeamGeneralTissueSubstitutionModelLogger extends BEASTObject implem
                     continue;
                 }
 
-                int ms = model.structure.get().getValue(count);
-                out.print(model.ratesInput.get().getArrayValue(ms) + "\t");
-
-                count += 1;
+                if (j != 0) {
+                    out.print(model.ratesInput.get().getArrayValue(count) + "\t");
+                } else {
+                    out.print("0\t");
+                }
             }
         }
     }
