@@ -80,7 +80,7 @@ public class BeamOneRateReseedingTissueSubstitutionModelLogger extends BEASTObje
 
     @Override
     public void log(long nSample, PrintStream out) {
-        int count = 0;
+        int count = 1; // start at 1 to reserve the 0 index rate for reseeding rates to match the model setupRateMatrix
         int nrOfStates = model.getStateCount();
 
         for (int i=0; i<nrOfStates; i++) {
@@ -92,7 +92,7 @@ public class BeamOneRateReseedingTissueSubstitutionModelLogger extends BEASTObje
                 if (j != 0) {
                     out.print(model.ratesInput.get().getArrayValue(count) + "\t");
                 } else {
-                    out.print("0\t");
+                    out.print(model.ratesInput.get().getArrayValue(0) + "\t");
                 }
             }
         }
