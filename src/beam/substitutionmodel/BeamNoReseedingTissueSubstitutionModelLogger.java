@@ -80,7 +80,6 @@ public class BeamNoReseedingTissueSubstitutionModelLogger extends BEASTObject im
 
     @Override
     public void log(long nSample, PrintStream out) {
-        int count = 0;
         int nrOfStates = model.getStateCount();
 
         for (int i=0; i<nrOfStates; i++) {
@@ -89,10 +88,12 @@ public class BeamNoReseedingTissueSubstitutionModelLogger extends BEASTObject im
                     continue;
                 }
 
-                if (j != 0) {
-                    out.print(model.ratesInput.get().getArrayValue(count) + "\t");
-                } else {
+                if (j == 0) {
                     out.print("0\t");
+                } else if (i == 0) {
+                    out.print(model.getRelativeRates()[0] + "\t");
+                } else {
+                    out.print(model.getRelativeRates()[1] + "\t");
                 }
             }
         }

@@ -31,14 +31,17 @@ public class BeamNoReseedingTissueSubstitutionModel extends ComplexSubstitutionM
     @Override
     public void setupRateMatrix() {
 
-        int n = 0;
         for (int i = 0; i < nrOfStates; i++) {
             for (int j = 0; j < nrOfStates; j++) {
                 if (i == j || j == 0) {
+                    // no rate for reseeding (or on the diagonal which is computed later)
                     rateMatrix[i][j] = 0;
+                } else if (i == 0) {
+                    // one rate for all primary seeding
+                    rateMatrix[i][j] = relativeRates[0];
                 } else {
-                    rateMatrix[i][j] = relativeRates[n];
-                    n++;
+                    // one rate for all met-to-met seeding
+                    rateMatrix[i][j] = relativeRates[1];
                 }
             }
         }

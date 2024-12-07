@@ -31,16 +31,20 @@ public class BeamOneRateReseedingTissueSubstitutionModel extends ComplexSubstitu
     @Override
     public void setupRateMatrix() {
 
-        int n = 1;  // initialize counter at 1 and not 0 to keep the reseeding rates all as the parameter at relativeRates[0]
         for (int i = 0; i < nrOfStates; i++) {
             for (int j = 0; j < nrOfStates; j++) {
-                if (i != j && j == 0) {
+                if ( i == j) {
+                    // diagonal elements will be calculated later
+                    rateMatrix[i][j] = 0;
+                } else if ( i == 0) {
+                    // primary seeding rate
                     rateMatrix[i][j] = relativeRates[0];
-                } else if (i == j) {
-                    rateMatrix[i][j] = 0.0;
+                } else if ( j == 0) {
+                    // reseeding rate
+                    rateMatrix[i][j] = relativeRates[2];
                 } else {
-                    rateMatrix[i][j] = relativeRates[n]; // currently setup for only specifying rate parameters for off diagonal and non-reseeding rates
-                    n++;
+                    // met-to-met seeding rate
+                    rateMatrix[i][j] = relativeRates[1];
                 }
             }
         }

@@ -89,10 +89,13 @@ public class BeamOneRateReseedingTissueSubstitutionModelLogger extends BEASTObje
                     continue;
                 }
 
-                if (j != 0) {
-                    out.print(model.ratesInput.get().getArrayValue(count) + "\t");
-                } else {
+                if (i == 0) {
                     out.print(model.ratesInput.get().getArrayValue(0) + "\t");
+                }
+                else if (j == 0) {
+                    out.print(model.ratesInput.get().getArrayValue(2) + "\t");
+                } else {
+                    out.print(model.ratesInput.get().getArrayValue(1) + "\t");
                 }
             }
         }
