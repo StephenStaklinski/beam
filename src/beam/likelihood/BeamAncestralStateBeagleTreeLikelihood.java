@@ -86,7 +86,6 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
     		return;
     	}
     	
-        ///// MODIFIED /////
 
     	// String sJavaOnly = null;
     	// if (useJava.get()) {
@@ -111,7 +110,6 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
         
         System.clearProperty("java.only");
 
-        ///// MODIFIED /////
     	
         this.tag = tagInput.get();
         TreeInterface treeModel = treeInput.get();
@@ -176,7 +174,6 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
             }
             tipStates[node.getNr()] = new int[patternCount];
             
-            ///// MODIFIED /////
             int [] states = tipStates[node.getNr()];
             for (int i = 0; i < patternCount; i++) {
                 int code = data.getPattern(taxonIndex, i);
@@ -186,7 +183,6 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
                 else
                     states[i] = code; // Causes ambiguous states to be ignored.
             }
-            ///// MODIFIED /////
     
     	}
         
@@ -450,16 +446,12 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
         int cumulativeBufferIndex = Beagle.NONE;
         /* No need to rescale partials */
 
-        ///// MODIFIED /////
         beagle.getPartials(getPartialBufferHelper().getOffsetIndex(number), cumulativeBufferIndex, partials);
-        ///// MODIFIED /////
 	}
 
 	public void getTransitionMatrix(int matrixNum, double[] probabilities) {
 
-        ///// MODIFIED /////
 		beagle.getTransitionMatrix(getMatrixBufferHelper().getOffsetIndex(matrixNum), probabilities);
-        ///// MODIFIED /////
 	}
     
     /**

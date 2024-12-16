@@ -15,7 +15,7 @@ import beast.base.evolution.substitutionmodel.ComplexSubstitutionModel;
  * @author Stephen Staklinski
  **/
 
-@Description("Substitution model that fixes reseeding rates to zero.")
+@Description("Substitution model that fixes reseeding rates to one free parameter.")
 
 public class BeamOneRateReseedingTissueSubstitutionModel extends ComplexSubstitutionModel {
 

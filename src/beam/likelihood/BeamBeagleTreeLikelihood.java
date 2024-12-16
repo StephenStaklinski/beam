@@ -35,7 +35,6 @@ import beast.base.evolution.likelihood.TreeLikelihood;
 public class BeamBeagleTreeLikelihood extends TreeLikelihood {
 
 
-    ///// MODIFIED /////
     public Input<RealParameter> originInput = new Input<>("origin",
             "Start of the cell division process, usually start of the experiment.",
             Input.Validate.OPTIONAL);
@@ -46,7 +45,6 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
     List<Integer> constantPattern = null;
 	public List<Integer> getConstantPattern() {return constantPattern;}
     public void setConstantPattern(List<Integer> constantPattern) {this.constantPattern = constantPattern;}
-    ///// MODIFIED /////
 
 
     // This property is a comma-delimited list of resource numbers (0 == CPU) to
@@ -96,12 +94,10 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
 
     private boolean initialize() {
 
-        ///// MODIFIED /////
         if (originInput.get() != null){
             origin = originInput.get();
             useOrigin = true;
         }
-        ///// MODIFIED /////
 
         m_nNodeCount = treeInput.get().getNodeCount();
         m_bUseAmbiguities = m_useAmbiguities.get();
@@ -119,9 +115,7 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
         m_branchLengths = new double[m_nNodeCount];
         storedBranchLengths = new double[m_nNodeCount];
 
-        ///// MODIFIED /////
         m_nStateCount = substitutionModel.getStateCount();
-        ///// MODIFIED /////
         
         patternCount = dataInput.get().getPatternCount();
 
@@ -135,9 +129,7 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
 	        for (int i = 0; i < categoryRates.length; i++) {
 	        	if (categoryRates[i] == 0) {
 	        		proportionInvariant = m_siteModel.getRateForCategory(i, null);
-                    ///// MODIFIED /////
 	                int stateCount = m_nStateCount;
-                    ///// MODIFIED /////
 	                int patterns = dataInput.get().getPatternCount();
 	                calcConstantPatternIndices(patterns, stateCount);
 	                invariantCategory = i;
@@ -167,19 +159,15 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
 
         this.categoryCount = m_siteModel.getCategoryCount() - (invariantCategory >= 0 ? 1 : 0);
         
-        ///// MODIFIED /////
         int matrixSize = (m_nStateCount + 1) * (m_nStateCount + 1);
         probabilities = new double[matrixSize];
-        ///// MODIFIED /////
         
         Arrays.fill(probabilities, 1.0);
         matrices = new double[m_nStateCount * m_nStateCount * categoryCount];
 
         tipCount = treeInput.get().getLeafNodeCount();
 
-        ///// MODIFIED /////
         internalNodeCount = m_nNodeCount - tipCount;
-        ///// MODIFIED /////
 
         int compactPartialsCount = tipCount;
         if (m_bUseAmbiguities) {
@@ -656,14 +644,12 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
     @Override
     public double calculateLogP() {
 
-        ///// MODIFIED /////
         if(useOrigin) {
             Double originHeight = origin.getValue();
             if (treeInput.get().getRoot().getHeight() >= originHeight) {
                 return Double.NEGATIVE_INFINITY;
             }
         }
-        ///// MODIFIED /////
 
         if (patternLogLikelihoods == null) {
             patternLogLikelihoods = new double[patternCount];
@@ -826,7 +812,6 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
 
             double[] sumLogLikelihoods = new double[1];
 
-            ///// MODIFIED /////
             /// replace partials with new partials at the origin based on these calculations external to BEAGLE since BEAGLE cannot handle nodes with only a single child
             if (useOrigin && root.getHeight() != origin.getValue()) {
 
@@ -928,7 +913,6 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
                 beagle.calculateRootLogLikelihoods(new int[]{rootIndex}, new int[]{0}, new int[]{0}, new int[]{cumulateScaleBufferIndex}, 1, sumLogLikelihoods);
                 logL = sumLogLikelihoods[0];
             }
-            ///// MODIFIED /////
 
             if (ascertainedSitePatterns) {
                 
@@ -1219,9 +1203,7 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
     /**
      * the BEAGLE library instance
      */
-    ///// MODIFIED /////
     protected Beagle beagle;
-    ///// MODIFIED /////
     
     public Beagle getBeagle() {return beagle;}
 
@@ -1334,7 +1316,6 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
 		return patternLogLikelihoods.clone();
 	}
 
-    ///// MODIFIED /////
     
     // set value for scaling
     private double scalingThreshold = 1.0E-100;
@@ -1362,6 +1343,5 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
         }
         return partials3;
     }
-    ///// MODIFIED /////
 
 }

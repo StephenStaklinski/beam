@@ -12,7 +12,7 @@ import java.io.PrintStream;
  * @author Stephen Staklinski
  **/
 
-@Description("Beam General Substitution Model Logger. This code is modified from the FixedTreeAnalysis package by Remco Bouckaert")
+@Description("Logger for BeamNoReseedingTissueSubstitutionModel.")
 public class BeamNoReseedingTissueSubstitutionModelLogger extends BEASTObject implements Loggable{
 
     public Input<BeamNoReseedingTissueSubstitutionModel> modelInput = new Input<>(
