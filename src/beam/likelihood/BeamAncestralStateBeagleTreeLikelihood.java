@@ -374,16 +374,18 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
         double marginalLogLikelihood = super.calculateLogP();
         likelihoodKnown = true;
 
-        if (returnMarginalLogLikelihood) {
-            return logP;    // this returns the result of super.calculateLogP(); which I set up for the BEAGLE with origin. Did not establish the validity of redrawAncestralStates() below if this is not returned
-        }
+        return logP;    // this returns the result of super.calculateLogP(); which I set up for the BEAGLE with origin. Did not establish the validity of redrawAncestralStates() below if this is not returned
 
-        // redraw states and return joint density of drawn states
-        redrawAncestralStates();
+        // if (returnMarginalLogLikelihood) {
+        //     return logP;
+        // }
 
-        logP = jointLogLikelihood;
+        // // redraw states and return joint density of drawn states
+        // redrawAncestralStates();
 
-        return logP;
+        // logP = jointLogLikelihood;
+
+        // return logP;
     }
 
     protected TreeTraitProvider.Helper treeTraits = new Helper();
@@ -475,7 +477,8 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
 
         if (!node.isLeaf()) {
 
-            if (parent == null) {
+            // only use root frequencies before sampling if the root is truly the start (no origin being used)
+            if (parent == null && !useOrigin) {
 
                 double[] rootPartials = m_fRootPartials;
 
@@ -510,7 +513,7 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
 
             } else {
 
-                // This is an internal node, but not the root
+                // This is an internal node, but not the root ... or it is the root but there is an origin so the root has a transition probability matrix
                 double[] partialLikelihood = new double[stateCount * patternCount];
 
 //				final double branchRate = branchRateModel.getBranchRate(tree, node);
@@ -533,6 +536,25 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
                     /*((AbstractLikelihoodCore)*/ likelihoodCore.getNodeMatrix(nodeNum, 0, probabilities);
             	}
 
+                if (parent == null && useOrigin) {
+
+                    double[] rootFrequencies = substitutionModel.getFrequencies();
+                    if (rootFrequenciesInput.get() != null) {
+                        rootFrequencies = rootFrequenciesInput.get().getFreqs();
+                    }
+
+                    parentState = new int[patternCount];
+
+                    for (int i = 0; i < patternCount; i++) {
+
+                        double[] originPartials = originPartialsGlobal;
+
+                        for (int j = 0; j < stateCount; j++) {
+                            originPartials[j] *= rootFrequencies[j];
+                        }
+                        parentState[i] = drawChoice(originPartials); 
+                    }
+                }
 
                 for (int j = 0; j < patternCount; j++) {
 

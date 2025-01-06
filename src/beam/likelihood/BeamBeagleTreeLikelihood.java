@@ -882,15 +882,6 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
                     // this is not setup for multiple rate categories since the sumLogLikelihoods is by default only 1 value
                     double rootScaleFactors = sumLogLikelihoodsWithScaling[0] - sumLogLikelihoodsNoScaling[0];
                     originScaleFactorsSum = originScaleFactors[0] + rootScaleFactors;
-
-                    // // DEBUGGING
-                    // System.out.println("Root likelihood No Scaling: " + sumLogLikelihoodsNoScaling[0]);
-                    // System.out.println("Root likelihood With Scaling: " + sumLogLikelihoodsWithScaling[0]);
-                    // System.out.println("Root Scale Factors: " + rootScaleFactors);
-                    // System.out.println("Origin Scale Factors: " + originScaleFactors[0]);
-                    // System.out.println("Scale Factors Sum: " + originScaleFactorsSum);
-
-
                 }
 
                 // replace the root partials with the origin partials in BEAGLE to allow for the final likelihood calculation in in BEAGLE
@@ -899,15 +890,17 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
                 // calculate the likelihood with the new partials
                 beagle.calculateRootLogLikelihoods(new int[]{rootIndex}, new int[]{0}, new int[]{0}, new int[]{Beagle.NONE}, 1, sumLogLikelihoods);
                 logL = sumLogLikelihoods[0] + originScaleFactorsSum;
-
-                // // DEBUGGING
-                // System.out.println("Origin likelihood before scaling: " + sumLogLikelihoods[0]);
-                // System.out.println("Origin likelihood after scaling: " + logL);
             
                 
-                // // restore the original root partials in case the step is rejected or rescaling is required
-                // // I dont think this is really necessary if the scaling is done correctly
-                // setPartials(rootNodeNum, rootPartials);
+                // restore the original root partials in case the step is rejected or rescaling is required
+                // this is also necessary to get the correct partials for sampling the tissue state at the root node
+                setPartials(rootNodeNum, rootPartials);
+
+                // save the root transition matrix for sampling the tissue state at the root node
+                beagle.setTransitionMatrix(rootNodeNum, rootTransitionMatrix, 1);
+
+                // save the origin partials globally for sampling tissue state at the origin if frequencies are not assuming the state is known
+                originPartialsGlobal = originPartials;
             }
             else {
                 beagle.calculateRootLogLikelihoods(new int[]{rootIndex}, new int[]{0}, new int[]{0}, new int[]{cumulateScaleBufferIndex}, 1, sumLogLikelihoods);
@@ -939,11 +932,6 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
             }
 
             if (Double.isNaN(logL) || Double.isInfinite(logL)) {
-
-                // // DEBUGGING
-                // if (!everUnderflowed) {
-                //     System.out.println("Underflow in likelihood calculation.");
-                // }
 
                 everUnderflowed = true;
                 logL = Double.NEGATIVE_INFINITY;
@@ -1212,6 +1200,9 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
      */
     protected boolean updateSubstitutionModel;
     protected boolean storedUpdateSubstitutionModel;
+
+    // Declare originPartialsGlobal
+    protected double[] originPartialsGlobal;
 
     /**
      * Flag to specify that the site model has changed
