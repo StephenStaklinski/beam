@@ -374,18 +374,16 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
         double marginalLogLikelihood = super.calculateLogP();
         likelihoodKnown = true;
 
-        return logP;    // this returns the result of super.calculateLogP(); which I set up for the BEAGLE with origin. Did not establish the validity of redrawAncestralStates() below if this is not returned
+        if (returnMarginalLogLikelihood) {
+            return logP;
+        }
 
-        // if (returnMarginalLogLikelihood) {
-        //     return logP;
-        // }
+        // redraw states and return joint density of drawn states
+        redrawAncestralStates();
 
-        // // redraw states and return joint density of drawn states
-        // redrawAncestralStates();
+        logP = jointLogLikelihood;
 
-        // logP = jointLogLikelihood;
-
-        // return logP;
+        return logP;
     }
 
     protected TreeTraitProvider.Helper treeTraits = new Helper();
@@ -446,8 +444,6 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
 
 	public void getPartials(int number, double[] partials) {
         int cumulativeBufferIndex = Beagle.NONE;
-        /* No need to rescale partials */
-
         beagle.getPartials(getPartialBufferHelper().getOffsetIndex(number), cumulativeBufferIndex, partials);
 	}
 
@@ -507,7 +503,6 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
                     }
                     reconstructedStates[nodeNum][j] = state[j];
 
-                    //System.out.println("Pr(j) = " + rootFrequencies[state[j]]);
                     jointLogLikelihood += Math.log(rootFrequencies[state[j]]);
                 }
 
@@ -516,28 +511,11 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
                 // This is an internal node, but not the root ... or it is the root but there is an origin so the root has a transition probability matrix
                 double[] partialLikelihood = new double[stateCount * patternCount];
 
-//				final double branchRate = branchRateModel.getBranchRate(tree, node);
-//
-//				            // Get the operational time of the branch
-//				final double branchTime = branchRate * ( tree.getNodeHeight(parent) - tree.getNodeHeight(node) );
-//
-//				for (int i = 0; i < categoryCount; i++) {
-//
-//				                siteModel.getTransitionProbabilitiesForCategory(i, branchTime, probabilities);
-//
-//				}
-//
-
-            	if (beagle != null) {
-            		getPartials(node.getNr(), partialLikelihood);
-            		getTransitionMatrix(nodeNum, probabilities);
-            	} else {
-                    likelihoodCore.getNodePartials(node.getNr(), partialLikelihood);
-                    /*((AbstractLikelihoodCore)*/ likelihoodCore.getNodeMatrix(nodeNum, 0, probabilities);
-            	}
+                // assumes beagle is available as a requirement for BEAM
+                getPartials(node.getNr(), partialLikelihood);
+                getTransitionMatrix(nodeNum, probabilities);
 
                 if (parent == null && useOrigin) {
-
                     double[] rootFrequencies = substitutionModel.getFrequencies();
                     if (rootFrequenciesInput.get() != null) {
                         rootFrequencies = rootFrequenciesInput.get().getFreqs();
@@ -546,18 +524,19 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
                     parentState = new int[patternCount];
 
                     for (int i = 0; i < patternCount; i++) {
-
                         double[] originPartials = originPartialsGlobal;
 
                         for (int j = 0; j < stateCount; j++) {
                             originPartials[j] *= rootFrequencies[j];
                         }
                         parentState[i] = drawChoice(originPartials); 
+
+                        // add the likelihood contribution of the origin
+                        jointLogLikelihood += Math.log(rootFrequencies[parentState[i]]);
                     }
                 }
 
                 for (int j = 0; j < patternCount; j++) {
-
                     int parentIndex = parentState[j] * stateCount;
                     int childIndex = j * stateCount;
 
@@ -567,13 +546,7 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
 
                     state[j] = drawChoice(conditionalProbabilities);
                     reconstructedStates[nodeNum][j] = state[j];
-//                    if (node.getLeft().isLeaf() && node.getLeft().getID().equals("xd779") || node.getRight().isLeaf() && node.getRight().getID().equals("xd779")) {
-//                    	double [] part = new double[5];
-//                    	System.arraycopy(probabilities, parentIndex,  part, 0, 5);
-//                    	System.out.println(nodeNum + ": " + node.getLength() + " " +Arrays.toString(partialLikelihood) + " x "+parentState[j] + Arrays.toString(part) + " = " + state[j]+Arrays.toString(conditionalProbabilities));
-//                    }
                     double contrib = probabilities[parentIndex + state[j]];
-                    //System.out.println("Pr(" + parentState[j] + ", " + state[j] +  ") = " + contrib);
                     jointLogLikelihood += Math.log(contrib);
                 }
             }
@@ -585,39 +558,25 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
             Node child2 = node.getChild(1);
             traverseSample(tree, child2, state);
         } else {
-
             // This is an external leaf
         	getStates(nodeNum, reconstructedStates[nodeNum]);
 
-//        	if (beagle != null) {
-//                /*((AbstractLikelihoodCore)*/ getStates(nodeNum, reconstructedStates[nodeNum]);
-//        	} else {
-//            /*((AbstractLikelihoodCore)*/ likelihoodCore.getNodeStates(nodeNum, reconstructedStates[nodeNum]);
-//        		}
-//        	}
         	if (sampleTipsInput.get()) {
 	            // Check for ambiguity codes and sample them
 	            for (int j = 0; j < patternCount; j++) {
-	
 	                final int thisState = reconstructedStates[nodeNum][j];
 	                final int parentIndex = parentState[j] * stateCount;
-	            	if (beagle != null) {
-	                    /*((AbstractLikelihoodCore) */ getTransitionMatrix(nodeNum, probabilities);
-	            	} else {
-	                /*((AbstractLikelihoodCore) */likelihoodCore.getNodeMatrix(nodeNum, 0, probabilities);
-	            	}
-	                if (dataType.isAmbiguousCode(thisState)) {
-		                    
+
+	                getTransitionMatrix(nodeNum, probabilities);
+
+	                if (dataType.isAmbiguousCode(thisState)) {  
 	                    boolean [] stateSet = dataType.getStateSet(thisState);
 	                    for (int i = 0; i < stateCount; i++) {
 	                        conditionalProbabilities[i] =  stateSet[i] ? probabilities[parentIndex + i] : 0;
 	                    }
-	                    
 	                    reconstructedStates[nodeNum][j] = drawChoice(conditionalProbabilities);
 	                }
-	
 	                double contrib = probabilities[parentIndex + reconstructedStates[nodeNum][j]];
-	                //System.out.println("Pr(" + parentState[j] + ", " + reconstructedStates[nodeNum][j] +  ") = " + contrib);
 	                jointLogLikelihood += Math.log(contrib);
 	            }
         	}
