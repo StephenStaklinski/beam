@@ -551,45 +551,47 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
     @Override
     protected boolean requiresRecalculation() {
     
-        hasDirt = Tree.IS_CLEAN;
+        // hasDirt = Tree.IS_CLEAN;
         
-        double[] categoryRates = m_siteModel.getCategoryRates(null);
-        if (constantPattern != null) {
-            double [] tmp = new double [categoryRates.length - 1];
-            for (int k = 0; k < invariantCategory; k++) {
-            	tmp[k] = categoryRates[k];
-            }
-            for (int k = invariantCategory + 1; k < categoryRates.length; k++) {
-            	tmp[k-1] = categoryRates[k];
-            }
-            categoryRates = tmp;
-        }
-        for (int i = 0; i < categoryRates.length; i++) {
-        	if (categoryRates[i] != currentCategoryRates[i]) {
-        		updateSiteModel = true;
-        		break;
-        	}
-        }
-        //updateSiteModel |= m_siteModel.isDirtyCalculation();
+        // double[] categoryRates = m_siteModel.getCategoryRates(null);
+        // if (constantPattern != null) {
+        //     double [] tmp = new double [categoryRates.length - 1];
+        //     for (int k = 0; k < invariantCategory; k++) {
+        //     	tmp[k] = categoryRates[k];
+        //     }
+        //     for (int k = invariantCategory + 1; k < categoryRates.length; k++) {
+        //     	tmp[k-1] = categoryRates[k];
+        //     }
+        //     categoryRates = tmp;
+        // }
+        // for (int i = 0; i < categoryRates.length; i++) {
+        // 	if (categoryRates[i] != currentCategoryRates[i]) {
+        // 		updateSiteModel = true;
+        // 		break;
+        // 	}
+        // }
+        // //updateSiteModel |= m_siteModel.isDirtyCalculation();
 
-        if (substitutionModel instanceof CalculationNode) {
-        	updateSubstitutionModel |= ((CalculationNode) substitutionModel).isDirtyCalculation();
-        }
+        // if (substitutionModel instanceof CalculationNode) {
+        // 	updateSubstitutionModel |= ((CalculationNode) substitutionModel).isDirtyCalculation();
+        // }
         
-        if (dataInput.get().isDirtyCalculation()) {
-            hasDirt = Tree.IS_FILTHY;
-            return true;
-        }
-        if (m_siteModel.isDirtyCalculation()) {
-            hasDirt = Tree.IS_DIRTY;
-            return true;
-        }
-        if (branchRateModel != null && branchRateModel.isDirtyCalculation()) {
-            //m_nHasDirt = Tree.IS_FILTHY;
-            return true;
-        }
+        // if (dataInput.get().isDirtyCalculation()) {
+        //     hasDirt = Tree.IS_FILTHY;
+        //     return true;
+        // }
+        // if (m_siteModel.isDirtyCalculation()) {
+        //     hasDirt = Tree.IS_DIRTY;
+        //     return true;
+        // }
+        // if (branchRateModel != null && branchRateModel.isDirtyCalculation()) {
+        //     //m_nHasDirt = Tree.IS_FILTHY;
+        //     return true;
+        // }
+        // return treeInput.get().somethingIsDirty();
 
-        return treeInput.get().somethingIsDirty();
+        // Always redo the likelihood calculations
+        return true;
 
     }
 
@@ -821,6 +823,10 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
                 double[] rootPartials = new double[patternCount * m_nStateCount * categoryCount];
                 beagle.getPartials(rootIndex, Beagle.NONE, rootPartials);
 
+                // // DEBUGGING
+                // System.out.println("Root Partials: " + Arrays.toString(rootPartials));
+
+
                 // get the root node transition matrix, normally ignored but computed based on the height from root to origin
                 double[] rootTransitionMatrix = new double[m_nStateCount * m_nStateCount * categoryCount];
                 int rootNodeNum = root.getNr();
@@ -837,6 +843,10 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
 
                 // calculate the origin partials (NOTE: NOT SETUP PROPERLY TO DO THIS FOR A MODEL WITH MULTIPLE SITE RATE CATEGORIES)
                 calculateOriginPartials(rootPartials, rootTransitionMatrix, originPartials);
+
+                // // DEBUGGING
+                // System.out.println("Origin Partials: " + Arrays.toString(originPartials));
+
 
                 // scale origin partials if scaling is on
                 double originScaleFactorsSum = 0.0;
@@ -983,6 +993,10 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
 
         logP = logL;
 
+        // // DEBUGGING
+        // System.out.println("logP/logL: " + logL);
+
+
         return logL;
     }
 
@@ -1036,12 +1050,6 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
         // First update the transition probability matrix(ices) for this branch
         int update = (node.isDirty() | hasDirt);
 
-        // Overwrite the flag to always recalculate
-        update = 1;
-
-//        if (parent!=null) {
-//        	update |= parent.isDirty();
-//        }
         final double branchRate = branchRateModel.getRateForBranch(node);
         final double branchTime = node.getLength() * branchRate;
 
@@ -1065,8 +1073,6 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
                 for (int i = 0; i < m_siteModel.getCategoryCount(); i++) {
                     final double jointBranchRate = m_siteModel.getRateForCategory(i, node) * branchRate;
                     substitutionModel.getTransitionProbabilities(node, node.getParent().getHeight(), node.getHeight(), jointBranchRate, probabilities);
-
-                    //System.out.println(node.getNr() + " " + Arrays.toString(m_fProbabilities));
                     System.arraycopy(probabilities, 0, matrices,  m_nStateCount * m_nStateCount * i, m_nStateCount * m_nStateCount);
                 }
             	int matrixIndex = matrixBufferHelper.getOffsetIndex(nodeNum);
