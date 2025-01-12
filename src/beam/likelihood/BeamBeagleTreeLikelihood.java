@@ -550,6 +550,7 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
      */
     @Override
     protected boolean requiresRecalculation() {
+    
         hasDirt = Tree.IS_CLEAN;
         
         double[] categoryRates = m_siteModel.getCategoryRates(null);
@@ -589,6 +590,7 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
         }
 
         return treeInput.get().somethingIsDirty();
+
     }
 
     /**
@@ -1033,6 +1035,10 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
 
         // First update the transition probability matrix(ices) for this branch
         int update = (node.isDirty() | hasDirt);
+
+        // Overwrite the flag to always recalculate
+        update = 1;
+
 //        if (parent!=null) {
 //        	update |= parent.isDirty();
 //        }
