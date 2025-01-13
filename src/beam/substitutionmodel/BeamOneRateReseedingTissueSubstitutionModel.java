@@ -27,10 +27,11 @@ public class BeamOneRateReseedingTissueSubstitutionModel extends ComplexSubstitu
         rateMatrix = new double[nrOfStates][nrOfStates];
 
         // Verify the number of input rates is correct
-        if (relativeRates.length != 3 ) {
+        int nrInputRates = ratesInput.get().getDimension();
+        if (nrInputRates != 3 ) {
             throw new IllegalArgumentException(
                 "The number of input rates must be equal to 3 (one primary seeding rate, one met to met seeding rate, and one primary reseeding rate), but it is " 
-                + relativeRates.length 
+                + nrInputRates
                 + ". Check the dimension of the input rate parameters."
             );
         }
