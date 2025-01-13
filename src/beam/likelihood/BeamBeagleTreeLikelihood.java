@@ -95,9 +95,14 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
         }
 
         m_nNodeCount = treeInput.get().getNodeCount();
-        m_bUseAmbiguities = m_useAmbiguities.get();
-        m_bUseTipLikelihoods = m_useTipLikelihoods.get();
+        
+        
+        // Assume tip states are known without ambiguities
+        // This overwrites any xml input of these values that is still allowable due to the super class definition
+        m_bUseAmbiguities = false;
+        m_bUseTipLikelihoods = false;
 
+        // call the different models for site, substitution, and branch rates
         if (!(siteModelInput.get() instanceof SiteModel.Base)) {
         	throw new IllegalArgumentException("siteModel input should be of type SiteModel.Base");
         }
@@ -159,11 +164,6 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
         tipCount = treeInput.get().getLeafNodeCount();
         internalNodeCount = m_nNodeCount - tipCount;
         int compactPartialsCount = tipCount;
-
-        if (m_bUseAmbiguities) {
-            // if we are using ambiguities then we don't use tip partials
-            compactPartialsCount = 0;
-        }
 
         // one partials buffer for each tip and two for each internal node (for store restore)
         partialBufferHelper = new BufferIndexHelper(m_nNodeCount, tipCount);
@@ -306,20 +306,14 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
         }
 
         // Log input states
-        Log.warning.println("  " + (m_bUseAmbiguities ? "Using" : "Ignoring") + " ambiguities in tree likelihood.");
-        Log.warning.println("  " + (m_bUseTipLikelihoods ? "Using" : "Ignoring") + " character uncertainty in tree likelihood.");
-        Log.warning.println("  With " + patternCount + " unique site patterns.");
+        Log.warning.println("There are " + patternCount + " unique site patterns.");
 
         Node [] nodes = treeInput.get().getNodesAsArray();
 
         // Initialize the nodes array with the nodes from the input tree
         for (int i = 0; i < tipCount; i++) {
         	int taxon = getTaxonIndex(nodes[i].getID(), dataInput.get());  
-            if (m_bUseAmbiguities || m_bUseTipLikelihoods) {
-                setPartials(beagle, i, taxon);
-            } else {
-                setStates(beagle, i, taxon);
-            }
+            setStates(beagle, i, taxon);
         }
 
         if (dataInput.get().isAscertained) {
@@ -400,48 +394,6 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
     
     protected int getScaleBufferCount() {
         return internalNodeCount + 1;
-    }
-
-    /**
-     * Sets the partials from a sequence in an alignment.
-     *
-     * @param beagle        beagle
-     * @param nodeIndex     nodeIndex
-     * @param taxon the taxon
-     */
-    protected final void setPartials(Beagle beagle,
-                                     int nodeIndex, int taxon) {
-        Alignment data = dataInput.get();
-
-        double[] partials = new double[patternCount * m_nStateCount * categoryCount];
-
-        int v = 0;
-        for (int i = 0; i < patternCount; i++) {
-
-        	double[] tipProbabilities = data.getTipLikelihoods(taxon,i);
-            if (tipProbabilities != null) {
-            	for (int state = 0; state < m_nStateCount; state++) {
-            		partials[v++] = tipProbabilities[state];
-            	}
-            }
-            else {
-            	int stateCount = data.getPattern(taxon, i);
-                boolean[] stateSet = data.getStateSet(stateCount);
-                for (int state = 0; state < m_nStateCount; state++) {
-                	 partials[v++] = (stateSet[state] ? 1.0 : 0.0);                
-                }
-            }
-        }
-
-        // if there is more than one category then replicate the partials for each
-        int n = patternCount * m_nStateCount;
-        int k = n;
-        for (int i = 1; i < categoryCount; i++) {
-            System.arraycopy(partials, 0, partials, k, n);
-            k += n;
-        }
-
-        beagle.setPartials(nodeIndex, partials);
     }
 
     public int getPatternCount() {
