@@ -249,14 +249,6 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
         storedAreStatesRedrawn = areStatesRedrawn;
         storedJointLogLikelihood = jointLogLikelihood;
         
-        
-        // deal with ambiguous tips
-        if (leafNr != null) {
-			for (int i = 0; i < leafNr.length; i++) {
-				int k = leafNr[i];
-				System.arraycopy(tipStates[k], 0, storedTipStates[k], 0, traitDimension);
-			}
-        }
     }
 
     @Override

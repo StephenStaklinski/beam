@@ -338,7 +338,7 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
                 }
 
                 // replace the root partials with the origin partials in BEAGLE to allow for the final likelihood calculation in in BEAGLE
-                setPartials(rootNodeNum, originPartials);
+                beagle.setPartials(partialBufferHelper.getOffsetIndex(rootNodeNum), originPartials);
 
                 // calculate the likelihood with the new partials
                 beagle.calculateRootLogLikelihoods(new int[]{rootIndex}, new int[]{0}, new int[]{0}, new int[]{Beagle.NONE}, 1, sumLogLikelihoods);
@@ -347,7 +347,7 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
                 
                 // restore the original root partials in case the step is rejected or rescaling is required
                 // this is also necessary to get the correct partials for sampling the tissue state at the root node
-                setPartials(rootNodeNum, rootPartials);
+                beagle.setPartials(partialBufferHelper.getOffsetIndex(rootNodeNum), rootPartials);
 
                 // save the root transition matrix for sampling the tissue state at the root node
                 beagle.setTransitionMatrix(rootNodeNum, rootTransitionMatrix, 1);
@@ -630,6 +630,8 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
         originPartialsGlobal = storedOriginPartialsGlobal;
 
         super.restore();
+
+        // m_branchLengths = storedBranchLengths;
     }
 
 
@@ -659,13 +661,6 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
         beagle.setTipStates(nodeIndex, states);
     }
 
-    /*
-     * Puts the partials in a java array into the beagle instance
-     */
-    protected void setPartials(int number, double[] partials) {
-        beagle.setPartials(partialBufferHelper.getOffsetIndex(number), partials);
-    }
-
 
     /**
      *
@@ -685,13 +680,6 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
             }
         }
         return taxonIndex;
-	}
-
-
-    @Override
-    public double [] getPatternLogLikelihoods() {
-        beagle.getSiteLogLikelihoods(patternLogLikelihoods);
-		return patternLogLikelihoods.clone();
 	}
 
 
