@@ -111,10 +111,16 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
         // get the number of possible outcome states in the substitution model (think unique barcode edits or tissue locations)
         m_nStateCount = substitutionModel.getStateCount();
 
-        // number of site rates = number of patterns
+        // number of sites
         patternCount = dataInput.get().getPatternCount();
+        Log.warning.println("There are " + patternCount + " unique site patterns.");
+
+        // number of rates for the sites
         double[] categoryRates = m_siteModel.getCategoryRates(null);
         this.categoryCount = m_siteModel.getCategoryCount();
+        currentCategoryRates = categoryRates;
+        currentFreqs = new double[m_nStateCount];
+        currentCategoryWeights = new double[categoryRates.length];
 
         // setup probability vector for the correct size of transition probability matrix filling later on
         int matrixSize = (m_nStateCount + 1) * (m_nStateCount + 1);
@@ -130,34 +136,25 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
         m_branchLengths = new double[m_nNodeCount];
         storedBranchLengths = new double[m_nNodeCount];
 
+        // Setup BEAGLE with the defined specs of the models/data above
         setupBeagle();
 
-        // Log input states
-        Log.warning.println("There are " + patternCount + " unique site patterns.");
-
-        Node [] nodes = treeInput.get().getNodesAsArray();
-
         // Initialize the nodes array with the nodes from the input tree
+        Node [] nodes = treeInput.get().getNodesAsArray();
         for (int i = 0; i < tipCount; i++) {
         	int taxon = getTaxonIndex(nodes[i].getID(), dataInput.get());  
             setStates(beagle, i, taxon);
         }
 
+        // Initialize the site pattern weights, if there are any
         double[] patternWeights = new double[patternCount];
         for (int i = 0; i < patternCount; i++) {
             patternWeights[i] = dataInput.get().getPatternWeight(i);
         }
         beagle.setPatternWeights(patternWeights);
 
-        // Initialize the substitution model and site model
-        updateSubstitutionModel = true;
-        updateSiteModel = true;
-        
-        // Set the category rates in the BEAGLE instance for different site categories
+        // Initialize site rates if any
         beagle.setCategoryRates(categoryRates);
-        currentCategoryRates = categoryRates;
-        currentFreqs = new double[m_nStateCount];
-        currentCategoryWeights = new double[categoryRates.length];
     }
 
     private void setupBeagle() {
@@ -433,9 +430,6 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
         	}
         }
 
-        if (substitutionModel instanceof CalculationNode) {
-        	updateSubstitutionModel |= ((CalculationNode) substitutionModel).isDirtyCalculation();
-        }
         
         if (dataInput.get().isDirtyCalculation()) {
             hasDirt = Tree.IS_FILTHY;
@@ -779,7 +773,6 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
 
         } while (!done);
 
-        updateSubstitutionModel = false;
         updateSiteModel = false;
         //********************************************************************
 
@@ -967,12 +960,6 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
     
     public Beagle getBeagle() {return beagle;}
 
-    /**
-     * Flag to specify that the substitution model has changed
-     */
-    protected boolean updateSubstitutionModel;
-    protected boolean storedUpdateSubstitutionModel;
-
     // Declare originPartialsGlobal
     protected double[] originPartialsGlobal;
     protected double[] storedOriginPartialsGlobal;
@@ -980,8 +967,7 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
     /**
      * Flag to specify that the site model has changed
      */
-    protected boolean updateSiteModel;
-    protected boolean storedUpdateSiteModel;
+    protected boolean updateSiteModel = true;
 
     public class BufferIndexHelper {
         /**
