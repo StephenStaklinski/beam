@@ -592,7 +592,6 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
     @Override
     public void store() {
         partialBufferHelper.storeState();
-        eigenBufferHelper.storeState();
         matrixBufferHelper.storeState();
 
         // Only store scale factors when actually used
@@ -616,7 +615,6 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
   		updateSiteModel = true; // this is required to upload the categoryRates to BEAGLE after the restore
         
         partialBufferHelper.restoreState();
-        eigenBufferHelper.restoreState();
         matrixBufferHelper.restoreState();
 
         if (useScaleFactors || useAutoScaling) {
@@ -631,7 +629,9 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
 
         super.restore();
 
+        // double[] tmp = m_branchLengths;
         // m_branchLengths = storedBranchLengths;
+        // storedBranchLengths = tmp;
     }
 
 
@@ -687,8 +687,6 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
         //  BEAGLE SETUP
         // one partials buffer for each tip and two for each internal node (for store restore)
         partialBufferHelper = new BufferIndexHelper(m_nNodeCount, tipCount);
-        // two eigen buffers for each decomposition for store and restore.
-        eigenBufferHelper = new BufferIndexHelper(1, 0);
         // two matrices for each node less the root
         matrixBufferHelper = new BufferIndexHelper(m_nNodeCount, 0);
         // one scaling buffer for each internal node plus an extra for the accumulation, then doubled for store/restore
@@ -788,7 +786,7 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
 	                tipCount,
 	                m_nStateCount,
 	                patternCount,
-	                eigenBufferHelper.getBufferCount(),
+	                2,
 	                matrixBufferHelper.getBufferCount(),
 	                categoryCount,
 	                scaleBufferHelper.getBufferCount(), // Always allocate; they may become necessary
@@ -937,7 +935,6 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
     protected BufferIndexHelper partialBufferHelper;
     public BufferIndexHelper getPartialBufferHelper() {return partialBufferHelper;}
     
-    private /*final*/ BufferIndexHelper eigenBufferHelper;
     protected BufferIndexHelper matrixBufferHelper;
     public BufferIndexHelper getMatrixBufferHelper() {return matrixBufferHelper;}
     protected BufferIndexHelper scaleBufferHelper;
