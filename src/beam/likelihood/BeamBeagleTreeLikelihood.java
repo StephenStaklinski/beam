@@ -348,10 +348,12 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
             everUnderflowed = false;
         }
 
+        // Initialize the substitution model and site model
         updateSubstitutionModel = true;
         updateSiteModel = true;
         setUpSubstModel();
         
+        // Set the category rates in the BEAGLE instance for different site categories
         beagle.setCategoryRates(categoryRates);
         currentCategoryRates = categoryRates;
         currentFreqs = new double[m_nStateCount];

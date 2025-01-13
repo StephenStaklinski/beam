@@ -80,4 +80,9 @@ public class BeamNoReseedingTissueSubstitutionModel extends ComplexSubstitutionM
         }
 
     }
+
+    @Override
+    public boolean canReturnComplexDiagonalization() {
+        return true;
+    }
 }

@@ -7,6 +7,8 @@
     <provider classname="beam.likelihood.BeamAncestralStateBeagleTreeLikelihood"/>
     <provider classname="beam.tree.BeamStartingTreeFromNewick"/>
     <provider classname="beam.substitutionmodel.BeamGeneralMutationSubstitutionModel"/>
+    <provider classname="beam.substitutionmodel.BeamGtiTissueSubstitutionModel"/>
+    <provider classname="beam.substitutionmodel.BeamGtiTissueSubstitutionModelLogger"/>
     <provider classname="beam.substitutionmodel.BeamNoReseedingTissueSubstitutionModel"/>
     <provider classname="beam.substitutionmodel.BeamNoReseedingTissueSubstitutionModelLogger"/>
     <provider classname="beam.substitutionmodel.BeamOneRateReseedingTissueSubstitutionModel"/>
