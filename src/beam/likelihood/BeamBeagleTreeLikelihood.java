@@ -87,40 +87,48 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
 
     private void initialize() {
 
+        // get the origin input, representing the start of the experiment as a node of degree 1 leading to the root
         if (originInput.get() != null){
             origin = originInput.get();
             useOrigin = true;
         }
 
-        m_nNodeCount = treeInput.get().getNodeCount();
-        
-        
-        // Assume tip states are known without ambiguities
-        // This overwrites any xml input of these values that is still allowable due to the super class definition
+        // Assume tip states are known without ambiguities, which should be a true assumption for barcode or tissue data
+        // This overwrites any xml input of these values that is still technically allowable due to the TreeLikelihood definition
         m_bUseAmbiguities = false;
         m_bUseTipLikelihoods = false;
 
-        // call the different models for site, substitution, and branch rates
+        // get the number of nodes in the tree
+        m_nNodeCount = treeInput.get().getNodeCount();
+    
+        // get site model and validate it
         if (!(siteModelInput.get() instanceof SiteModel.Base)) {
         	throw new IllegalArgumentException("siteModel input should be of type SiteModel.Base");
         }
-
         m_siteModel = (SiteModel.Base) siteModelInput.get();
         m_siteModel.setDataType(dataInput.get().getDataType());
-        substitutionModel = m_siteModel.substModelInput.get();
-        branchRateModel = branchRateModelInput.get();
 
-        // default branch model is strict clock if not specified in the input
+        // get substitution model
+        substitutionModel = m_siteModel.substModelInput.get();
+
+        // get the branch model with the default branch model as a strict clock if not specified in the input
+        branchRateModel = branchRateModelInput.get();
         if (branchRateModel == null) {
         	branchRateModel = new StrictClockModel();
         }
 
+        // initialize branch length parameters
         m_branchLengths = new double[m_nNodeCount];
         storedBranchLengths = new double[m_nNodeCount];
+
+        // get the number of possible outcome states in the substitution model (think unique barcode edits or tissue locations)
         m_nStateCount = substitutionModel.getStateCount();
+
+        // number of site rates = number of patterns
         patternCount = dataInput.get().getPatternCount();
+        double[] categoryRates = m_siteModel.getCategoryRates(null);
+        
         eigenCount = 1;
-        double[] categoryRates = m_siteModel.getCategoryRates(null);       
 
         this.categoryCount = m_siteModel.getCategoryCount();
         int matrixSize = (m_nStateCount + 1) * (m_nStateCount + 1);
@@ -307,7 +315,6 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
         // Initialize the substitution model and site model
         updateSubstitutionModel = true;
         updateSiteModel = true;
-        setUpSubstModel();
         
         // Set the category rates in the BEAGLE instance for different site categories
         beagle.setCategoryRates(categoryRates);
@@ -360,25 +367,6 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
 
     public int getPatternCount() {
         return patternCount;
-    }
-
-    void setUpSubstModel() {
-        // we are currently assuming a no-category model...
-        // TODO More efficient to update only the substitution model that changed, instead of all
-    	if (!substitutionModel.canReturnComplexDiagonalization()) {
-	        for (int i = 0; i < eigenCount; i++) {
-	            //EigenDecomposition ed = m_substitutionModel.getEigenDecomposition(i, 0);
-	            EigenDecomposition ed = substitutionModel.getEigenDecomposition(null);
-	
-	            eigenBufferHelper.flipOffset(i);
-	
-	            beagle.setEigenDecomposition(
-	                    eigenBufferHelper.getOffsetIndex(i),
-	                    ed.getEigenVectors(),
-	                    ed.getInverseEigenVectors(),
-	                    ed.getEigenValues());
-	        }
-    	}
     }
 
     /**
@@ -582,10 +570,6 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
         final Node root = treeInput.get().getRoot();
         traverse(root, null, true);
 
-        if (updateSubstitutionModel) {
-            setUpSubstModel();
-        }
-
         if (updateSiteModel) {
             double[] categoryRates = m_siteModel.getCategoryRates(null);
             if (constantPattern != null) {
@@ -603,20 +587,6 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
             	}
             }
             currentCategoryRates = categoryRates;
-        }
-
-        if (!substitutionModel.canReturnComplexDiagonalization()) {
-            for (int i = 0; i < eigenCount; i++) {
-                if (branchUpdateCount[i] > 0) {
-                    beagle.updateTransitionMatrices(
-                            eigenBufferHelper.getOffsetIndex(i),
-                            matrixUpdateIndices[i],
-                            null,
-                            null,
-                            branchLengths[i],
-                            branchUpdateCount[i]);
-                }
-            }
         }
 
         double logL;
