@@ -77,7 +77,6 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
 
     
     private double [] currentCategoryRates;
-//    private double [] storedCurrentCategoryRates;
     private double [] currentFreqs;
     private double [] currentCategoryWeights;
     
@@ -85,14 +84,10 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
 
     @Override
     public void initAndValidate() {
-        boolean forceJava = Boolean.valueOf(System.getProperty("java.only"));
-        if (forceJava) {
-        	return;
-        }
         initialize();
     }
 
-    private boolean initialize() {
+    private void initialize() {
 
         if (originInput.get() != null){
             origin = originInput.get();
@@ -102,28 +97,27 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
         m_nNodeCount = treeInput.get().getNodeCount();
         m_bUseAmbiguities = m_useAmbiguities.get();
         m_bUseTipLikelihoods = m_useTipLikelihoods.get();
+
         if (!(siteModelInput.get() instanceof SiteModel.Base)) {
         	throw new IllegalArgumentException("siteModel input should be of type SiteModel.Base");
         }
+
         m_siteModel = (SiteModel.Base) siteModelInput.get();
         m_siteModel.setDataType(dataInput.get().getDataType());
         substitutionModel = m_siteModel.substModelInput.get();
         branchRateModel = branchRateModelInput.get();
+
         if (branchRateModel == null) {
         	branchRateModel = new StrictClockModel();
         }
+
         m_branchLengths = new double[m_nNodeCount];
         storedBranchLengths = new double[m_nNodeCount];
-
         m_nStateCount = substitutionModel.getStateCount();
-        
         patternCount = dataInput.get().getPatternCount();
-
-        //System.err.println("Attempt to load BEAGLE TreeLikelihood");
-
-        eigenCount = 1;//this.branchSubstitutionModel.getEigenCount();
-
+        eigenCount = 1;
         double[] categoryRates = m_siteModel.getCategoryRates(null);
+
         // check for invariant rates category
         if (m_siteModel.hasPropInvariantCategory) {
 	        for (int i = 0; i < categoryRates.length; i++) {
@@ -158,18 +152,14 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
         }        
 
         this.categoryCount = m_siteModel.getCategoryCount() - (invariantCategory >= 0 ? 1 : 0);
-        
         int matrixSize = (m_nStateCount + 1) * (m_nStateCount + 1);
         probabilities = new double[matrixSize];
-        
         Arrays.fill(probabilities, 1.0);
         matrices = new double[m_nStateCount * m_nStateCount * categoryCount];
-
         tipCount = treeInput.get().getLeafNodeCount();
-
         internalNodeCount = m_nNodeCount - tipCount;
-
         int compactPartialsCount = tipCount;
+
         if (m_bUseAmbiguities) {
             // if we are using ambiguities then we don't use tip partials
             compactPartialsCount = 0;
@@ -177,13 +167,10 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
 
         // one partials buffer for each tip and two for each internal node (for store restore)
         partialBufferHelper = new BufferIndexHelper(m_nNodeCount, tipCount);
-
         // two eigen buffers for each decomposition for store and restore.
         eigenBufferHelper = new BufferIndexHelper(eigenCount, 0);
-
         // two matrices for each node less the root
         matrixBufferHelper = new BufferIndexHelper(m_nNodeCount, 0);
-
         // one scaling buffer for each internal node plus an extra for the accumulation, then doubled for store/restore
         scaleBufferHelper = new BufferIndexHelper(getScaleBufferCount(), 0);
 
@@ -290,48 +277,42 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
 	                requirementFlags
 	        );
         } catch (Exception e) {
-        	beagle = null;
-        }
-        if (beagle == null) {
-            return false;
+            Log.warning.println("BEAGLE failed to be initialized, check installation.");
+            System.exit(1);
         }
 
         InstanceDetails instanceDetails = beagle.getDetails();
         ResourceDetails resourceDetails = null;
+        resourceDetails = BeagleFactory.getResourceDetails(instanceDetails.getResourceNumber());
 
-        if (instanceDetails != null) {
-            resourceDetails = BeagleFactory.getResourceDetails(instanceDetails.getResourceNumber());
-            if (resourceDetails != null) {
-                StringBuilder sb = new StringBuilder("  Using BEAGLE version: " + BeagleInfo.getVersion()
-                		+ " resource ");
-                sb.append(resourceDetails.getNumber()).append(": ");
-                sb.append(resourceDetails.getName()).append("\n");
-                if (resourceDetails.getDescription() != null) {
-                    String[] description = resourceDetails.getDescription().split("\\|");
-                    for (String desc : description) {
-                        if (desc.trim().length() > 0) {
-                            sb.append("    ").append(desc.trim()).append("\n");
-                        }
+        if (resourceDetails != null) {
+            StringBuilder sb = new StringBuilder("  Using BEAGLE version: " + BeagleInfo.getVersion()
+                    + " resource ");
+            sb.append(resourceDetails.getNumber()).append(": ");
+            sb.append(resourceDetails.getName()).append("\n");
+            if (resourceDetails.getDescription() != null) {
+                String[] description = resourceDetails.getDescription().split("\\|");
+                for (String desc : description) {
+                    if (desc.trim().length() > 0) {
+                        sb.append("    ").append(desc.trim()).append("\n");
                     }
                 }
-                sb.append("    with instance flags: ").append(instanceDetails.toString());
-                Log.info.println(sb.toString());
-            } else {
-                Log.warning.println("  Error retrieving BEAGLE resource for instance: " + instanceDetails.toString());
-                beagle = null;
-                return false;
             }
+            sb.append("    with instance flags: ").append(instanceDetails.toString());
+            Log.info.println(sb.toString());
         } else {
-        	Log.warning.println("  No external BEAGLE resources available, or resource list/requirements not met, using Java implementation");
-            beagle = null;
-            return false;
+            Log.warning.println("  Error retrieving BEAGLE resource for instance: " + instanceDetails.toString());
+            System.exit(1);
         }
+
+        // Log input states
         Log.warning.println("  " + (m_bUseAmbiguities ? "Using" : "Ignoring") + " ambiguities in tree likelihood.");
         Log.warning.println("  " + (m_bUseTipLikelihoods ? "Using" : "Ignoring") + " character uncertainty in tree likelihood.");
         Log.warning.println("  With " + patternCount + " unique site patterns.");
 
-        
         Node [] nodes = treeInput.get().getNodesAsArray();
+
+        // Initialize the nodes array with the nodes from the input tree
         for (int i = 0; i < tipCount; i++) {
         	int taxon = getTaxonIndex(nodes[i].getID(), dataInput.get());  
             if (m_bUseAmbiguities || m_bUseTipLikelihoods) {
@@ -351,6 +332,7 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
         }
         beagle.setPatternWeights(patternWeights);
 
+        // Setup rescaling scheme for when the likelihood has numerical instability issues
         if (this.rescalingScheme == PartialsRescalingScheme.AUTO &&
                 resourceDetails != null &&
                 (resourceDetails.getFlags() & BeagleFlag.SCALING_AUTO.getMask()) == 0) {
@@ -361,22 +343,19 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
         	Log.warning.println("  Using rescaling scheme : " + this.rescalingScheme.getText());
         }
 
+        // For dynamic rescaling, set it to only start scaling the likelihood after the first underflow/instability issue
         if (this.rescalingScheme == PartialsRescalingScheme.DYNAMIC) {
-            everUnderflowed = false; // If false, BEAST does not rescale until first under-/over-flow.
+            everUnderflowed = false;
         }
 
         updateSubstitutionModel = true;
         updateSiteModel = true;
-        // some subst models (e.g. WAG) never become dirty, so set up subst models right now
         setUpSubstModel();
-        // set up sitemodel
         
         beagle.setCategoryRates(categoryRates);
         currentCategoryRates = categoryRates;
         currentFreqs = new double[m_nStateCount];
         currentCategoryWeights = new double[categoryRates.length];
-        
-        return true;
     }
 
     
@@ -532,67 +511,47 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
         return taxonIndex;
 	}
     
-    
-//    public void setStates(int tipIndex, int[] states) {
-//        System.err.println("BTL:setStates");
-//        beagle.setTipStates(tipIndex, states);
-//        makeDirty();
-//    }
-//
-//    public void getStates(int tipIndex, int[] states) {
-//        System.err.println("BTL:getStates");
-//        beagle.getTipStates(tipIndex, states);
-//    }
 
-
-    /**
-     * check state for changed variables and update temp results if necessary *
-     */
     @Override
     protected boolean requiresRecalculation() {
     
-        // hasDirt = Tree.IS_CLEAN;
+        hasDirt = Tree.IS_CLEAN;
         
-        // double[] categoryRates = m_siteModel.getCategoryRates(null);
-        // if (constantPattern != null) {
-        //     double [] tmp = new double [categoryRates.length - 1];
-        //     for (int k = 0; k < invariantCategory; k++) {
-        //     	tmp[k] = categoryRates[k];
-        //     }
-        //     for (int k = invariantCategory + 1; k < categoryRates.length; k++) {
-        //     	tmp[k-1] = categoryRates[k];
-        //     }
-        //     categoryRates = tmp;
-        // }
-        // for (int i = 0; i < categoryRates.length; i++) {
-        // 	if (categoryRates[i] != currentCategoryRates[i]) {
-        // 		updateSiteModel = true;
-        // 		break;
-        // 	}
-        // }
-        // //updateSiteModel |= m_siteModel.isDirtyCalculation();
+        double[] categoryRates = m_siteModel.getCategoryRates(null);
+        if (constantPattern != null) {
+            double [] tmp = new double [categoryRates.length - 1];
+            for (int k = 0; k < invariantCategory; k++) {
+            	tmp[k] = categoryRates[k];
+            }
+            for (int k = invariantCategory + 1; k < categoryRates.length; k++) {
+            	tmp[k-1] = categoryRates[k];
+            }
+            categoryRates = tmp;
+        }
+        for (int i = 0; i < categoryRates.length; i++) {
+        	if (categoryRates[i] != currentCategoryRates[i]) {
+        		updateSiteModel = true;
+        		break;
+        	}
+        }
 
-        // if (substitutionModel instanceof CalculationNode) {
-        // 	updateSubstitutionModel |= ((CalculationNode) substitutionModel).isDirtyCalculation();
-        // }
+        if (substitutionModel instanceof CalculationNode) {
+        	updateSubstitutionModel |= ((CalculationNode) substitutionModel).isDirtyCalculation();
+        }
         
-        // if (dataInput.get().isDirtyCalculation()) {
-        //     hasDirt = Tree.IS_FILTHY;
-        //     return true;
-        // }
-        // if (m_siteModel.isDirtyCalculation()) {
-        //     hasDirt = Tree.IS_DIRTY;
-        //     return true;
-        // }
-        // if (branchRateModel != null && branchRateModel.isDirtyCalculation()) {
-        //     //m_nHasDirt = Tree.IS_FILTHY;
-        //     return true;
-        // }
-        // return treeInput.get().somethingIsDirty();
-
-        // Always redo the likelihood calculations
-        return true;
-
+        if (dataInput.get().isDirtyCalculation()) {
+            hasDirt = Tree.IS_FILTHY;
+            return true;
+        }
+        if (m_siteModel.isDirtyCalculation()) {
+            hasDirt = Tree.IS_DIRTY;
+            return true;
+        }
+        if (branchRateModel != null && branchRateModel.isDirtyCalculation()) {
+            //m_nHasDirt = Tree.IS_FILTHY;
+            return true;
+        }
+        return treeInput.get().somethingIsDirty();
     }
 
     /**
@@ -604,15 +563,22 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
         eigenBufferHelper.storeState();
         matrixBufferHelper.storeState();
 
-        if (useScaleFactors || useAutoScaling) { // Only store when actually used
+        // Only store scale factors when actually used
+        if (useScaleFactors || useAutoScaling) {
             scaleBufferHelper.storeState();
             System.arraycopy(scaleBufferIndices, 0, storedScaleBufferIndices, 0, scaleBufferIndices.length);
-//            storedRescalingCount = rescalingCount;
         }
+
+        // store origin partials
+        storedOriginPartialsGlobal = originPartialsGlobal;
+
         super.store();
         System.arraycopy(m_branchLengths, 0, storedBranchLengths, 0, m_branchLengths.length);
     }
 
+    /**
+     * Restores the state that was stored.
+     */
     @Override
     public void restore() {
   		updateSiteModel = true; // this is required to upload the categoryRates to BEAGLE after the restore
@@ -626,19 +592,13 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
             int[] tmp2 = storedScaleBufferIndices;
             storedScaleBufferIndices = scaleBufferIndices;
             scaleBufferIndices = tmp2;
-//            rescalingCount = storedRescalingCount;
         }
 
-//        updateRestrictedNodePartials = true;
-        super.restore();
-        //double[] tmp = m_branchLengths;
-        //m_branchLengths = storedBranchLengths;
-        //storedBranchLengths = tmp;
-    }
+        // restore origin partials
+        originPartialsGlobal = storedOriginPartialsGlobal;
 
-    // **************************************************************
-    // Likelihood IMPLEMENTATION
-    // **************************************************************
+        super.restore();
+    }
 
     /**
      * Calculate the log likelihood of the current state.
@@ -746,16 +706,6 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
                 }
             }
         }
-
-//        if (COUNT_TOTAL_OPERATIONS) {
-//            for (int i = 0; i < eigenCount; i++) {
-//                totalMatrixUpdateCount += branchUpdateCount[i];
-//            }
-//            
-//            for (int i = 0; i <= numRestrictedPartials; i++) {
-//                totalOperationCount += operationCount[i];
-//            }
-//        }
 
         double logL;
         boolean done;
@@ -1215,6 +1165,7 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
 
     // Declare originPartialsGlobal
     protected double[] originPartialsGlobal;
+    protected double[] storedOriginPartialsGlobal;
 
     /**
      * Flag to specify that the site model has changed
