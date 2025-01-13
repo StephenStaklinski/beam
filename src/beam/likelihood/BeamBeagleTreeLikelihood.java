@@ -70,7 +70,6 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
     private static final int RESCALE_FREQUENCY = 10000;
     private static final int RESCALE_TIMES = 1;
 
-    boolean m_bUseAmbiguities, m_bUseTipLikelihoods;
     int m_nStateCount;
     int m_nNodeCount;
     private double [] matrices;
@@ -92,11 +91,6 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
             origin = originInput.get();
             useOrigin = true;
         }
-
-        // Assume tip states are known without ambiguities, which should be a true assumption for barcode or tissue data
-        // This overwrites any xml input of these values that is still technically allowable due to the TreeLikelihood definition
-        m_bUseAmbiguities = false;
-        m_bUseTipLikelihoods = false;
 
         // get the number of nodes in the tree
         m_nNodeCount = treeInput.get().getNodeCount();
@@ -127,8 +121,6 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
         // number of site rates = number of patterns
         patternCount = dataInput.get().getPatternCount();
         double[] categoryRates = m_siteModel.getCategoryRates(null);
-        
-        eigenCount = 1;
 
         this.categoryCount = m_siteModel.getCategoryCount();
         int matrixSize = (m_nStateCount + 1) * (m_nStateCount + 1);
@@ -142,7 +134,7 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
         // one partials buffer for each tip and two for each internal node (for store restore)
         partialBufferHelper = new BufferIndexHelper(m_nNodeCount, tipCount);
         // two eigen buffers for each decomposition for store and restore.
-        eigenBufferHelper = new BufferIndexHelper(eigenCount, 0);
+        eigenBufferHelper = new BufferIndexHelper(1, 0);
         // two matrices for each node less the root
         matrixBufferHelper = new BufferIndexHelper(m_nNodeCount, 0);
         // one scaling buffer for each internal node plus an extra for the accumulation, then doubled for store/restore
@@ -522,9 +514,9 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
         }
 
         if (matrixUpdateIndices == null) {
-            matrixUpdateIndices = new int[eigenCount][m_nNodeCount];
-            branchLengths = new double[eigenCount][m_nNodeCount];
-            branchUpdateCount = new int[eigenCount];
+            matrixUpdateIndices = new int[1][m_nNodeCount];
+            branchLengths = new double[1][m_nNodeCount];
+            branchUpdateCount = new int[1];
             scaleBufferIndices = new int[internalNodeCount];
             storedScaleBufferIndices = new int[internalNodeCount];
         }
@@ -560,7 +552,7 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
             rescalingCount++;
         }
 
-        for (int i = 0; i < eigenCount; i++) {
+        for (int i = 0; i < 1; i++) {
             branchUpdateCount[i] = 0;
         }
         operationListCount = 0;
@@ -759,7 +751,7 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
                 	useScaleFactors = true;
                     recomputeScaleFactors = true;
 
-                    for (int i = 0; i < eigenCount; i++) {
+                    for (int i = 0; i < 1; i++) {
                         branchUpdateCount[i] = 0;
                     }
 
@@ -923,7 +915,6 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
     // INSTANCE VARIABLES
     // **************************************************************
 
-    private int eigenCount;
     private int[][] matrixUpdateIndices;
     private double[][] branchLengths;
     private int[] branchUpdateCount;
