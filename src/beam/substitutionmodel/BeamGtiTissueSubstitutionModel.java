@@ -25,11 +25,15 @@ public class BeamGtiTissueSubstitutionModel extends ComplexSubstitutionModel {
 
         nrOfStates = frequencies.getFreqs().length;
         rateMatrix = new double[nrOfStates][nrOfStates];
-    }
 
-    /** sets up rate matrix **/
-    @Override
-    public void setupRateMatrix() {
+        // Verify the number of input rates is correct
+        if (relativeRates.length != nrOfStates * nrOfStates - nrOfStates) {
+            throw new IllegalArgumentException(
+                "The number of input rates must be equal to ((nrOfStates * nrOfStates) - nrOfStates) for all off diagonal rates, but it is " 
+                + relativeRates.length 
+                + ". Check the dimension of the input rate parameters."
+            );
+        }
 
         // Verify that the input rates are normalized to sum to one substitution per unit time in the input xml file
         double sumOfRates = 0.0;
@@ -43,6 +47,11 @@ public class BeamGtiTissueSubstitutionModel extends ComplexSubstitutionModel {
                 + ". Check that the input rate parameters sum to 1.0 and that the operator maintains the sum during MCMC proposals."
             );
         }
+    }
+
+    /** sets up rate matrix **/
+    @Override
+    public void setupRateMatrix() {
         
         int count = 0;
         for (int i=0; i < nrOfStates; i++) {

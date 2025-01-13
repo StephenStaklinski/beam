@@ -31,6 +31,8 @@ public class BeamNoReseedingTissueSubstitutionModelLogger extends BEASTObject im
             "When true, use full names of locations in log rather than " +
                     "rate matrix indices.",
             true);
+    
+    private int nrOfStates;
 
     protected BeamNoReseedingTissueSubstitutionModel model;
 
@@ -39,6 +41,7 @@ public class BeamNoReseedingTissueSubstitutionModelLogger extends BEASTObject im
     @Override
     public void initAndValidate() {
         model = modelInput.get();
+        nrOfStates = model.getStateCount();
     }
 
     /**
@@ -64,10 +67,9 @@ public class BeamNoReseedingTissueSubstitutionModelLogger extends BEASTObject im
 
         UserDataType dataType = dataTypeInput.get();
 
-        for (int i=0; i<model.getStateCount(); i++) {
+        for (int i=0; i<nrOfStates; i++) {
             String iStr = getLocationString(i);
-
-            for (int j=0 ; j<model.getStateCount(); j++) {
+            for (int j=0 ; j<nrOfStates; j++) {
                 if (j==i)
                     continue;
 
@@ -80,8 +82,6 @@ public class BeamNoReseedingTissueSubstitutionModelLogger extends BEASTObject im
 
     @Override
     public void log(long nSample, PrintStream out) {
-        int nrOfStates = model.getStateCount();
-
         for (int i=0; i<nrOfStates; i++) {
             for (int j=0; j<nrOfStates; j++) {
                 if (j==i) {

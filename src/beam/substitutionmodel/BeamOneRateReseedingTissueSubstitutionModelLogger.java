@@ -32,6 +32,8 @@ public class BeamOneRateReseedingTissueSubstitutionModelLogger extends BEASTObje
                     "rate matrix indices.",
             true);
 
+    private int nrOfStates;
+
     protected BeamOneRateReseedingTissueSubstitutionModel model;
 
     public BeamOneRateReseedingTissueSubstitutionModelLogger() { }
@@ -39,6 +41,7 @@ public class BeamOneRateReseedingTissueSubstitutionModelLogger extends BEASTObje
     @Override
     public void initAndValidate() {
         model = modelInput.get();
+        nrOfStates = model.getStateCount();
     }
 
     /**
@@ -64,15 +67,13 @@ public class BeamOneRateReseedingTissueSubstitutionModelLogger extends BEASTObje
 
         UserDataType dataType = dataTypeInput.get();
 
-        for (int i=0; i<model.getStateCount(); i++) {
+        for (int i=0; i<nrOfStates; i++) {
             String iStr = getLocationString(i);
-
-            for (int j=0 ; j<model.getStateCount(); j++) {
+            for (int j=0 ; j<nrOfStates; j++) {
                 if (j==i)
                     continue;
 
                 String jStr = getLocationString(j);
-
                 out.print(relRatePrefix + iStr + "_" + jStr + "\t");
             }
         }
@@ -80,9 +81,6 @@ public class BeamOneRateReseedingTissueSubstitutionModelLogger extends BEASTObje
 
     @Override
     public void log(long nSample, PrintStream out) {
-        int count = 1; // start at 1 to reserve the 0 index rate for reseeding rates to match the model setupRateMatrix
-        int nrOfStates = model.getStateCount();
-
         for (int i=0; i<nrOfStates; i++) {
             for (int j=0; j<nrOfStates; j++) {
                 if (j==i) {
@@ -91,8 +89,7 @@ public class BeamOneRateReseedingTissueSubstitutionModelLogger extends BEASTObje
 
                 if (i == 0) {
                     out.print(model.ratesInput.get().getArrayValue(0) + "\t");
-                }
-                else if (j == 0) {
+                } else if (j == 0) {
                     out.print(model.ratesInput.get().getArrayValue(2) + "\t");
                 } else {
                     out.print(model.ratesInput.get().getArrayValue(1) + "\t");

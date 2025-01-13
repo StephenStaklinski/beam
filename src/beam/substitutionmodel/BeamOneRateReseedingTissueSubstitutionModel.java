@@ -25,6 +25,15 @@ public class BeamOneRateReseedingTissueSubstitutionModel extends ComplexSubstitu
 
         nrOfStates = frequencies.getFreqs().length;
         rateMatrix = new double[nrOfStates][nrOfStates];
+
+        // Verify the number of input rates is correct
+        if (relativeRates.length != 3 ) {
+            throw new IllegalArgumentException(
+                "The number of input rates must be equal to 3 (one primary seeding rate, one met to met seeding rate, and one primary reseeding rate), but it is " 
+                + relativeRates.length 
+                + ". Check the dimension of the input rate parameters."
+            );
+        }
     }
 
     /** sets up rate matrix **/
@@ -48,15 +57,6 @@ public class BeamOneRateReseedingTissueSubstitutionModel extends ComplexSubstitu
                 }
             }
         }
-
-        // bring in frequencies
-        double [] freqs = frequencies.getFreqs();
-        for (int i = 0; i < nrOfStates; i++) {
-            for (int j = i + 1; j < nrOfStates; j++) {
-                rateMatrix[i][j] *= freqs[j];
-                rateMatrix[j][i] *= freqs[i];
-            }
-        }
         
         // set up diagonal
         for (int i = 0; i < nrOfStates; i++) {
@@ -68,17 +68,16 @@ public class BeamOneRateReseedingTissueSubstitutionModel extends ComplexSubstitu
             rateMatrix[i][i] = -sum;
         }
 
-        // normalise rate matrix to one expected substitution per unit time
-        double subst = 0.0;
+        // Normalize the rate matrix to one subsitution per unit time, since doing so as xml input is challenging
+        double total = 0.0;
         for (int i = 0; i < nrOfStates; i++)
-            subst += -rateMatrix[i][i] * freqs[i];
+            total += -rateMatrix[i][i];
 
         for (int i = 0; i < nrOfStates; i++) {
             for (int j = 0; j < nrOfStates; j++) {
-                rateMatrix[i][j] = rateMatrix[i][j] / subst;
+                rateMatrix[i][j] = rateMatrix[i][j] / total;
             }
         }
-
     }
 
     @Override
