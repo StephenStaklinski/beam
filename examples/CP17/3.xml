@@ -49,7 +49,7 @@
     <frequencies spec="beast.base.evolution.substitutionmodel.Frequencies" frequencies="1.0 0 0" estimate="false"/>
 </substModel>
 
-<siteModel spec="SiteModel" id="siteModel" mutationRate="@mutationRate" proportionInvariant="@proportionInvariant" gammaCategoryCount="0" substModel="@substModel"></siteModel>
+<siteModel spec="SiteModel" id="siteModel" mutationRate="@mutationRate" gammaCategoryCount="0" substModel="@substModel"></siteModel>
 
 <run id="mcmc" spec="MCMC" chainLength="500000000">
         <state id="state" spec="State" storeEvery="5000">
@@ -67,7 +67,6 @@
             <parameter id="clockRate.c" spec="parameter.RealParameter" name="stateNode">1.0</parameter>
             <!-- the mutation rate could be another rate multiplier, but we leave it fixed to 1 -->
             <parameter spec="parameter.RealParameter" estimate="false" id="mutationRate" name="stateNode">1.0</parameter>
-            <parameter spec="parameter.RealParameter" estimate="false" lower="0.0" id="proportionInvariant" name="stateNode" upper="1.0">0.0</parameter>
             <parameter id="origin" spec="parameter.RealParameter" name="stateNode" upper="364.0001">364.001</parameter>
             <parameter id="relativeGeoRates.s:tissue" spec="parameter.RealParameter" lower="0.0" dimension="12" name="stateNode">0.08333333</parameter>
             <parameter id="traitClockRate.c:tissue" spec="parameter.RealParameter" name="stateNode">1.0</parameter>
