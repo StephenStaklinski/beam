@@ -244,7 +244,6 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
             }
 
             // these could be set only when they change but store/restore would need to be considered
-
             for (int i = 0; i < categoryWeights.length; i++) {
             	if (categoryWeights[i] != currentCategoryWeights[i]) {
                     beagle.setCategoryWeights(0, categoryWeights);
@@ -269,10 +268,6 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
                 double[] rootPartials = new double[patternCount * m_nStateCount * categoryCount];
                 beagle.getPartials(rootIndex, Beagle.NONE, rootPartials);
 
-                // // DEBUGGING
-                // System.out.println("Root Partials: " + Arrays.toString(rootPartials));
-
-
                 // get the root node transition matrix, normally ignored but computed based on the height from root to origin
                 double[] rootTransitionMatrix = new double[m_nStateCount * m_nStateCount * categoryCount];
                 int rootNodeNum = root.getNr();
@@ -287,7 +282,7 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
                 // define where the origin partials will be stored
                 double[] originPartials = new double[patternCount * m_nStateCount * categoryCount];
 
-                // calculate the origin partials (NOTE: NOT SETUP PROPERLY TO DO THIS FOR A MODEL WITH MULTIPLE SITE RATE CATEGORIES)
+                // calculate the origin partials
                 calculateOriginPartials(rootPartials, rootTransitionMatrix, originPartials);
 
                 // scale origin partials if scaling is on
@@ -344,7 +339,6 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
                 beagle.calculateRootLogLikelihoods(new int[]{rootIndex}, new int[]{0}, new int[]{0}, new int[]{Beagle.NONE}, 1, sumLogLikelihoods);
                 logL = sumLogLikelihoods[0] + originScaleFactorsSum;
             
-                
                 // restore the original root partials in case the step is rejected or rescaling is required
                 // this is also necessary to get the correct partials for sampling the tissue state at the root node
                 beagle.setPartials(partialBufferHelper.getOffsetIndex(rootNodeNum), rootPartials);
@@ -683,8 +677,10 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
 	}
 
 
+    /*
+     * Basic initialization of a BEAGLE instance taken from BeagleTreeLikelihood
+     */
     private void setupBeagle() {
-        //  BEAGLE SETUP
         // one partials buffer for each tip and two for each internal node (for store restore)
         partialBufferHelper = new BufferIndexHelper(m_nNodeCount, tipCount);
         // two matrices for each node less the root
@@ -786,7 +782,7 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
 	                tipCount,
 	                m_nStateCount,
 	                patternCount,
-	                2,
+	                2, // EigenBufferHelper not used, so this is fixed
 	                matrixBufferHelper.getBufferCount(),
 	                categoryCount,
 	                scaleBufferHelper.getBufferCount(), // Always allocate; they may become necessary

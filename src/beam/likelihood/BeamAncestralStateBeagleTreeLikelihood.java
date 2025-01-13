@@ -66,7 +66,6 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
      * @param treeModel       -
      * @param siteModel       -
      * @param branchRateModel -
-     * @param useAmbiguities  -
      * @param storePartials   -
      * @param dataType        - need to provide the data-type, so that corrent data characters can be returned
      * @param tag             - string label for reconstruction characters in tree log
@@ -141,11 +140,6 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
             }
         });
 
-//        if (m_useAmbiguities.get()) {
-//            Logger.getLogger("dr.evomodel.treelikelihood").info("Ancestral reconstruction using ambiguities is currently "+
-//            "not support without BEAGLE");
-//            System.exit(-1);
-//        }
         if (beagle != null) {
             if (!(siteModelInput.get() instanceof SiteModel.Base)) {
             	throw new IllegalArgumentException ("siteModel input should be of type SiteModel.Base");
@@ -188,12 +182,6 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
         
         if (m_siteModel.getCategoryCount() > 1)
             throw new RuntimeException("Reconstruction not implemented for multiple categories yet.");
-        
-        
-        // stuff for dealing with ambiguities in tips
-        if (!m_useAmbiguities.get() && leafTriatsInput.get().size() == 0) {
-        	return;
-        }
 
 		traitDimension = tipStates[0].length;
 
@@ -281,11 +269,6 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
     	likelihoodKnown = false;
 
     	boolean isDirty = super.requiresRecalculation();
-    	if (!m_useAmbiguities.get()) {
-    		return isDirty;
-    	}
-    	
-    	
     	int hasDirt = Tree.IS_CLEAN;
 		
 		// check whether any of the leaf trait parameters changed
@@ -561,13 +544,6 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
 
 	                getTransitionMatrix(nodeNum, probabilities);
 
-	                if (dataType.isAmbiguousCode(thisState)) {  
-	                    boolean [] stateSet = dataType.getStateSet(thisState);
-	                    for (int i = 0; i < stateCount; i++) {
-	                        conditionalProbabilities[i] =  stateSet[i] ? probabilities[parentIndex + i] : 0;
-	                    }
-	                    reconstructedStates[nodeNum][j] = drawChoice(conditionalProbabilities);
-	                }
 	                double contrib = probabilities[parentIndex + reconstructedStates[nodeNum][j]];
 	                jointLogLikelihood += Math.log(contrib);
 	            }
