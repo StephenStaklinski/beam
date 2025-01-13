@@ -282,10 +282,6 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
             setStates(beagle, i, taxon);
         }
 
-        if (dataInput.get().isAscertained) {
-            ascertainedSitePatterns = true;
-        }
-
         double[] patternWeights = new double[patternCount];
         for (int i = 0; i < patternCount; i++) {
             patternWeights[i] = dataInput.get().getPatternWeight(i);
@@ -783,14 +779,6 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
                 logL = sumLogLikelihoods[0];
             }
 
-            if (ascertainedSitePatterns) {
-                
-                // Need to correct for ascertainedSitePatterns
-                beagle.getSiteLogLikelihoods(patternLogLikelihoods);
-                logL = getAscertainmentCorrectedLogLikelihood(dataInput.get(),
-                        patternLogLikelihoods, dataInput.get().getWeights(), frequencies);
-            }
-
             if (Double.isNaN(logL) || Double.isInfinite(logL)) {
 
                 everUnderflowed = true;
@@ -837,26 +825,6 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
 
     protected void setPartials(int number, double[] partials) {
         beagle.setPartials(partialBufferHelper.getOffsetIndex(number), partials);
-    }
-
-    private double getAscertainmentCorrectedLogLikelihood(Alignment patternList,
-                                                          double[] patternLogLikelihoods,
-                                                          int[] patternWeights,
-                                                          double [] frequencies) {
-    	if (constantPattern != null) {
-	        for (int k : constantPattern) {
-	        	int i = k / m_nStateCount;
-	        	int j = k % m_nStateCount;
-	        	patternLogLikelihoods[i] = (Math.log(Math.exp(patternLogLikelihoods[i]) * frequencies[j]));
-	        }
-    	}
-    	
-        double logL = 0.0;
-        double ascertainmentCorrection = patternList.getAscertainmentCorrection(patternLogLikelihoods);
-        for (int i = 0; i < patternCount; i++) {
-            logL += (patternLogLikelihoods[i] - ascertainmentCorrection) * patternWeights[i];
-        }
-        return logL;
     }
 
     /**
@@ -1050,12 +1018,6 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
      */
     protected boolean updateSiteModel;
     protected boolean storedUpdateSiteModel;
-
-    /**
-     * Flag to specify if site patterns are acertained
-     */
-
-    private boolean ascertainedSitePatterns = false;
 
     public class BufferIndexHelper {
         /**
