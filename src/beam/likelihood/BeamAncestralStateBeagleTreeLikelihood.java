@@ -38,11 +38,6 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
     public static final String STATES_KEY = "states";
 
     public Input<String> tagInput = new Input<String>("tag","label used to report trait", Validate.REQUIRED);
-    public Input<Boolean> useMAPInput = new Input<Boolean>("useMAP","whether to use maximum aposteriori assignments or sample", false);
-    public Input<Boolean> returnMLInput = new Input<Boolean>("returnML", "report integrate likelihood of tip data", true);
-    
-//     public Input<Boolean> useJava = new Input<Boolean>("useJava", "prefer java, even if beagle is available", true);
-    
     public Input<Boolean> sampleTipsInput = new Input<Boolean>("sampleTips", "if tips have missing data/ambigous values sample them for logging (default true)", true);
     
 	public Input<List<LeafTrait>> leafTriatsInput = new Input<List<LeafTrait>>("leaftrait", "list of leaf traits",
@@ -70,8 +65,6 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
      * @param dataType        - need to provide the data-type, so that corrent data characters can be returned
      * @param tag             - string label for reconstruction characters in tree log
      * @param forceRescaling  -
-     * @param useMAP          - perform maximum aposteriori reconstruction
-     * @param returnML        - report integrate likelihood of tip data
      */
     int patternCount;
     int stateCount;
@@ -118,9 +111,6 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
 
         reconstructedStates = new int[treeModel.getNodeCount()][patternCount];
         storedReconstructedStates = new int[treeModel.getNodeCount()][patternCount];
-
-        this.useMAP = useMAPInput.get();
-        this.returnMarginalLogLikelihood = returnMLInput.get();
       
         treeTraits.addTrait(STATES_KEY, new TreeTrait.IA() {
             public String getTraitName() {
@@ -329,17 +319,8 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
         jointLogLikelihood = 0;
         TreeInterface tree = treeInput.get();
         traverseSample(tree, tree.getRoot(), null);
-        
         areStatesRedrawn = true;
-        
-//        System.err.println("logP=" + logP);
-//        for (int i = 0; i < reconstructedStates.length; i++) {
-//        	System.err.print(reconstructedStates[i][0] + ", ");
-//        }
-//        System.err.println();
     }
-
-//    private boolean checkConditioning = true;
 
     
     @Override
@@ -348,15 +329,6 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
         areStatesRedrawn = false;
         double marginalLogLikelihood = super.calculateLogP();
         likelihoodKnown = true;
-
-        if (returnMarginalLogLikelihood) {
-            return logP;
-        }
-
-        // redraw states and return joint density of drawn states
-        redrawAncestralStates();
-
-        logP = jointLogLikelihood;
 
         return logP;
     }
@@ -397,19 +369,7 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
     }
 
     private int drawChoice(double[] measure) {
-        if (useMAP) {
-            double max = measure[0];
-            int choice = 0;
-            for (int i = 1; i < measure.length; i++) {
-                if ((measure[i] - max)/(measure[i] + max) > 1e-10) {
-                    max = measure[i];
-                    choice = i;
-                }
-            }
-            return choice;
-        } else {
-            return Randomizer.randomChoicePDF(measure);
-        }
+        return Randomizer.randomChoicePDF(measure);
     }
 
     public void getStates(int tipNum, int[] states)  {
@@ -569,9 +529,6 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
     private String tag;
     private boolean areStatesRedrawn = false;
     private boolean storedAreStatesRedrawn = false;
-
-    private boolean useMAP = false;
-    private boolean returnMarginalLogLikelihood = true;
 
     private double jointLogLikelihood;
     private double storedJointLogLikelihood;

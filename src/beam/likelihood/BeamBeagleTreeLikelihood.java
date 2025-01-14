@@ -251,11 +251,10 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
             	}
             }
             currentCategoryWeights = categoryWeights;
-            for (int i = 0; i < frequencies.length; i++) {
-            	if (frequencies[i] != currentFreqs[i]) {
-                    beagle.setStateFrequencies(0, frequencies);
-            		i = frequencies.length;
-            	}
+            
+            // make sure the root frequencies are initialized properly and then updated if the frequencies change
+            if (frequencies != currentFreqs) {
+                beagle.setStateFrequencies(0, frequencies);
             }
             currentFreqs = frequencies;
 
@@ -391,7 +390,7 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
         updateSiteModel = false;
 
         logP = logL;
-        
+
         return logP;
     }
 
