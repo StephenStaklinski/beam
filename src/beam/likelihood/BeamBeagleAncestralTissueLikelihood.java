@@ -45,53 +45,32 @@ public class BeamBeagleAncestralTissueLikelihood extends BeamBeagleTreeLikelihoo
 
         // Verify that there is only one site in the input data
         if (dataInput.get().getPatternCount() != 1) {
-            throw new RuntimeException("Pattern count must be 1, representing a single site/label in the tissue labeling alignment per cell.");
+            throw new RuntimeException("More than one site in the input data not implemented.");
         }
 
         // Initialize the superclass
         super.initAndValidate();
 
+        // Validate only one category rate for sites
+        if (m_siteModel.getCategoryCount() > 1) {
+            throw new RuntimeException("Multiple site rate categories not implemented.");
+        }
+
         // Retrieve and store the tag input for the posterior tree sample outputs
         this.tag = tagInput.get();
 
-        // Initialize data type, and state count
+        // Initialize data type
         Alignment data = dataInput.get();
         dataType = data.getDataType();
+
+        // Initialize state count
         stateCount = dataType.getStateCount();
 
         // Initialize tree model and node count
         TreeInterface treeModel = treeInput.get();
         int nodeCount = treeModel.getNodeCount();
 
-        // Initialize reconstructed states arrays
-        reconstructedStates = new int[nodeCount][1];
-        storedReconstructedStates = new int[nodeCount][1];
-
-        // Add tree trait for states
-        treeTraits.addTrait(STATES_KEY, new TreeTrait.IA() {
-            public String getTraitName() {
-                return tag;
-            }
-
-            public Intent getIntent() {
-                return Intent.NODE;
-            }
-
-            public int[] getTrait(TreeInterface tree, Node node) {
-                return getStatesForNode(tree, node);
-            }
-
-            public String getTraitString(TreeInterface tree, Node node) {
-                return formattedState(getStatesForNode(tree, node), dataType);
-            }
-        });
-
-        // Validate only one category rate for sites
-        if (m_siteModel.getCategoryCount() > 1) {
-            throw new RuntimeException("Reconstruction not implemented for multiple categories yet.");
-        }
-
-        // Set up the tip states
+        // Set up the tip tissue states based on the input data mapping tissue labels to each cell
         tipStates = new int[treeModel.getLeafNodeCount()][1];
         for (Node node : treeModel.getExternalNodes()) {
             String taxon = node.getID();
@@ -108,6 +87,26 @@ public class BeamBeagleAncestralTissueLikelihood extends BeamBeagleTreeLikelihoo
             int code = data.getPattern(taxonIndex, 0);
             states[0] = data.getDataType().getStatesForCode(code)[0];
         }
+
+        // Initialize reconstructed states arrays for store/restore
+        reconstructedStates = new int[nodeCount][1];
+        storedReconstructedStates = new int[nodeCount][1];
+
+        // Add tree trait for states
+        treeTraits.addTrait(STATES_KEY, new TreeTrait.IA() {
+            public String getTraitName() {
+                return tag;
+            }
+            public Intent getIntent() {
+                return Intent.NODE;
+            }
+            public int[] getTrait(TreeInterface tree, Node node) {
+                return getStatesForNode(tree, node);
+            }
+            public String getTraitString(TreeInterface tree, Node node) {
+                return formattedState(getStatesForNode(tree, node), dataType);
+            }
+        });
     }
 
     @Override
