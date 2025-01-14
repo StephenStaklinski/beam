@@ -22,7 +22,6 @@ import beast.base.evolution.substitutionmodel.SubstitutionModel;
 import beast.base.evolution.tree.Node;
 import beast.base.evolution.tree.Tree;
 import beast.base.inference.CalculationNode;
-import beast.base.evolution.likelihood.BeagleTreeLikelihood;
 import beast.base.evolution.likelihood.TreeLikelihood;
 
 /**
@@ -107,13 +106,6 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
         	int taxon = getTaxonIndex(nodes[i].getID(), dataInput.get());  
             setStates(beagle, i, taxon);
         }
-
-        // Initialize the site pattern weights, if there are any
-        double[] patternWeights = new double[patternCount];
-        for (int i = 0; i < patternCount; i++) {
-            patternWeights[i] = dataInput.get().getPatternWeight(i);
-        }
-        beagle.setPatternWeights(patternWeights);
 
         // Initialize site rates if any
         beagle.setCategoryRates(categoryRates);
@@ -288,10 +280,11 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
                 calculateOriginPartials(rootPartials, rootTransitionMatrix, originPartials);
 
                 // scale origin partials if scaling is on
-                double originScaleFactorsSum = 0.0;
+                double totalScaleFactorsSum = 0.0;
                 if (useScaleFactors) {
                     double[] originScaleFactors = new double[patternCount];
                     int u = 0;
+
                     for (int i = 0; i < patternCount; i++) {
                         double scaleFactor = 0.0;
                         int v = u;
@@ -328,10 +321,15 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
                     double[] sumLogLikelihoodsWithScaling = new double[1];
                     beagle.calculateRootLogLikelihoods(new int[]{rootIndex}, new int[]{0}, new int[]{0}, new int[]{cumulateScaleBufferIndex}, 1, sumLogLikelihoodsWithScaling);
                     
-                    // subtrace scaling - no scaling to get the scaling factors since the algorithm sums the cumulative scale factors to the log likelihood
-                    // this is not setup for multiple rate categories since the sumLogLikelihoods is by default only 1 value
-                    double rootScaleFactors = sumLogLikelihoodsWithScaling[0] - sumLogLikelihoodsNoScaling[0];
-                    originScaleFactorsSum = originScaleFactors[0] + rootScaleFactors;
+                    // subtract scaling - no scaling to get the scaling factors since the algorithm sums the cumulative scale factors to the log likelihood
+                    double rootScaleFactorsSum = sumLogLikelihoodsWithScaling[0] - sumLogLikelihoodsNoScaling[0];
+
+                    // combine the root scale factors already summed across patterns with the origin scale factors sum across patterns
+                    double originScaleFactorsSum = 0.0;
+                    for (int i = 0; i < patternCount; i++) {
+                        originScaleFactorsSum += originScaleFactors[i];
+                    }
+                    totalScaleFactorsSum = originScaleFactorsSum + rootScaleFactorsSum;
                 }
 
                 // replace the root partials with the origin partials in BEAGLE to allow for the final likelihood calculation in in BEAGLE
@@ -339,7 +337,7 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
 
                 // calculate the likelihood with the new partials
                 beagle.calculateRootLogLikelihoods(new int[]{rootIndex}, new int[]{0}, new int[]{0}, new int[]{Beagle.NONE}, 1, sumLogLikelihoods);
-                logL = sumLogLikelihoods[0] + originScaleFactorsSum;
+                logL = sumLogLikelihoods[0] + totalScaleFactorsSum;
             
                 // restore the original root partials in case the step is rejected or rescaling is required
                 // this is also necessary to get the correct partials for sampling the tissue state at the root node
