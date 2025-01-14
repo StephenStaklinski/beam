@@ -194,14 +194,7 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
 
         if (updateSiteModel) {
             double[] categoryRates = m_siteModel.getCategoryRates(null);
-            if (constantPattern != null) {
-	            double [] tmp = new double [categoryRates.length - 1];
 
-	            for (int k = 0; k < categoryRates.length; k++) {
-	            	tmp[k-1] = categoryRates[k];
-	            }
-	            categoryRates = tmp;
-	        }
             for (int i = 0; i < categoryRates.length; i++) {
             	if (categoryRates[i] != currentCategoryRates[i]) {
                     beagle.setCategoryRates(categoryRates);
@@ -222,14 +215,7 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
             int rootIndex = partialBufferHelper.getOffsetIndex(root.getNr());
 
             double[] categoryWeights = m_siteModel.getCategoryProportions(null);
-            if (constantPattern != null) {
-	            double [] tmp = new double [categoryWeights.length - 1];
 
-	            for (int k = 0; k < categoryWeights.length; k++) {
-	            	tmp[k-1] = categoryWeights[k];
-	            }
-	            categoryWeights = tmp;
-            }
             double[] frequencies = rootFrequenciesInput.get() == null ?
                     				substitutionModel.getFrequencies() :
                     				rootFrequenciesInput.get().getFreqs();
@@ -550,14 +536,7 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
         hasDirt = Tree.IS_CLEAN;
         
         double[] categoryRates = m_siteModel.getCategoryRates(null);
-        if (constantPattern != null) {
-            double [] tmp = new double [categoryRates.length - 1];
 
-            for (int k = 0; k < categoryRates.length; k++) {
-            	tmp[k-1] = categoryRates[k];
-            }
-            categoryRates = tmp;
-        }
         for (int i = 0; i < categoryRates.length; i++) {
         	if (categoryRates[i] != currentCategoryRates[i]) {
         		updateSiteModel = true;
@@ -883,11 +862,6 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
     // Initialize origin variable
     protected RealParameter origin;
     protected boolean useOrigin = false;
-
-    List<Integer> constantPattern = null;
-	public List<Integer> getConstantPattern() {return constantPattern;}
-    public void setConstantPattern(List<Integer> constantPattern) {this.constantPattern = constantPattern;}
-
 
     // This property is a comma-delimited list of resource numbers (0 == CPU) to
     // allocate each BEAGLE instance to. If less than the number of instances then
