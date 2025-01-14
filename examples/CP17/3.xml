@@ -68,7 +68,7 @@
             <!-- the mutation rate could be another rate multiplier, but we leave it fixed to 1 -->
             <parameter spec="parameter.RealParameter" estimate="false" id="mutationRate" name="stateNode">1.0</parameter>
             <parameter id="origin" spec="parameter.RealParameter" name="stateNode" upper="364.0001">364.001</parameter>
-            <parameter id="relativeGeoRates.s:tissue" spec="parameter.RealParameter" lower="0.0" dimension="12" name="stateNode">0.08333333</parameter>
+            <parameter id="relativeGeoRates.s:tissue" spec="parameter.RealParameter" lower="0.0" dimension="12" name="stateNode">1.0</parameter>
             <parameter id="traitClockRate.c:tissue" spec="parameter.RealParameter" name="stateNode">1.0</parameter>
 
             <!-- birth rate corresponds to cell division rate -->
@@ -170,7 +170,7 @@
     <operator id="silencingRateScaler" spec="ScaleOperator" parameter="@silencingRate" scaleFactor="0.8" weight="3.0"/>
         
     <!-- operators on ancestral state model sparameters -->
-    <operator id="georateScaler.s:tissue" spec="DeltaExchangeOperator" parameter="@relativeGeoRates.s:tissue" weight="30.0"/>
+    <operator id="georateScaler.s:tissue" spec="ScaleOperator" parameter="@relativeGeoRates.s:tissue" scaleAllIndependently="true" scaleFactor="0.99" weight="30.0"/>
     <operator id="geoMuScaler.c:tissue" spec="ScaleOperator" parameter="@traitClockRate.c:tissue" scaleFactor="0.9" weight="3.0"/>
     
 

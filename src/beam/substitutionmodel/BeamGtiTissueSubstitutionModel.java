@@ -40,20 +40,10 @@ public class BeamGtiTissueSubstitutionModel extends ComplexSubstitutionModel {
     /** sets up rate matrix **/
     @Override
     public void setupRateMatrix() {
-
-        // Verify that the input rates are normalized to sum to one substitution per unit time in the input xml file
-        double sumOfRates = 0.0;
-        for (double rate : relativeRates) {
-            sumOfRates += rate;
-        }
-        if (Math.abs(sumOfRates - 1.0) > 1e-6) {
-            throw new IllegalArgumentException(
-                "The sum of the input rates must be 1.0 to fix the rate matrix to one substitution per unit time, but it is " 
-                + sumOfRates 
-                + ". Check that the input rate parameters sum to 1.0 and that the operator maintains the sum during MCMC proposals."
-            );
-        }
         
+        // assume equal frequencies
+        double freq = 1.0 / nrOfStates;
+
         int count = 0;
         for (int i=0; i < nrOfStates; i++) {
             for (int j = 0; j < nrOfStates; j++) {
@@ -61,7 +51,7 @@ public class BeamGtiTissueSubstitutionModel extends ComplexSubstitutionModel {
                     // diagonal is setup later
                     rateMatrix[i][j] = 0;
                 } else {
-                    rateMatrix[i][j] = relativeRates[count];
+                    rateMatrix[i][j] = relativeRates[count] * freq;
                     count += 1;
                 }
             }
@@ -75,6 +65,17 @@ public class BeamGtiTissueSubstitutionModel extends ComplexSubstitutionModel {
                     sum += rateMatrix[i][j];
             }
             rateMatrix[i][i] = -sum;
+        }
+
+        // normalise rate matrix to one expected substitution per unit time
+        double subst = 0.0;
+        for (int i = 0; i < nrOfStates; i++)
+            subst += -rateMatrix[i][i] * freq;
+
+        for (int i = 0; i < nrOfStates; i++) {
+            for (int j = 0; j < nrOfStates; j++) {
+                rateMatrix[i][j] = rateMatrix[i][j] / subst;
+            }
         }
     }
 

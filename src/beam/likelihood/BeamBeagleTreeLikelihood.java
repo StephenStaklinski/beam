@@ -391,7 +391,8 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
         updateSiteModel = false;
 
         logP = logL;
-        return logL;
+        
+        return logP;
     }
 
 
@@ -597,6 +598,9 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
         // store origin partials
         storedOriginPartialsGlobal = originPartialsGlobal;
 
+        // store logP
+        storedLogP = logP;
+
         super.store();
         System.arraycopy(m_branchLengths, 0, storedBranchLengths, 0, m_branchLengths.length);
     }
@@ -620,6 +624,9 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
 
         // restore origin partials
         originPartialsGlobal = storedOriginPartialsGlobal;
+
+        // restore logP
+        logP = storedLogP;
 
         super.restore();
 
