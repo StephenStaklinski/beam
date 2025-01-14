@@ -51,7 +51,8 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
 
         // Initialize pattern count, data type, and state count
         patternCount = dataInput.get().getPatternCount();
-        dataType = dataInput.get().getDataType();
+        Alignment data = dataInput.get();
+        dataType = data.getDataType();
         stateCount = dataType.getStateCount();
 
         // Initialize tree model and node count
@@ -85,9 +86,6 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
         if (m_siteModel.getCategoryCount() > 1) {
             throw new RuntimeException("Reconstruction not implemented for multiple categories yet.");
         }
-
-        // Initialize alignment data
-        Alignment data = dataInput.get();
 
         // Set up the tip states
         tipStates = new int[treeModel.getLeafNodeCount()][patternCount];
@@ -142,14 +140,8 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
 		this.hasDirt |= hasDirt;
 
 		return isDirty;
-    	
-    	
     }
     
-
-    public DataType getDataType() {
-        return dataType;
-    }
 
     public int[] getStatesForNode(TreeInterface tree, Node node) {
         if (tree != treeInput.get()) {
@@ -214,16 +206,6 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
         sb.append("\"");
         return sb.toString();
     }
-
-    public void getStates(int tipNum, int[] states)  {
-        // Saved locally to reduce BEAGLE library access
-        System.arraycopy(tipStates[tipNum], 0, states, 0, states.length);
-    }
-
-	public void getTransitionMatrix(int matrixNum, double[] probabilities) {
-
-		beagle.getTransitionMatrix(getMatrixBufferHelper().getOffsetIndex(matrixNum), probabilities);
-	}
     
     /**
      * Traverse (pre-order) the tree sampling the internal node states, assuming all partial likelihoods are already calculated.
@@ -277,7 +259,7 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
                 // This is an internal node, but not the root ... or it is the root but there is an origin so the root has a transition probability matrix
                 double[] partialLikelihood = new double[stateCount * patternCount];
                 beagle.getPartials(getPartialBufferHelper().getOffsetIndex(node.getNr()), Beagle.NONE, partialLikelihood);
-                getTransitionMatrix(nodeNum, probabilities);
+                beagle.getTransitionMatrix(getMatrixBufferHelper().getOffsetIndex(nodeNum), probabilities);
 
                 if (parent == null && useOrigin) {
                     double[] rootFrequencies = substitutionModel.getFrequencies();
@@ -318,7 +300,7 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
             traverseSample(tree, child2, state);
         } else {
             // This is an external leaf
-        	getStates(nodeNum, reconstructedStates[nodeNum]);
+            System.arraycopy(tipStates[nodeNum], 0, reconstructedStates[nodeNum], 0, reconstructedStates[nodeNum].length);
         }
     }
     
