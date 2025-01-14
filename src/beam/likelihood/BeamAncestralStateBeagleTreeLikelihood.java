@@ -35,34 +35,40 @@ import beam.likelihood.BeamBeagleTreeLikelihood;
 @Description("Ancestral State Tree Likelihood that extends the custom Beagle likelihood with origin input" +
         " for the branch above the root.")
 public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikelihood implements TreeTraitProvider {
-    public static final String STATES_KEY = "states";
 
-    public Input<String> tagInput = new Input<String>("tag","label used to report trait", Validate.REQUIRED);
+    public Input<String> tagInput = new Input<String>("tag","label used to report trait in the output tree posterior samples", Validate.REQUIRED);
 	public Input<List<LeafTrait>> leafTraitsInput = new Input<List<LeafTrait>>("leaftrait", "list of leaf traits", new ArrayList<LeafTrait>());
     
 
     @Override
     public void initAndValidate() {
 
-    	super.initAndValidate();
+        // Initialize the superclass
+        super.initAndValidate();
 
-        // check for BEAGLE library
+        // Check for BEAGLE library
         beagle = getBeagle();
         if (beagle == null) {
-        	throw new IllegalArgumentException("BEAGLE library not found. Please install BEAGLE library.");
+            throw new IllegalArgumentException("BEAGLE library not found. Please install BEAGLE library.");
         }
 
+        // Retrieve and store the tag input for the posterior tree sample outputs
         this.tag = tagInput.get();
 
+        // Initialize pattern count, data type, and state count
         patternCount = dataInput.get().getPatternCount();
         dataType = dataInput.get().getDataType();
         stateCount = dataType.getStateCount();
 
+        // Initialize tree model and node count
         TreeInterface treeModel = treeInput.get();
         int nodeCount = treeModel.getNodeCount();
+
+        // Initialize reconstructed states arrays
         reconstructedStates = new int[nodeCount][patternCount];
         storedReconstructedStates = new int[nodeCount][patternCount];
-      
+
+        // Add tree trait for states
         treeTraits.addTrait(STATES_KEY, new TreeTrait.IA() {
             public String getTraitName() {
                 return tag;
@@ -73,87 +79,74 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
             }
 
             public int[] getTrait(TreeInterface tree, Node node) {
-                return getStatesForNode(tree,node);
+                return getStatesForNode(tree, node);
             }
 
             public String getTraitString(TreeInterface tree, Node node) {
-                return formattedState(getStatesForNode(tree,node), dataType);
+                return formattedState(getStatesForNode(tree, node), dataType);
             }
         });
 
-
+        // Validate site model input
         if (!(siteModelInput.get() instanceof SiteModel.Base)) {
-            throw new IllegalArgumentException ("siteModel input should be of type SiteModel.Base");
+            throw new IllegalArgumentException("siteModel input should be of type SiteModel.Base");
         }
         m_siteModel = (SiteModel.Base) siteModelInput.get();
         if (m_siteModel.getCategoryCount() > 1) {
             throw new RuntimeException("Reconstruction not implemented for multiple categories yet.");
         }
 
+        // Initialize substitution model
         substitutionModel = (SubstitutionModel.Base) m_siteModel.substModelInput.get();
 
+        // Initialize alignment data and probabilities array
         Alignment data = dataInput.get();
         int dim = data.getMaxStateCount() + 1;
         probabilities = new double[dim * dim];
 
-        // set up the tip states
-        tipStates = new int[treeModel.getLeafNodeCount()][];
+        // Set up the tip states
+        tipStates = new int[treeModel.getLeafNodeCount()][patternCount];
         for (Node node : treeModel.getExternalNodes()) {
             String taxon = node.getID();
             int taxonIndex = data.getTaxonIndex(taxon);
             if (taxonIndex == -1) {
-            	if (taxon.startsWith("'") || taxon.startsWith("\"")) {
+                if (taxon.startsWith("'") || taxon.startsWith("\"")) {
                     taxonIndex = data.getTaxonIndex(taxon.substring(1, taxon.length() - 1));
                 }
                 if (taxonIndex == -1) {
-                	throw new RuntimeException("Could not find sequence " + taxon + " in the alignment");
+                    throw new RuntimeException("Could not find sequence " + taxon + " in the alignment");
                 }
             }
-            tipStates[node.getNr()] = new int[patternCount];
-            
-            int [] states = tipStates[node.getNr()];
+            int[] states = tipStates[node.getNr()];
             for (int i = 0; i < patternCount; i++) {
                 int code = data.getPattern(taxonIndex, i);
                 int[] statesForCode = data.getDataType().getStatesForCode(code);
-                if (statesForCode.length==1)
-                    states[i] = statesForCode[0];
-                else
-                    states[i] = code; // Causes ambiguous states to be ignored.
+                states[i] = (statesForCode.length == 1) ? statesForCode[0] : code; // Causes ambiguous states to be ignored.
             }
-    	}
+        }
 
-		traitDimension = tipStates[0].length;
+        // Initialize trait dimension
+        traitDimension = tipStates[0].length;
 
-		leafNr = new int[leafTraitsInput.get().size()];
-		parameters = new IntegerParameter[leafTraitsInput.get().size()];
+        // Initialize leaf traits and parameters
+        List<LeafTrait> leafTraits = leafTraitsInput.get();
+        int leafTraitSize = leafTraits.size();
+        leafNr = new int[leafTraitSize];
 
         List<String> taxaNames = dataInput.get().getTaxaNames();
-        List<LeafTrait> leafTraits = leafTraitsInput.get();
-        for (int i = 0; i < leafNr.length; i++) {
+        for (int i = 0; i < leafTraitSize; i++) {
             LeafTrait leafTrait = leafTraits.get(i);
-            IntegerParameter parameter = leafTrait.parameter.get();
 
-            // sanity check
-            if (parameter.getDimension() != traitDimension) {
-                throw new IllegalArgumentException("Expected parameter dimension to be " + traitDimension + ", not " + parameter.getDimension());
-            }
-
-            // identify node
+            // Identify node
             String taxon = leafTrait.taxonName.get();
             int k = taxaNames.indexOf(taxon);
             if (k == -1) {
                 throw new IllegalArgumentException("Could not find taxon '" + taxon + "' in tree");
             }
             leafNr[i] = k;
-
-            // initialise parameter value from states
-            IntegerParameter p = new IntegerParameter(Arrays.stream(tipStates[k]).boxed().toArray(Integer[]::new));
-            p.setLower(0);
-            p.setUpper(dataType.getStateCount() - 1);
-            parameter.assignFromWithoutID(p);
-            parameters[i] = parameter;
         }
 
+        // Store initial tip states
         storedTipStates = Arrays.stream(tipStates).map(int[]::clone).toArray(int[][]::new);
     }
 
@@ -202,22 +195,6 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
     	boolean isDirty = super.requiresRecalculation();
     	int hasDirt = Tree.IS_CLEAN;
 		
-		// check whether any of the leaf trait parameters changed
-		for (int i = 0; i < leafNr.length; i++) {
-			if (parameters[i].somethingIsDirty()) {
-				int k = leafNr[i];
-				for (int j = 0; j < traitDimension; j++) {
-					tipStates[k][j] = parameters[i].getValue(j);
-				}
-				likelihoodCore.setNodeStates(k, tipStates[k]);
-				isDirty = true;
-				// mark leaf's parent node as dirty
-				Node leaf = treeInput.get().getNode(k);
-				// leaf.makeDirty(Tree.IS_DIRTY);
-				leaf.getParent().makeDirty(Tree.IS_DIRTY);
-	            hasDirt = Tree.IS_DIRTY;
-			}
-		}
 		isDirty |= super.requiresRecalculation();
 		this.hasDirt |= hasDirt;
 
@@ -454,10 +431,11 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
     boolean likelihoodKnown = false;
 
     int[][] storedTipStates;
-	IntegerParameter[] parameters;
 	int[] leafNr;
 	int traitDimension;
     int patternCount;
     int stateCount;
     int[][] tipStates;
+
+    public static final String STATES_KEY = "states";
 }
