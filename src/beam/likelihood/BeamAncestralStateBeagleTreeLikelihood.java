@@ -133,7 +133,6 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
     @Override
     protected boolean requiresRecalculation() {
     	likelihoodKnown = false;
-
     	boolean isDirty = super.requiresRecalculation();
     	int hasDirt = Tree.IS_CLEAN;
 		isDirty |= super.requiresRecalculation();
@@ -164,11 +163,9 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
     
     @Override
     public double calculateLogP() {
-
         areStatesRedrawn = false;
         double marginalLogLikelihood = super.calculateLogP();
         likelihoodKnown = true;
-
         return logP;
     }
 
@@ -194,10 +191,8 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
                 } else {
                     first = false;
                 }
-
                 sb.append(dataType.getCode(i));
             }
-
         } else {
             for (int i : state) {
                 sb.append(dataType.getChar(i));
@@ -226,56 +221,46 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
             // only use root frequencies before sampling if the root is truly the start (no origin being used)
             if (parent == null && !useOrigin) {
 
-                
-                int rootI = partialBufferHelper.getOffsetIndex(tree.getRoot().getNr());
-                double[] rootPs = new double[patternCount * m_nStateCount * categoryCount];
-                beagle.getPartials(rootI, Beagle.NONE, rootPs);
+                beagle.getPartials(getPartialBufferHelper().getOffsetIndex(node.getNr()), Beagle.NONE, conditionalProbabilities);
 
                 double[] rootFrequencies = substitutionModel.getFrequencies();
                 if (rootFrequenciesInput.get() != null) {
                     rootFrequencies = rootFrequenciesInput.get().getFreqs();
                 }
 
-                // This is the root node
-                for (int j = 0; j < patternCount; j++) {
-
-                    beagle.getPartials(getPartialBufferHelper().getOffsetIndex(node.getNr()), Beagle.NONE, conditionalProbabilities);
-
-                    for (int i = 0; i < stateCount; i++) {
-                        conditionalProbabilities[i] *= rootFrequencies[i];
-                    }
-                    try {
-                        state[j] = Randomizer.randomChoicePDF(conditionalProbabilities);
-                    } catch (Error e) {
-                        System.err.println(e.toString());
-                        System.err.println("Please report error to Marc");
-                        state[j] = 0;
-                    }
-                    reconstructedStates[nodeNum][j] = state[j];
+                for (int i = 0; i < stateCount; i++) {
+                    conditionalProbabilities[i] *= rootFrequencies[i];
                 }
 
+                for (int j = 0; j < patternCount; j++) {
+                    state[j] = Randomizer.randomChoicePDF(conditionalProbabilities);
+                    reconstructedStates[nodeNum][j] = state[j];
+                }
             } else {
-
-                // This is an internal node, but not the root ... or it is the root but there is an origin so the root has a transition probability matrix
+                // This is an internal node (not the root) or it is the root but there is an origin so the root has a transition probability matrix
                 double[] partialLikelihood = new double[stateCount * patternCount];
                 beagle.getPartials(getPartialBufferHelper().getOffsetIndex(node.getNr()), Beagle.NONE, partialLikelihood);
                 beagle.getTransitionMatrix(getMatrixBufferHelper().getOffsetIndex(nodeNum), probabilities);
 
+                // If this is the root then we need to sample the parent state at the origin
                 if (parent == null && useOrigin) {
+
+                    // Get the origin partials
+                    double[] originPartials = originPartialsGlobal;
+
                     double[] rootFrequencies = substitutionModel.getFrequencies();
                     if (rootFrequenciesInput.get() != null) {
                         rootFrequencies = rootFrequenciesInput.get().getFreqs();
                     }
 
+                    for (int i = 0; i < stateCount; i++) {
+                        originPartials[i] *= rootFrequencies[i];
+                    }
+
                     parentState = new int[patternCount];
 
-                    for (int i = 0; i < patternCount; i++) {
-                        double[] originPartials = originPartialsGlobal;
-
-                        for (int j = 0; j < stateCount; j++) {
-                            originPartials[j] *= rootFrequencies[j];
-                        }
-                        parentState[i] = Randomizer.randomChoicePDF(originPartials); 
+                    for (int i = 0; i < patternCount; i++) { 
+                        parentState[i] = Randomizer.randomChoicePDF(originPartials);
                     }
                 }
 
@@ -303,15 +288,14 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
             System.arraycopy(tipStates[nodeNum], 0, reconstructedStates[nodeNum], 0, reconstructedStates[nodeNum].length);
         }
     }
-    
-    
-    @Override
-    public void log(final long sample, final PrintStream out) {
-    	// useful when logging on a fixed tree in an AncestralTreeLikelihood that is logged, but not part of the posterior
-    	hasDirt = Tree.IS_FILTHY;
-    	calculateLogP();
-        out.print(getCurrentLogP() + "\t");
-    }
+
+    // @Override
+    // public void log(final long sample, final PrintStream out) {
+    // 	// useful when logging on a fixed tree in an AncestralTreeLikelihood that is logged, but not part of the posterior
+    // 	hasDirt = Tree.IS_FILTHY;
+    // 	calculateLogP();
+    //     out.print(getCurrentLogP() + "\t");
+    // }
 
 
     protected DataType dataType;
