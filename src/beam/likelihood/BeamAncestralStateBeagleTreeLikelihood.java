@@ -246,7 +246,8 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
                 if (parent == null && useOrigin) {
 
                     // Get the origin partials
-                    double[] originPartials = originPartialsGlobal;
+                    double[] oPs = new double[patternCount * m_nStateCount * categoryCount];
+                    System.arraycopy(originPartials, 0, oPs, 0, originPartials.length);
 
                     double[] rootFrequencies = substitutionModel.getFrequencies();
                     if (rootFrequenciesInput.get() != null) {
@@ -254,13 +255,13 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
                     }
 
                     for (int i = 0; i < stateCount; i++) {
-                        originPartials[i] *= rootFrequencies[i];
+                        oPs[i] *= rootFrequencies[i];
                     }
 
                     parentState = new int[patternCount];
 
                     for (int i = 0; i < patternCount; i++) { 
-                        parentState[i] = Randomizer.randomChoicePDF(originPartials);
+                        parentState[i] = Randomizer.randomChoicePDF(oPs);
                     }
                 }
 
@@ -289,13 +290,13 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
         }
     }
 
-    // @Override
-    // public void log(final long sample, final PrintStream out) {
-    // 	// useful when logging on a fixed tree in an AncestralTreeLikelihood that is logged, but not part of the posterior
-    // 	hasDirt = Tree.IS_FILTHY;
-    // 	calculateLogP();
-    //     out.print(getCurrentLogP() + "\t");
-    // }
+    @Override
+    public void log(final long sample, final PrintStream out) {
+    	// useful when logging on a fixed tree in an AncestralTreeLikelihood that is logged, but not part of the posterior
+    	hasDirt = Tree.IS_FILTHY;
+    	calculateLogP();
+        out.print(getCurrentLogP() + "\t");
+    }
 
 
     protected DataType dataType;

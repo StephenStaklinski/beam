@@ -117,6 +117,12 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
 
         // Initialize site rates if any
         beagle.setCategoryRates(categoryRates);
+
+        if (useOrigin) {
+            // define where the origin partials will be stored
+            originPartials = new double[patternCount * m_nStateCount * categoryCount];
+            storedOriginPartials = new double[patternCount * m_nStateCount * categoryCount];
+        }
     }
     
 
@@ -141,7 +147,6 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
 
         if (matrixUpdateIndices == null) {
             matrixUpdateIndices = new int[1][m_nNodeCount];
-            branchLengths = new double[1][m_nNodeCount];
             branchUpdateCount = new int[1];
             scaleBufferIndices = new int[internalNodeCount];
             storedScaleBufferIndices = new int[internalNodeCount];
@@ -279,9 +284,6 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
                     System.arraycopy(probabilities, 0, rootTransitionMatrix,  m_nStateCount * m_nStateCount * i, m_nStateCount * m_nStateCount);
                 }
 
-                // define where the origin partials will be stored
-                double[] originPartials = new double[patternCount * m_nStateCount * categoryCount];
-
                 // calculate the origin partials
                 calculateOriginPartials(rootPartials, rootTransitionMatrix, originPartials);
 
@@ -307,7 +309,7 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
                             v = u;
                             for (int k = 0; k < categoryCount; k++) {
                                 for (int j = 0; j < m_nStateCount; j++) {
-                                    originPartials[v] /= scaleFactor;
+                                    originPartials[v] /= scaleFactor; // inplace modification of originPartials to results in scaled form only
                                     v++;
                                 }
                                 v += (patternCount - 1) * m_nStateCount;
@@ -345,9 +347,6 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
 
                 // save the root transition matrix for sampling the tissue state at the root node
                 beagle.setTransitionMatrix(rootNodeNum, rootTransitionMatrix, 1);
-
-                // save the origin partials globally for sampling tissue state at the origin if frequencies are not assuming the state is known
-                originPartialsGlobal = originPartials;
             }
             else {
                 beagle.calculateRootLogLikelihoods(new int[]{rootIndex}, new int[]{0}, new int[]{0}, new int[]{cumulateScaleBufferIndex}, 1, sumLogLikelihoods);
@@ -443,7 +442,6 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
             	beagle.setTransitionMatrix(matrixIndex, matrices, 1);
             }
 
-            branchLengths[0][updateCount] = branchTime;
             branchUpdateCount[0]++;
 
             update |= Tree.IS_DIRTY;
@@ -575,7 +573,7 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
             return true;
         }
         if (branchRateModel != null && branchRateModel.isDirtyCalculation()) {
-            //m_nHasDirt = Tree.IS_FILTHY;
+            hasDirt = Tree.IS_FILTHY;
             return true;
         }
         return treeInput.get().somethingIsDirty();
@@ -586,6 +584,9 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
      */
     @Override
     public void store() {
+
+        super.store();
+
         partialBufferHelper.storeState();
         matrixBufferHelper.storeState();
 
@@ -596,12 +597,12 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
         }
 
         // store origin partials
-        storedOriginPartialsGlobal = originPartialsGlobal;
+        System.arraycopy(originPartials, 0, storedOriginPartials, 0, originPartials.length);
 
         // store logP
         storedLogP = logP;
 
-        super.store();
+        // store branch lengths
         System.arraycopy(m_branchLengths, 0, storedBranchLengths, 0, m_branchLengths.length);
     }
 
@@ -610,6 +611,9 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
      */
     @Override
     public void restore() {
+
+        super.restore();
+
   		updateSiteModel = true; // this is required to upload the categoryRates to BEAGLE after the restore
         
         partialBufferHelper.restoreState();
@@ -617,22 +621,17 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
 
         if (useScaleFactors || useAutoScaling) {
             scaleBufferHelper.restoreState();
-            int[] tmp2 = storedScaleBufferIndices;
-            storedScaleBufferIndices = scaleBufferIndices;
-            scaleBufferIndices = tmp2;
+            System.arraycopy(storedScaleBufferIndices, 0, scaleBufferIndices, 0, storedScaleBufferIndices.length);
         }
 
         // restore origin partials
-        originPartialsGlobal = storedOriginPartialsGlobal;
+        System.arraycopy(storedOriginPartials, 0, originPartials, 0, storedOriginPartials.length);
 
         // restore logP
         logP = storedLogP;
 
-        super.restore();
-
-        // double[] tmp = m_branchLengths;
-        // m_branchLengths = storedBranchLengths;
-        // storedBranchLengths = tmp;
+        // restore branch lengths
+        System.arraycopy(storedBranchLengths, 0, m_branchLengths, 0, storedBranchLengths.length);
     }
 
 
@@ -926,7 +925,6 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
     private double [] currentCategoryWeights;
 
     private int[][] matrixUpdateIndices;
-    private double[][] branchLengths;
     private int[] branchUpdateCount;
     private int[] scaleBufferIndices;
     private int[] storedScaleBufferIndices;
@@ -966,9 +964,9 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
     
     public Beagle getBeagle() {return beagle;}
 
-    // Declare originPartialsGlobal
-    protected double[] originPartialsGlobal;
-    protected double[] storedOriginPartialsGlobal;
+    // Declare originPartials
+    protected double[] originPartials;
+    protected double[] storedOriginPartials;
 
     // Flag to specify that the site model has changed
     protected boolean updateSiteModel = true;
