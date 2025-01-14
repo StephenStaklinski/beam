@@ -247,7 +247,7 @@ public class BeamBeagleAncestralTissueLikelihood extends BeamBeagleTreeLikelihoo
                 if (parent == null && useOrigin) {
 
                     // Get the origin partials
-                    double[] oPs = new double[m_nStateCount * categoryCount];
+                    double[] oPs = new double[m_nStateCount];
                     System.arraycopy(originPartials, 0, oPs, 0, originPartials.length);
 
                     double[] rootFrequencies = substitutionModel.getFrequencies();

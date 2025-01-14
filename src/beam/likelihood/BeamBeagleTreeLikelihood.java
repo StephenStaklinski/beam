@@ -81,19 +81,15 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
 
         // number of rates for the sites
         if (m_siteModel.getCategoryRates(null).length != 1) {
-            throw new IllegalArgumentException("Only one site category rate is supported in the current implementation.");
+            throw new IllegalArgumentException("Site categories are not supported in the current implementation.");
         }
 
-        double[] categoryRates = m_siteModel.getCategoryRates(null);
-        this.categoryCount = m_siteModel.getCategoryCount();
-        currentCategoryRates = categoryRates;
         currentFreqs = new double[m_nStateCount];
-        currentCategoryWeights = new double[categoryRates.length];
 
         // setup probability vector for the correct size of transition probability matrix filling later on
         int matrixSize = (m_nStateCount + 1) * (m_nStateCount + 1);
         probabilities = new double[matrixSize];
-        matrices = new double[m_nStateCount * m_nStateCount * categoryCount];
+        matrices = new double[m_nStateCount * m_nStateCount];
 
         // get the number of nodes in the tree
         m_nNodeCount = treeInput.get().getNodeCount();
@@ -121,13 +117,10 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
         }
         beagle.setPatternWeights(patternWeights);
 
-        // Initialize site rates if any
-        beagle.setCategoryRates(categoryRates);
-
         if (useOrigin) {
             // define where the origin partials will be stored
-            originPartials = new double[patternCount * m_nStateCount * categoryCount];
-            storedOriginPartials = new double[patternCount * m_nStateCount * categoryCount];
+            originPartials = new double[patternCount * m_nStateCount];
+            storedOriginPartials = new double[patternCount * m_nStateCount];
         }
     }
     
@@ -192,18 +185,6 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
         final Node root = treeInput.get().getRoot();
         traverse(root, null, true);
 
-        if (updateSiteModel) {
-            double[] categoryRates = m_siteModel.getCategoryRates(null);
-
-            for (int i = 0; i < categoryRates.length; i++) {
-            	if (categoryRates[i] != currentCategoryRates[i]) {
-                    beagle.setCategoryRates(categoryRates);
-                    i = categoryRates.length;
-            	}
-            }
-            currentCategoryRates = categoryRates;
-        }
-
         double logL;
         boolean done;
         boolean firstRescaleAttempt = true;
@@ -213,8 +194,6 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
             beagle.updatePartials(operations[0], operationCount, Beagle.NONE);
 
             int rootIndex = partialBufferHelper.getOffsetIndex(root.getNr());
-
-            double[] categoryWeights = m_siteModel.getCategoryProportions(null);
 
             double[] frequencies = rootFrequenciesInput.get() == null ?
                     				substitutionModel.getFrequencies() :
@@ -234,15 +213,6 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
             } else if (useAutoScaling) {
                 beagle.accumulateScaleFactors(scaleBufferIndices, internalNodeCount, Beagle.NONE);
             }
-
-            // these could be set only when they change but store/restore would need to be considered
-            for (int i = 0; i < categoryWeights.length; i++) {
-            	if (categoryWeights[i] != currentCategoryWeights[i]) {
-                    beagle.setCategoryWeights(0, categoryWeights);
-            		i = categoryWeights.length;
-            	}
-            }
-            currentCategoryWeights = categoryWeights;
             
             // make sure the root frequencies are initialized properly and then updated if the frequencies change
             if (frequencies != currentFreqs) {
@@ -256,11 +226,11 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
             if (useOrigin && root.getHeight() != origin.getValue()) {
 
                 // get the BEAGLE calculated root partials
-                double[] rootPartials = new double[patternCount * m_nStateCount * categoryCount];
+                double[] rootPartials = new double[patternCount * m_nStateCount];
                 beagle.getPartials(rootIndex, Beagle.NONE, rootPartials);
 
                 // get the root node transition matrix, normally ignored but computed based on the height from root to origin
-                double[] rootTransitionMatrix = new double[m_nStateCount * m_nStateCount * categoryCount];
+                double[] rootTransitionMatrix = new double[m_nStateCount * m_nStateCount];
                 int rootNodeNum = root.getNr();
 
                 double br = branchRateModel.getRateForBranch(root);
@@ -281,25 +251,24 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
                     for (int i = 0; i < patternCount; i++) {
                         double scaleFactor = 0.0;
                         int v = u;
-                        for (int k = 0; k < categoryCount; k++) {
-                            for (int j = 0; j < m_nStateCount; j++) {
-                                if (originPartials[v] > scaleFactor) {
-                                    scaleFactor = originPartials[v];
-                                }
-                                v++;
+
+                        for (int j = 0; j < m_nStateCount; j++) {
+                            if (originPartials[v] > scaleFactor) {
+                                scaleFactor = originPartials[v];
                             }
-                            v += (patternCount - 1) * m_nStateCount;
+                            v++;
                         }
+                        v += (patternCount - 1) * m_nStateCount;
 
                         if (scaleFactor < scalingThreshold) {
                             v = u;
-                            for (int k = 0; k < categoryCount; k++) {
-                                for (int j = 0; j < m_nStateCount; j++) {
-                                    originPartials[v] /= scaleFactor; // inplace modification of originPartials to results in scaled form only
-                                    v++;
-                                }
-                                v += (patternCount - 1) * m_nStateCount;
+
+                            for (int j = 0; j < m_nStateCount; j++) {
+                                originPartials[v] /= scaleFactor; // inplace modification of originPartials to results in scaled form only
+                                v++;
                             }
+                            v += (patternCount - 1) * m_nStateCount;
+
                             originScaleFactors[i] = Math.log(scaleFactor);
 
                         } else {
@@ -375,8 +344,6 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
             }
 
         } while (!done);
-
-        updateSiteModel = false;
 
         logP = logL;
 
@@ -511,21 +478,21 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
         int u = 0;
         int v = 0;
 
-        for (int l = 0; l < categoryCount; l++) {
-            for (int k = 0; k < patternCount; k++) {
-                int w = l * matrixSize;
-                for (int i = 0; i < m_nStateCount; i++) {
-                    sum1 = 0.0;
-                    for (int j = 0; j < m_nStateCount; j++) {
-                        sum1 += matrices1[w] * partials1[v + j];
-                        w++;
-                    }
-                    partials3[u] = sum1;
-                    u++;
+
+        for (int k = 0; k < patternCount; k++) {
+            int w = 0;
+            for (int i = 0; i < m_nStateCount; i++) {
+                sum1 = 0.0;
+                for (int j = 0; j < m_nStateCount; j++) {
+                    sum1 += matrices1[w] * partials1[v + j];
+                    w++;
                 }
-                v += m_nStateCount;
+                partials3[u] = sum1;
+                u++;
             }
+            v += m_nStateCount;
         }
+
         return partials3;
     }
 
@@ -534,16 +501,6 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
     protected boolean requiresRecalculation() {
     
         hasDirt = Tree.IS_CLEAN;
-        
-        double[] categoryRates = m_siteModel.getCategoryRates(null);
-
-        for (int i = 0; i < categoryRates.length; i++) {
-        	if (categoryRates[i] != currentCategoryRates[i]) {
-        		updateSiteModel = true;
-        		break;
-        	}
-        }
-
         
         if (dataInput.get().isDirtyCalculation()) {
             hasDirt = Tree.IS_FILTHY;
@@ -594,8 +551,6 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
     public void restore() {
 
         super.restore();
-
-  		updateSiteModel = true; // this is required to upload the categoryRates to BEAGLE after the restore
         
         partialBufferHelper.restoreState();
         matrixBufferHelper.restoreState();
@@ -769,7 +724,7 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
 	                patternCount,
 	                2, // EigenBufferHelper not used, so this is fixed
 	                matrixBufferHelper.getBufferCount(),
-	                categoryCount,
+	                1, // One site category only in the current implementation
 	                scaleBufferHelper.getBufferCount(), // Always allocate; they may become necessary
 	                resourceList,
 	                preferenceFlags,
@@ -819,6 +774,9 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
         if (this.rescalingScheme == PartialsRescalingScheme.DYNAMIC) {
             everUnderflowed = false;
         }
+
+        // Set single category weight to prevent errors
+        beagle.setCategoryWeights(0, new double[]{1.0});
     }
 
 
@@ -926,9 +884,6 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
     private int rescalingCount = 0;
     private int rescalingCountInner = 0;
 
-    // the number of rate categories
-    protected int categoryCount;
-
     // an array used to transfer tip partials
     protected double[] tipPartials;
 
@@ -940,9 +895,6 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
     // Declare originPartials
     protected double[] originPartials;
     protected double[] storedOriginPartials;
-
-    // Flag to specify that the site model has changed
-    protected boolean updateSiteModel = true;
 
     // Class BufferIndexHelper
     public class BufferIndexHelper {
