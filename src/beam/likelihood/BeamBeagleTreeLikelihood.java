@@ -80,6 +80,9 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
         Log.warning.println("There are " + patternCount + " unique site patterns.");
 
         // number of rates for the sites
+        if (m_siteModel.getCategoryRates(null).length != 1) {
+            throw new IllegalArgumentException("Only one site category rate is supported in the current implementation.");
+        }
         double[] categoryRates = m_siteModel.getCategoryRates(null);
         this.categoryCount = m_siteModel.getCategoryCount();
         currentCategoryRates = categoryRates;
@@ -142,14 +145,12 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
 
         if (matrixUpdateIndices == null) {
             matrixUpdateIndices = new int[1][m_nNodeCount];
-            branchUpdateCount = new int[1];
             scaleBufferIndices = new int[internalNodeCount];
             storedScaleBufferIndices = new int[internalNodeCount];
         }
 
         if (operations == null) {
                 operations = new int[1][internalNodeCount * Beagle.OPERATION_TUPLE_SIZE];
-                operationCount = new int[1];
         }
 
         recomputeScaleFactors = false;
@@ -177,26 +178,15 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
             rescalingCount++;
         }
 
-        for (int i = 0; i < 1; i++) {
-            branchUpdateCount[i] = 0;
-        }
-        operationListCount = 0;
-
-        operationCount[0] = 0;
+        branchUpdateCount = 0;
+        operationCount = 0;
 
         final Node root = treeInput.get().getRoot();
         traverse(root, null, true);
 
         if (updateSiteModel) {
             double[] categoryRates = m_siteModel.getCategoryRates(null);
-            if (constantPattern != null) {
-	            double [] tmp = new double [categoryRates.length - 1];
 
-	            for (int k = 0; k < categoryRates.length; k++) {
-	            	tmp[k-1] = categoryRates[k];
-	            }
-	            categoryRates = tmp;
-	        }
             for (int i = 0; i < categoryRates.length; i++) {
             	if (categoryRates[i] != currentCategoryRates[i]) {
                     beagle.setCategoryRates(categoryRates);
@@ -212,19 +202,12 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
 
         do {
 
-            beagle.updatePartials(operations[0], operationCount[0], Beagle.NONE);
+            beagle.updatePartials(operations[0], operationCount, Beagle.NONE);
 
             int rootIndex = partialBufferHelper.getOffsetIndex(root.getNr());
 
             double[] categoryWeights = m_siteModel.getCategoryProportions(null);
-            if (constantPattern != null) {
-	            double [] tmp = new double [categoryWeights.length - 1];
 
-	            for (int k = 0; k < categoryWeights.length; k++) {
-	            	tmp[k-1] = categoryWeights[k];
-	            }
-	            categoryWeights = tmp;
-            }
             double[] frequencies = rootFrequenciesInput.get() == null ?
                     				substitutionModel.getFrequencies() :
                     				rootFrequenciesInput.get().getFreqs();
@@ -364,11 +347,8 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
                 	useScaleFactors = true;
                     recomputeScaleFactors = true;
 
-                    for (int i = 0; i < 1; i++) {
-                        branchUpdateCount[i] = 0;
-                    }
-
-                    operationCount[0] = 0;
+                    branchUpdateCount = 0;
+                    operationCount = 0;
 
                     // traverse again but without flipping partials indices as we
                     // just want to overwrite the last attempt. We will flip the
@@ -430,7 +410,7 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
             }
 
             // then set which matrix to update
-            final int updateCount = branchUpdateCount[0];
+            final int updateCount = branchUpdateCount;
             matrixUpdateIndices[0][updateCount] = matrixBufferHelper.getOffsetIndex(nodeNum);
 
             for (int i = 0; i < m_siteModel.getCategoryCount(); i++) {
@@ -441,7 +421,7 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
             int matrixIndex = matrixBufferHelper.getOffsetIndex(nodeNum);
             beagle.setTransitionMatrix(matrixIndex, matrices, 1);
 
-            branchUpdateCount[0]++;
+            branchUpdateCount++;
 
             update |= Tree.IS_DIRTY;
 
@@ -462,14 +442,14 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
             // If either child node was updated then update this node too
             if (update1 != Tree.IS_CLEAN || update2 != Tree.IS_CLEAN) {
 
-                int x = operationCount[operationListCount] * Beagle.OPERATION_TUPLE_SIZE;
+                int x = operationCount * Beagle.OPERATION_TUPLE_SIZE;
 
                 if (flip) {
                     // first flip the partialBufferHelper
                     partialBufferHelper.flipOffset(nodeNum);
                 }
 
-                final int[] operations = this.operations[operationListCount];
+                final int[] operations = this.operations[0];
 
                 operations[x] = partialBufferHelper.getOffsetIndex(nodeNum);
 
@@ -506,7 +486,7 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
                 operations[x + 5] = partialBufferHelper.getOffsetIndex(child2.getNr()); // source node 2
                 operations[x + 6] = matrixBufferHelper.getOffsetIndex(child2.getNr()); // source matrix 2
 
-                operationCount[operationListCount]++;
+                operationCount++;
 
                 update |= (update1 | update2);
             }
@@ -547,14 +527,7 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
         hasDirt = Tree.IS_CLEAN;
         
         double[] categoryRates = m_siteModel.getCategoryRates(null);
-        if (constantPattern != null) {
-            double [] tmp = new double [categoryRates.length - 1];
 
-            for (int k = 0; k < categoryRates.length; k++) {
-            	tmp[k-1] = categoryRates[k];
-            }
-            categoryRates = tmp;
-        }
         for (int i = 0; i < categoryRates.length; i++) {
         	if (categoryRates[i] != currentCategoryRates[i]) {
         		updateSiteModel = true;
@@ -881,10 +854,6 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
     protected RealParameter origin;
     protected boolean useOrigin = false;
 
-    List<Integer> constantPattern = null;
-	public List<Integer> getConstantPattern() {return constantPattern;}
-    public void setConstantPattern(List<Integer> constantPattern) {this.constantPattern = constantPattern;}
-
 
     // This property is a comma-delimited list of resource numbers (0 == CPU) to
     // allocate each BEAGLE instance to. If less than the number of instances then
@@ -922,13 +891,12 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
     private double [] currentCategoryWeights;
 
     private int[][] matrixUpdateIndices;
-    private int[] branchUpdateCount;
+    private int branchUpdateCount;
     private int[] scaleBufferIndices;
     private int[] storedScaleBufferIndices;
 
     private int[][] operations;
-    private int operationListCount;
-    private int[] operationCount;
+    private int operationCount;
 
     protected BufferIndexHelper partialBufferHelper;
     public BufferIndexHelper getPartialBufferHelper() {return partialBufferHelper;}
