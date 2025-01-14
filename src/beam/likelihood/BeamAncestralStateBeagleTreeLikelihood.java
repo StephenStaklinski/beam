@@ -38,77 +38,30 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
     public static final String STATES_KEY = "states";
 
     public Input<String> tagInput = new Input<String>("tag","label used to report trait", Validate.REQUIRED);
-	public Input<List<LeafTrait>> leafTraitsInput = new Input<List<LeafTrait>>("leaftrait", "list of leaf traits",
-			new ArrayList<LeafTrait>());
-
-	int[][] storedTipStates;
-
-	/** parameters for each of the leafs **/
-	IntegerParameter[] parameters;
-
-	/** and node number associated with parameter **/
-	int[] leafNr;
-
-	int traitDimension;
-
-    /**
-     * Constructor.
-     * Now also takes a DataType so that ancestral states are printed using data codes
-     *
-     * @param patternList     -
-     * @param treeModel       -
-     * @param siteModel       -
-     * @param branchRateModel -
-     * @param storePartials   -
-     * @param dataType        - need to provide the data-type, so that corrent data characters can be returned
-     * @param tag             - string label for reconstruction characters in tree log
-     * @param forceRescaling  -
-     */
-    int patternCount;
-    int stateCount;
-
-    int[][] tipStates; // used to store tip states when using beagle
+	public Input<List<LeafTrait>> leafTraitsInput = new Input<List<LeafTrait>>("leaftrait", "list of leaf traits", new ArrayList<LeafTrait>());
     
+
     @Override
     public void initAndValidate() {
 
-    	if (dataInput.get().getSiteCount() == 0) {
-    		return;
-    	}
-    	
-
-    	// String sJavaOnly = null;
-    	// if (useJava.get()) {
-    	// 	sJavaOnly = System.getProperty("java.only");
-    	// 	System.setProperty("java.only", "" + true);
-    	// }
-
     	super.initAndValidate();
-        beagle = getBeagle();
 
+        // check for BEAGLE library
+        beagle = getBeagle();
         if (beagle == null) {
         	throw new IllegalArgumentException("BEAGLE library not found. Please install BEAGLE library.");
         }
 
-    	// if (useJava.get()) {
-	    // 	if (sJavaOnly != null) {
-	    // 		System.setProperty("java.only", sJavaOnly);
-	    // 	} else {
-	    // 		System.clearProperty("java.only");
-	    // 	}
-    	// }
-        
-        System.clearProperty("java.only");
-
-    	
         this.tag = tagInput.get();
-        TreeInterface treeModel = treeInput.get();
+
         patternCount = dataInput.get().getPatternCount();
         dataType = dataInput.get().getDataType();
         stateCount = dataType.getStateCount();
 
-        reconstructedStates = new int[treeModel.getNodeCount()][patternCount];
-        storedReconstructedStates = new int[treeModel.getNodeCount()][patternCount];
+        TreeInterface treeModel = treeInput.get();
+        int nodeCount = treeModel.getNodeCount();
+        reconstructedStates = new int[nodeCount][patternCount];
+        storedReconstructedStates = new int[nodeCount][patternCount];
       
         treeTraits.addTrait(STATES_KEY, new TreeTrait.IA() {
             public String getTraitName() {
@@ -128,22 +81,24 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
             }
         });
 
-        if (beagle != null) {
-            if (!(siteModelInput.get() instanceof SiteModel.Base)) {
-            	throw new IllegalArgumentException ("siteModel input should be of type SiteModel.Base");
-            }
-            m_siteModel = (SiteModel.Base) siteModelInput.get();
-        	substitutionModel = (SubstitutionModel.Base) m_siteModel.substModelInput.get();
-            int nStateCount = dataInput.get().getMaxStateCount();
-            probabilities = new double[(nStateCount + 1) * (nStateCount + 1)];
+
+        if (!(siteModelInput.get() instanceof SiteModel.Base)) {
+            throw new IllegalArgumentException ("siteModel input should be of type SiteModel.Base");
+        }
+        m_siteModel = (SiteModel.Base) siteModelInput.get();
+        if (m_siteModel.getCategoryCount() > 1) {
+            throw new RuntimeException("Reconstruction not implemented for multiple categories yet.");
         }
 
-        int tipCount = treeModel.getLeafNodeCount();
-        tipStates = new int[tipCount][];
+        substitutionModel = (SubstitutionModel.Base) m_siteModel.substModelInput.get();
 
         Alignment data = dataInput.get();
+        int dim = data.getMaxStateCount() + 1;
+        probabilities = new double[dim * dim];
 
-        for (Node node : treeInput.get().getExternalNodes()) {
+        // set up the tip states
+        tipStates = new int[treeModel.getLeafNodeCount()][];
+        for (Node node : treeModel.getExternalNodes()) {
             String taxon = node.getID();
             int taxonIndex = data.getTaxonIndex(taxon);
             if (taxonIndex == -1) {
@@ -165,53 +120,41 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
                 else
                     states[i] = code; // Causes ambiguous states to be ignored.
             }
-    
     	}
-        
-        if (m_siteModel.getCategoryCount() > 1)
-            throw new RuntimeException("Reconstruction not implemented for multiple categories yet.");
 
 		traitDimension = tipStates[0].length;
 
 		leafNr = new int[leafTraitsInput.get().size()];
 		parameters = new IntegerParameter[leafTraitsInput.get().size()];
 
-		List<String> taxaNames = dataInput.get().getTaxaNames();
-		for (int i = 0; i < leafNr.length; i++) {
-			LeafTrait leafTrait = leafTraitsInput.get().get(i);
-			parameters[i] = leafTrait.parameter.get();
-			// sanity check
-			if (parameters[i].getDimension() != traitDimension) {
-				throw new IllegalArgumentException("Expected parameter dimension to be " + traitDimension + ", not "
-						+ parameters[i].getDimension());
-			}
-			// identify node
-			String taxon = leafTrait.taxonName.get();
-			int k = 0;
-			while (k < taxaNames.size() && !taxaNames.get(k).equals(taxon)) {
-				k++;
-			}
-			leafNr[i] = k;
-			// sanity check
-			if (k == taxaNames.size()) {
-				throw new IllegalArgumentException("Could not find taxon '" + taxon + "' in tree");
-			}
-			// initialise parameter value from states
-			Integer[] values = new Integer[tipStates[k].length];
-			for (int j = 0; j < tipStates[k].length; j++) {
-				values[j] = tipStates[k][j];
-			}
-			IntegerParameter p = new IntegerParameter(values);
-			p.setLower(0);
-			p.setUpper(dataType.getStateCount()-1);
-			parameters[i].assignFromWithoutID(p);
-		}
+        List<String> taxaNames = dataInput.get().getTaxaNames();
+        List<LeafTrait> leafTraits = leafTraitsInput.get();
+        for (int i = 0; i < leafNr.length; i++) {
+            LeafTrait leafTrait = leafTraits.get(i);
+            IntegerParameter parameter = leafTrait.parameter.get();
 
-		storedTipStates = new int[tipStates.length][traitDimension];
-		for (int i = 0; i < tipStates.length; i++) {
-			System.arraycopy(tipStates[i], 0, storedTipStates[i], 0, traitDimension);
-		}
+            // sanity check
+            if (parameter.getDimension() != traitDimension) {
+                throw new IllegalArgumentException("Expected parameter dimension to be " + traitDimension + ", not " + parameter.getDimension());
+            }
 
+            // identify node
+            String taxon = leafTrait.taxonName.get();
+            int k = taxaNames.indexOf(taxon);
+            if (k == -1) {
+                throw new IllegalArgumentException("Could not find taxon '" + taxon + "' in tree");
+            }
+            leafNr[i] = k;
+
+            // initialise parameter value from states
+            IntegerParameter p = new IntegerParameter(Arrays.stream(tipStates[k]).boxed().toArray(Integer[]::new));
+            p.setLower(0);
+            p.setUpper(dataType.getStateCount() - 1);
+            parameter.assignFromWithoutID(p);
+            parameters[i] = parameter;
+        }
+
+        storedTipStates = Arrays.stream(tipStates).map(int[]::clone).toArray(int[][]::new);
     }
 
     @Override
@@ -282,11 +225,6 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
     	
     	
     }
-//    protected void handleModelChangedEvent(Model model, Object object, int index) {
-//        super.handleModelChangedEvent(model, object, index);
-//        fireModelChanged(model);
-//    }
-    
     
 
     public DataType getDataType() {
@@ -514,4 +452,12 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
     private double storedJointLogLikelihood;
 
     boolean likelihoodKnown = false;
+
+    int[][] storedTipStates;
+	IntegerParameter[] parameters;
+	int[] leafNr;
+	int traitDimension;
+    int patternCount;
+    int stateCount;
+    int[][] tipStates;
 }

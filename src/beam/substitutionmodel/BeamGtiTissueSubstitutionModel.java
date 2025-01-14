@@ -44,37 +44,29 @@ public class BeamGtiTissueSubstitutionModel extends ComplexSubstitutionModel {
         // assume equal frequencies
         double freq = 1.0 / nrOfStates;
 
+        // set up rate matrix and diagonal in one pass
+        double[] rowSums = new double[nrOfStates];
         int count = 0;
-        for (int i=0; i < nrOfStates; i++) {
-            for (int j = 0; j < nrOfStates; j++) {
-                if (i == j) {
-                    // diagonal is setup later
-                    rateMatrix[i][j] = 0;
-                } else {
-                    rateMatrix[i][j] = relativeRates[count] * freq;
-                    count += 1;
-                }
-            }
-        }
-        
-        // set up diagonal
         for (int i = 0; i < nrOfStates; i++) {
-            double sum = 0.0;
             for (int j = 0; j < nrOfStates; j++) {
-                if (i != j)
-                    sum += rateMatrix[i][j];
+            if (i != j) {
+                rateMatrix[i][j] = relativeRates[count] * freq;
+                rowSums[i] += rateMatrix[i][j];
+                count++;
             }
-            rateMatrix[i][i] = -sum;
+            }
         }
 
-        // normalise rate matrix to one expected substitution per unit time
+        // set up diagonal and normalize rate matrix
         double subst = 0.0;
-        for (int i = 0; i < nrOfStates; i++)
+        for (int i = 0; i < nrOfStates; i++) {
+            rateMatrix[i][i] = -rowSums[i];
             subst += -rateMatrix[i][i] * freq;
+        }
 
         for (int i = 0; i < nrOfStates; i++) {
             for (int j = 0; j < nrOfStates; j++) {
-                rateMatrix[i][j] = rateMatrix[i][j] / subst;
+            rateMatrix[i][j] /= subst;
             }
         }
     }

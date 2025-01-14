@@ -44,39 +44,34 @@ public class BeamNoReseedingTissueSubstitutionModel extends ComplexSubstitutionM
         // assume equal frequencies
         double freq = 1.0 / nrOfStates;
 
+        double primaryRate = relativeRates[0] * freq;
+        double metToMetRate = relativeRates[1] * freq;
+
+        // set up rate matrix
+        double[] rowSums = new double[nrOfStates];
         for (int i = 0; i < nrOfStates; i++) {
             for (int j = 0; j < nrOfStates; j++) {
-                if (i == j || j == 0) {
-                    // no rate for reseeding (or on the diagonal which is computed later)
-                    rateMatrix[i][j] = 0;
-                } else if (i == 0) {
-                    // one rate for all primary seeding
-                    rateMatrix[i][j] = relativeRates[0] * freq;
-                } else {
-                    // one rate for all met-to-met seeding
-                    rateMatrix[i][j] = relativeRates[1] * freq;
-                }
+            if (i == j || j == 0) {
+                rateMatrix[i][j] = 0;
+            } else if (i == 0) {
+                rateMatrix[i][j] = primaryRate;
+            } else {
+                rateMatrix[i][j] = metToMetRate;
             }
-        }
-        
-        // set up diagonal
-        for (int i = 0; i < nrOfStates; i++) {
-            double sum = 0.0;
-            for (int j = 0; j < nrOfStates; j++) {
-                if (i != j)
-                    sum += rateMatrix[i][j];
+            rowSums[i] += rateMatrix[i][j];
             }
-            rateMatrix[i][i] = -sum;
         }
 
-        // normalise rate matrix to one expected substitution per unit time
+        // set up diagonal and normalize rate matrix
         double subst = 0.0;
-        for (int i = 0; i < nrOfStates; i++)
+        for (int i = 0; i < nrOfStates; i++) {
+            rateMatrix[i][i] = -rowSums[i];
             subst += -rateMatrix[i][i] * freq;
+        }
 
         for (int i = 0; i < nrOfStates; i++) {
             for (int j = 0; j < nrOfStates; j++) {
-                rateMatrix[i][j] = rateMatrix[i][j] / subst;
+            rateMatrix[i][j] /= subst;
             }
         }
     }

@@ -44,42 +44,37 @@ public class BeamOneRateReseedingTissueSubstitutionModel extends ComplexSubstitu
         // assume equal frequencies
         double freq = 1.0 / nrOfStates;
 
+        double primarySeedingRate = relativeRates[0] * freq;
+        double reseedingRate = relativeRates[2] * freq;
+        double metToMetSeedingRate = relativeRates[1] * freq;
+
+        // set up rate matrix
+        double[] rowSums = new double[nrOfStates];
         for (int i = 0; i < nrOfStates; i++) {
             for (int j = 0; j < nrOfStates; j++) {
-                if ( i == j) {
-                    // diagonal elements will be calculated later
-                    rateMatrix[i][j] = 0;
-                } else if ( i == 0) {
-                    // primary seeding rate
-                    rateMatrix[i][j] = relativeRates[0] * freq;
-                } else if ( j == 0) {
-                    // reseeding rate
-                    rateMatrix[i][j] = relativeRates[2] * freq;
-                } else {
-                    // met-to-met seeding rate
-                    rateMatrix[i][j] = relativeRates[1] * freq;
-                }
+            if (i == j) {
+                rateMatrix[i][j] = 0;
+            } else if (i == 0) {
+                rateMatrix[i][j] = primarySeedingRate;
+            } else if (j == 0) {
+                rateMatrix[i][j] = reseedingRate;
+            } else {
+                rateMatrix[i][j] = metToMetSeedingRate;
             }
-        }
-        
-        // set up diagonal
-        for (int i = 0; i < nrOfStates; i++) {
-            double sum = 0.0;
-            for (int j = 0; j < nrOfStates; j++) {
-                if (i != j)
-                    sum += rateMatrix[i][j];
+            rowSums[i] += rateMatrix[i][j];
             }
-            rateMatrix[i][i] = -sum;
         }
 
-        // Normalize the rate matrix to one subsitution per unit time, since doing so as xml input is challenging
-        double total = 0.0;
-        for (int i = 0; i < nrOfStates; i++)
-            total += -rateMatrix[i][i];
+        // set up diagonal and normalize rate matrix
+        double subst = 0.0;
+        for (int i = 0; i < nrOfStates; i++) {
+            rateMatrix[i][i] = -rowSums[i];
+            subst += -rateMatrix[i][i] * freq;
+        }
 
         for (int i = 0; i < nrOfStates; i++) {
             for (int j = 0; j < nrOfStates; j++) {
-                rateMatrix[i][j] = rateMatrix[i][j] / total;
+            rateMatrix[i][j] /= subst;
             }
         }
     }
