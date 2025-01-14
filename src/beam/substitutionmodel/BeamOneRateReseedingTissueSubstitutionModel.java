@@ -41,13 +41,6 @@ public class BeamOneRateReseedingTissueSubstitutionModel extends ComplexSubstitu
     @Override
     public void setupRateMatrix() {
 
-        // assume equal frequencies
-        double freq = 1.0 / nrOfStates;
-
-        double primarySeedingRate = relativeRates[0] * freq;
-        double reseedingRate = relativeRates[2] * freq;
-        double metToMetSeedingRate = relativeRates[1] * freq;
-
         // set up rate matrix
         double[] rowSums = new double[nrOfStates];
         for (int i = 0; i < nrOfStates; i++) {
@@ -55,26 +48,26 @@ public class BeamOneRateReseedingTissueSubstitutionModel extends ComplexSubstitu
             if (i == j) {
                 rateMatrix[i][j] = 0;
             } else if (i == 0) {
-                rateMatrix[i][j] = primarySeedingRate;
+                rateMatrix[i][j] = relativeRates[0];
             } else if (j == 0) {
-                rateMatrix[i][j] = reseedingRate;
+                rateMatrix[i][j] = relativeRates[2];
             } else {
-                rateMatrix[i][j] = metToMetSeedingRate;
+                rateMatrix[i][j] = relativeRates[1];
             }
             rowSums[i] += rateMatrix[i][j];
             }
         }
 
-        // set up diagonal and normalize rate matrix
-        double subst = 0.0;
+        // set up diagonal and normalize the rate matrix to one substitution per unit time
+        double total = 0.0;
         for (int i = 0; i < nrOfStates; i++) {
             rateMatrix[i][i] = -rowSums[i];
-            subst += -rateMatrix[i][i] * freq;
+            total += rowSums[i];
         }
 
         for (int i = 0; i < nrOfStates; i++) {
             for (int j = 0; j < nrOfStates; j++) {
-            rateMatrix[i][j] /= subst;
+                rateMatrix[i][j] /= total;
             }
         }
     }
