@@ -22,7 +22,6 @@ import beast.base.evolution.substitutionmodel.SubstitutionModel;
 import beast.base.evolution.tree.Node;
 import beast.base.evolution.tree.Tree;
 import beast.base.inference.CalculationNode;
-import beast.base.evolution.likelihood.BeagleTreeLikelihood;
 import beast.base.evolution.likelihood.TreeLikelihood;
 
 /**
@@ -63,6 +62,9 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
 
         // get substitution model
         substitutionModel = (SubstitutionModel.Base) m_siteModel.substModelInput.get();
+        if (!substitutionModel.canReturnComplexDiagonalization()) {
+            throw new IllegalArgumentException("Substitution model needs to be able to return complex diagonalization in the current implementation.");
+        }
 
         // get the branch model with the default branch model as a strict clock if not specified in the input
         branchRateModel = branchRateModelInput.get();
@@ -438,15 +440,14 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
             final int updateCount = branchUpdateCount[0];
             matrixUpdateIndices[0][updateCount] = matrixBufferHelper.getOffsetIndex(nodeNum);
 
-            if (substitutionModel.canReturnComplexDiagonalization()) {
-                for (int i = 0; i < m_siteModel.getCategoryCount(); i++) {
-                    final double jointBranchRate = m_siteModel.getRateForCategory(i, node) * branchRate;
-                    substitutionModel.getTransitionProbabilities(node, node.getParent().getHeight(), node.getHeight(), jointBranchRate, probabilities);
-                    System.arraycopy(probabilities, 0, matrices,  m_nStateCount * m_nStateCount * i, m_nStateCount * m_nStateCount);
-                }
-            	int matrixIndex = matrixBufferHelper.getOffsetIndex(nodeNum);
-            	beagle.setTransitionMatrix(matrixIndex, matrices, 1);
+
+            for (int i = 0; i < m_siteModel.getCategoryCount(); i++) {
+                final double jointBranchRate = m_siteModel.getRateForCategory(i, node) * branchRate;
+                substitutionModel.getTransitionProbabilities(node, node.getParent().getHeight(), node.getHeight(), jointBranchRate, probabilities);
+                System.arraycopy(probabilities, 0, matrices,  m_nStateCount * m_nStateCount * i, m_nStateCount * m_nStateCount);
             }
+            int matrixIndex = matrixBufferHelper.getOffsetIndex(nodeNum);
+            beagle.setTransitionMatrix(matrixIndex, matrices, 1);
 
             branchUpdateCount[0]++;
 
@@ -781,9 +782,7 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
                 preferenceFlags |= BeagleFlag.PROCESSOR_CPU.getMask();
         }
 
-        if (substitutionModel.canReturnComplexDiagonalization()) {
-            requirementFlags |= BeagleFlag.EIGEN_COMPLEX.getMask();
-        }
+        requirementFlags |= BeagleFlag.EIGEN_COMPLEX.getMask();
 
         instanceCount++;
 
