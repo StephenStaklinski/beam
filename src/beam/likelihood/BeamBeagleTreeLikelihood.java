@@ -18,6 +18,7 @@ import beast.base.evolution.alignment.Alignment;
 import beast.base.evolution.branchratemodel.StrictClockModel;
 import beast.base.evolution.sitemodel.SiteModel;
 import beast.base.evolution.substitutionmodel.EigenDecomposition;
+import beast.base.evolution.substitutionmodel.SubstitutionModel;
 import beast.base.evolution.tree.Node;
 import beast.base.evolution.tree.Tree;
 import beast.base.inference.CalculationNode;
@@ -61,7 +62,7 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
         m_siteModel.setDataType(dataInput.get().getDataType());
 
         // get substitution model
-        substitutionModel = m_siteModel.substModelInput.get();
+        substitutionModel = (SubstitutionModel.Base) m_siteModel.substModelInput.get();
 
         // get the branch model with the default branch model as a strict clock if not specified in the input
         branchRateModel = branchRateModelInput.get();

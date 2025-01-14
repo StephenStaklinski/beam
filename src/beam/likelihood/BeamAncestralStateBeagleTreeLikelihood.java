@@ -46,12 +46,6 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
         // Initialize the superclass
         super.initAndValidate();
 
-        // Check for BEAGLE library
-        beagle = getBeagle();
-        if (beagle == null) {
-            throw new IllegalArgumentException("BEAGLE library not found. Please install BEAGLE library.");
-        }
-
         // Retrieve and store the tag input for the posterior tree sample outputs
         this.tag = tagInput.get();
 
@@ -87,22 +81,13 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
             }
         });
 
-        // Validate site model input
-        if (!(siteModelInput.get() instanceof SiteModel.Base)) {
-            throw new IllegalArgumentException("siteModel input should be of type SiteModel.Base");
-        }
-        m_siteModel = (SiteModel.Base) siteModelInput.get();
+        // Validate only one category rate for sites
         if (m_siteModel.getCategoryCount() > 1) {
             throw new RuntimeException("Reconstruction not implemented for multiple categories yet.");
         }
 
-        // Initialize substitution model
-        substitutionModel = (SubstitutionModel.Base) m_siteModel.substModelInput.get();
-
-        // Initialize alignment data and probabilities array
+        // Initialize alignment data
         Alignment data = dataInput.get();
-        int dim = data.getMaxStateCount() + 1;
-        probabilities = new double[dim * dim];
 
         // Set up the tip states
         tipStates = new int[treeModel.getLeafNodeCount()][patternCount];
@@ -119,35 +104,9 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
             }
             int[] states = tipStates[node.getNr()];
             for (int i = 0; i < patternCount; i++) {
-                int code = data.getPattern(taxonIndex, i);
-                int[] statesForCode = data.getDataType().getStatesForCode(code);
-                states[i] = (statesForCode.length == 1) ? statesForCode[0] : code; // Causes ambiguous states to be ignored.
+                states[i] = data.getDataType().getStatesForCode(data.getPattern(taxonIndex, i))[0];
             }
         }
-
-        // Initialize trait dimension
-        traitDimension = tipStates[0].length;
-
-        // Initialize leaf traits and parameters
-        List<LeafTrait> leafTraits = leafTraitsInput.get();
-        int leafTraitSize = leafTraits.size();
-        leafNr = new int[leafTraitSize];
-
-        List<String> taxaNames = dataInput.get().getTaxaNames();
-        for (int i = 0; i < leafTraitSize; i++) {
-            LeafTrait leafTrait = leafTraits.get(i);
-
-            // Identify node
-            String taxon = leafTrait.taxonName.get();
-            int k = taxaNames.indexOf(taxon);
-            if (k == -1) {
-                throw new IllegalArgumentException("Could not find taxon '" + taxon + "' in tree");
-            }
-            leafNr[i] = k;
-        }
-
-        // Store initial tip states
-        storedTipStates = Arrays.stream(tipStates).map(int[]::clone).toArray(int[][]::new);
     }
 
     @Override
@@ -159,8 +118,6 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
         }
 
         storedAreStatesRedrawn = areStatesRedrawn;
-        storedJointLogLikelihood = jointLogLikelihood;
-        
     }
 
     @Override
@@ -173,19 +130,6 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
         storedReconstructedStates = temp;
 
         areStatesRedrawn = storedAreStatesRedrawn;
-        jointLogLikelihood = storedJointLogLikelihood;
-        
-        // deal with ambiguous tips
-        if (leafNr != null) {
-			for (int i = 0; i < leafNr.length; i++) {
-				int k = leafNr[i];
-				int[] tmp = tipStates[k];
-				tipStates[k] = storedTipStates[k];
-				storedTipStates[k] = tmp;
-				// Does not handle ambiguities or missing taxa
-				likelihoodCore.setNodeStates(k, tipStates[k]);
-			}
-        }
     }
     
     @Override
@@ -194,7 +138,6 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
 
     	boolean isDirty = super.requiresRecalculation();
     	int hasDirt = Tree.IS_CLEAN;
-		
 		isDirty |= super.requiresRecalculation();
 		this.hasDirt |= hasDirt;
 
@@ -214,25 +157,16 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
         }
 
         if (!likelihoodKnown) {
-        	try {
-        		 calculateLogP();
-        	} catch (Exception e) {
-				throw new RuntimeException(e.getMessage());
-			}
+        	calculateLogP();
         }
 
         if (!areStatesRedrawn) {
-            redrawAncestralStates();
+            // redraw ancestral states for each node
+            traverseSample(tree, tree.getRoot(), null);
+            areStatesRedrawn = true;
         }
+
         return reconstructedStates[node.getNr()];
-    }
-
-
-    public void redrawAncestralStates() {
-        jointLogLikelihood = 0;
-        TreeInterface tree = treeInput.get();
-        traverseSample(tree, tree.getRoot(), null);
-        areStatesRedrawn = true;
     }
 
     
@@ -286,18 +220,13 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
         System.arraycopy(tipStates[tipNum], 0, states, 0, states.length);
     }
 
-	public void getPartials(int number, double[] partials) {
-        int cumulativeBufferIndex = Beagle.NONE;
-        beagle.getPartials(getPartialBufferHelper().getOffsetIndex(number), cumulativeBufferIndex, partials);
-	}
-
 	public void getTransitionMatrix(int matrixNum, double[] probabilities) {
 
 		beagle.getTransitionMatrix(getMatrixBufferHelper().getOffsetIndex(matrixNum), probabilities);
 	}
     
     /**
-     * Traverse (pre-order) the tree sampling the internal node states.
+     * Traverse (pre-order) the tree sampling the internal node states, assuming all partial likelihoods are already calculated.
      *
      * @param tree        - TreeModel on which to perform sampling
      * @param node        - current node
@@ -306,12 +235,7 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
     public void traverseSample(TreeInterface tree, Node node, int[] parentState) {
 
         int nodeNum = node.getNr();
-
         Node parent = node.getParent();
-
-        // This function assumes that all partial likelihoods have already been calculated
-        // If the node is internal, then sample its state given the state of its parent (pre-order traversal).
-
         double[] conditionalProbabilities = new double[stateCount];
         int[] state = new int[patternCount];
 
@@ -320,7 +244,10 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
             // only use root frequencies before sampling if the root is truly the start (no origin being used)
             if (parent == null && !useOrigin) {
 
-                double[] rootPartials = m_fRootPartials;
+                
+                int rootI = partialBufferHelper.getOffsetIndex(tree.getRoot().getNr());
+                double[] rootPs = new double[patternCount * m_nStateCount * categoryCount];
+                beagle.getPartials(rootI, Beagle.NONE, rootPs);
 
                 double[] rootFrequencies = substitutionModel.getFrequencies();
                 if (rootFrequenciesInput.get() != null) {
@@ -329,11 +256,8 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
 
                 // This is the root node
                 for (int j = 0; j < patternCount; j++) {
-                	if (beagle != null) {
-                		getPartials(node.getNr(), conditionalProbabilities);
-                	} else {
-                		System.arraycopy(rootPartials, j * stateCount, conditionalProbabilities, 0, stateCount);
-                	}
+
+                    beagle.getPartials(getPartialBufferHelper().getOffsetIndex(node.getNr()), Beagle.NONE, conditionalProbabilities);
 
                     for (int i = 0; i < stateCount; i++) {
                         conditionalProbabilities[i] *= rootFrequencies[i];
@@ -346,17 +270,13 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
                         state[j] = 0;
                     }
                     reconstructedStates[nodeNum][j] = state[j];
-
-                    jointLogLikelihood += Math.log(rootFrequencies[state[j]]);
                 }
 
             } else {
 
                 // This is an internal node, but not the root ... or it is the root but there is an origin so the root has a transition probability matrix
                 double[] partialLikelihood = new double[stateCount * patternCount];
-
-                // assumes beagle is available as a requirement for BEAM
-                getPartials(node.getNr(), partialLikelihood);
+                beagle.getPartials(getPartialBufferHelper().getOffsetIndex(node.getNr()), Beagle.NONE, partialLikelihood);
                 getTransitionMatrix(nodeNum, probabilities);
 
                 if (parent == null && useOrigin) {
@@ -374,9 +294,6 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
                             originPartials[j] *= rootFrequencies[j];
                         }
                         parentState[i] = Randomizer.randomChoicePDF(originPartials); 
-
-                        // add the likelihood contribution of the origin
-                        jointLogLikelihood += Math.log(rootFrequencies[parentState[i]]);
                     }
                 }
 
@@ -390,8 +307,6 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
 
                     state[j] = Randomizer.randomChoicePDF(conditionalProbabilities);
                     reconstructedStates[nodeNum][j] = state[j];
-                    double contrib = probabilities[parentIndex + state[j]];
-                    jointLogLikelihood += Math.log(contrib);
                 }
             }
 
@@ -425,14 +340,8 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
     private boolean areStatesRedrawn = false;
     private boolean storedAreStatesRedrawn = false;
 
-    private double jointLogLikelihood;
-    private double storedJointLogLikelihood;
-
     boolean likelihoodKnown = false;
 
-    int[][] storedTipStates;
-	int[] leafNr;
-	int traitDimension;
     int patternCount;
     int stateCount;
     int[][] tipStates;
