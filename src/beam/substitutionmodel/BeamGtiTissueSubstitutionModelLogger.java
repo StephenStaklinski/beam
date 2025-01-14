@@ -90,7 +90,7 @@ public class BeamGtiTissueSubstitutionModelLogger extends BEASTObject implements
                     continue;
                 }
 
-                out.print(model.ratesInput.get().getArrayValue(count));
+                out.print(model.ratesInput.get().getArrayValue(count) + "\t");
                 count += 1;
             }
         }

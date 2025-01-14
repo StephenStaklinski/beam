@@ -21,15 +21,16 @@ import beast.base.evolution.substitutionmodel.EigenDecomposition;
 import beast.base.evolution.substitutionmodel.SubstitutionModel;
 import beast.base.evolution.tree.Node;
 import beast.base.evolution.tree.Tree;
-import beast.base.inference.CalculationNode;
 import beast.base.evolution.likelihood.TreeLikelihood;
+import beast.base.inference.CalculationNode;
+import beast.base.evolution.tree.Tree;
 
 /**
  *
  * @author Stephen Staklinski
  */
 
-@Description("Uses the BEAGLE library to calculate the tree likelihood by modifying the BeagleTreeLikelihood" +
+@Description("Uses the beagle library to calculate the tree likelihood by modifying the BeagleTreeLikelihood" +
             "code to include the origin node branch and output a log likelihood identical to TideTree" +
             "for the case when editing occurs the entire duration of the experiment.")
 public class BeamBeagleTreeLikelihood extends TreeLikelihood {
@@ -104,7 +105,7 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
             storedOriginPartials = new double[patternCount * m_nStateCount];
         }
 
-        // Setup BEAGLE with the defined specs of the models/data above
+        // Setup beagle with the defined specs of the models/data above
         setupBeagle();
 
         // Initialize the nodes array with the nodes from the input tree
@@ -152,7 +153,7 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
                 operations = new int[1][internalNodeCount * Beagle.OPERATION_TUPLE_SIZE];
         }
 
-        // BEAGLE scaling setup
+        // beagle scaling setup
         recomputeScaleFactors = false;
         if (this.rescalingScheme == PartialsRescalingScheme.ALWAYS) {
             useScaleFactors = true;
@@ -181,7 +182,7 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
 
         // Traverse the tree to update any necessary transition matrices
         final Node root = treeInput.get().getRoot();
-        traverse(root, null, true);
+        traverse(root, true);
 
         // Initialize variables to return logL and determing when to return if there is numerical instability requiring scaling to recompute a NaN or -Infinity logL
         double logL;
@@ -189,7 +190,7 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
         boolean firstRescaleAttempt = true;
 
         do {
-            // Update partial likelihood up to the root in BEAGLE
+            // Update partial likelihood up to the root in beagle
             beagle.updatePartials(operations[0], operationCount, Beagle.NONE);
 
             int rootIndex = partialBufferHelper.getOffsetIndex(root.getNr());
@@ -197,7 +198,7 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
             // Get the root frequencies for possible states
             double[] frequencies = rootFrequenciesInput.get() == null ? substitutionModel.getFrequencies() : rootFrequenciesInput.get().getFreqs();
 
-            // More BEAGLE scaling stuff
+            // More beagle scaling stuff
             int cumulateScaleBufferIndex = Beagle.NONE;
             if (useScaleFactors) {
                 if (recomputeScaleFactors) {
@@ -221,13 +222,13 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
             double[] sumLogLikelihoods = new double[1];
 
             /*
-             * If the origin is specified, it is included here. The origin is handled outside of BEAGLE 
-             * because BEAGLE requires all nodes to have a degree of 2, which the origin does not, as its 
-             * only child is the root. The strategy involves obtaining the BEAGLE-calculated root partials 
-             * and the pre-calculated transition probability matrix for the branch from the origin to the root, 
-             * which is computed in traverse(). The root partial likelihoods and the transition probability matrix 
-             * are then used to calculate the origin partial likelihoods. These origin partials are re-inserted 
-             * into BEAGLE along with the origin frequencies of each state to compute the sum logL internally in BEAGLE.
+             * If the origin is specified, it is included here. The origin is handled outside of beagle 
+             * because beagle requires all nodes to have a degree of 2, which the origin does not, as its 
+             * only child is the root. The strategy involves obtaining the beagle-calculated root partials 
+             * and calculating the transition probability matrix for the branch from the origin to the root,
+             * The root partial likelihoods and the transition probability matrix are then used to calculate 
+             * the origin partial likelihoods. These origin partials are re-inserted into beagle along with 
+             * the origin frequencies of each state to compute the sum logL internally in beagle.
              * 
              * If scaling is required, we take advantage of the fact that the log scale factors are simply accumulated 
              * across nodes and added to the logL. We obtain the existing sum of log scale factors at the root, add the 
@@ -237,7 +238,7 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
              */
             if (useOrigin && root.getHeight() != origin.getValue()) {
 
-                // get the BEAGLE calculated root partials
+                // get the beagle calculated root partials
                 double[] rootPartials = new double[patternCount * m_nStateCount];
                 beagle.getPartials(rootIndex, Beagle.NONE, rootPartials);
 
@@ -304,7 +305,7 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
                     totalScaleFactorsSum = originScaleFactorsSum + rootScaleFactors;
                 }
 
-                // replace the root partials with the origin partials in BEAGLE to allow for the final likelihood calculation in in BEAGLE
+                // replace the root partials with the origin partials in beagle to allow for the final likelihood calculation in in beagle
                 beagle.setPartials(partialBufferHelper.getOffsetIndex(rootNodeNum), originPartials);
 
                 // calculate the likelihood with the new partials
@@ -319,7 +320,7 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
                 beagle.setTransitionMatrix(rootNodeNum, rootTransitionMatrix, 1);
             }
             else {
-                // For no origin input, the logL simply comes from the root partials and frequencies already set in BEAGLE
+                // For no origin input, the logL simply comes from the root partials and frequencies already set in beagle
                 beagle.calculateRootLogLikelihoods(new int[]{rootIndex}, new int[]{0}, new int[]{0}, new int[]{cumulateScaleBufferIndex}, 1, sumLogLikelihoods);
                 logL = sumLogLikelihoods[0];
             }
@@ -339,7 +340,7 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
                     // Traverse again but without flipping partials indices as we
                     // just want to overwrite the last attempt. We will flip the
                     // scale buffer indices though as we are recomputing them.
-                    traverse(root, null, false);
+                    traverse(root, false);
                     done = false; // Run through do-while loop again
                     firstRescaleAttempt = false; // Only try to rescale once
                 } else {
@@ -362,98 +363,89 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
      * Traverse the tree to update transition probability matrices and subsequently calculate partial likelihoods for each node.
      *
      * @param node           node
-     * @param operatorNumber operatorNumber
      * @param flip           flip
      * @return boolean
      */
-    private int traverse(Node node, int[] operatorNumber, boolean flip) {
+    private int traverse(Node node, boolean flip) {
 
         int nodeNum = node.getNr();
 
-        if (operatorNumber != null) {
-            operatorNumber[0] = -1;
-        }
-
-        // First update the transition probability matrix(ices) for this branch
+        // Decide if this node needs to be updated
         int update = (node.isDirty() | hasDirt);
 
+        // Get the clock rate for the branch
         final double branchRate = branchRateModel.getRateForBranch(node);
+
+        /* Calculate the branch length in number of substitutions to store it, where it is dependent on 
+        the clock rate to convert realTimeLength * clockRate = numSubstitutionsLength */ 
         final double branchTime = node.getLength() * branchRate;
+        if (branchTime < 0.0) {
+            throw new RuntimeException("Negative branch length: " + branchTime);
+        }
 
+        // Update if its not the root and the node is dirty or the branch length has changed
         if (!node.isRoot() && (update != Tree.IS_CLEAN || branchTime != m_branchLengths[nodeNum])) {
-            m_branchLengths[nodeNum] = branchTime;
-            if (branchTime < 0.0) {
-                throw new RuntimeException("Negative branch length: " + branchTime);
-            }
 
+            // Store the current node branch length in case it was changed, causing the update
+            m_branchLengths[nodeNum] = branchTime;
+
+            // Flip places a flag to calculate these values later in beagle updatePartials()
             if (flip) {
-                // first flip the matrixBufferHelper
                 matrixBufferHelper.flipOffset(nodeNum);
             }
 
-            // then set which matrix to update
-            final int updateCount = branchUpdateCount;
-            matrixUpdateIndices[0][updateCount] = matrixBufferHelper.getOffsetIndex(nodeNum);
+            // Set which matrix to update
+            matrixUpdateIndices[0][branchUpdateCount] = matrixBufferHelper.getOffsetIndex(nodeNum);
 
+            // Get the new transition probability matrix and store it in beagle
             substitutionModel.getTransitionProbabilities(node, node.getParent().getHeight(), node.getHeight(), branchRate, probabilities);
             System.arraycopy(probabilities, 0, matrices,  0, matrixDimensions);
-
-            int matrixIndex = matrixBufferHelper.getOffsetIndex(nodeNum);
-            beagle.setTransitionMatrix(matrixIndex, matrices, 1);
+            beagle.setTransitionMatrix(matrixBufferHelper.getOffsetIndex(nodeNum), matrices, 1);
 
             branchUpdateCount++;
 
             update |= Tree.IS_DIRTY;
-
         }
 
         // If the node is internal, update the partial likelihoods.
         if (!node.isLeaf()) {
 
-            // Traverse down the two child nodes
+            // Traverse down the two child nodes to enforce post-order traversal
             Node child1 = node.getLeft();
-            final int[] op1 = {-1};
-            final int update1 = traverse(child1, op1, flip);
+            final int update1 = traverse(child1, flip);
 
             Node child2 = node.getRight();
-            final int[] op2 = {-1};
-            final int update2 = traverse(child2, op2, flip);
+            final int update2 = traverse(child2, flip);
 
-            // If either child node was updated then update this node too
+            // If either child node was dirty, then update the parent node
             if (update1 != Tree.IS_CLEAN || update2 != Tree.IS_CLEAN) {
 
                 int x = operationCount * Beagle.OPERATION_TUPLE_SIZE;
 
+                // Flip places a flag to calculate these values later in beagle updatePartials()
                 if (flip) {
-                    // first flip the partialBufferHelper
                     partialBufferHelper.flipOffset(nodeNum);
                 }
 
                 final int[] operations = this.operations[0];
-
                 operations[x] = partialBufferHelper.getOffsetIndex(nodeNum);
 
+                // Set up scaling for beagle if necessary
                 if (useScaleFactors) {
                     // get the index of this scaling buffer
                     int n = nodeNum - tipCount;
-
                     if (recomputeScaleFactors) {
                         // flip the indicator: can take either n or (internalNodeCount + 1) - n
                         scaleBufferHelper.flipOffset(n);
-
                         // store the index
                         scaleBufferIndices[n] = scaleBufferHelper.getOffsetIndex(n);
-
                         operations[x + 1] = scaleBufferIndices[n]; // Write new scaleFactor
                         operations[x + 2] = Beagle.NONE;
-
                     } else {
                         operations[x + 1] = Beagle.NONE;
                         operations[x + 2] = scaleBufferIndices[n]; // Read existing scaleFactor
                     }
-
                 } else {
-
                     if (useAutoScaling) {
                         scaleBufferIndices[nodeNum - tipCount] = partialBufferHelper.getOffsetIndex(nodeNum);
                     }
@@ -461,6 +453,7 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
                     operations[x + 2] = Beagle.NONE;
                 }
 
+                // specify operations for beagle to perform later in updatePartials()
                 operations[x + 3] = partialBufferHelper.getOffsetIndex(child1.getNr()); // source node 1
                 operations[x + 4] = matrixBufferHelper.getOffsetIndex(child1.getNr()); // source matrix 1
                 operations[x + 5] = partialBufferHelper.getOffsetIndex(child2.getNr()); // source node 2
@@ -482,7 +475,6 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
         int u = 0;
         int v = 0;
 
-
         for (int k = 0; k < patternCount; k++) {
             int w = 0;
             for (int i = 0; i < m_nStateCount; i++) {
@@ -503,8 +495,13 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
 
     @Override
     protected boolean requiresRecalculation() {
-    
-        hasDirt = Tree.IS_CLEAN;
+
+        if (substitutionModel instanceof CalculationNode) {
+            if (((CalculationNode) substitutionModel).isDirtyCalculation()) {
+                hasDirt = Tree.IS_DIRTY;
+                return true;
+            }
+        }
         
         if (dataInput.get().isDirtyCalculation()) {
             hasDirt = Tree.IS_FILTHY;
@@ -624,7 +621,7 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
 
 
     /*
-     * Basic initialization of a BEAGLE instance taken from BeagleTreeLikelihood
+     * Basic initialization of a beagle instance taken from BeagleTreeLikelihood
      */
     private void setupBeagle() {
         // one partials buffer for each tip and two for each internal node (for store restore)
@@ -735,7 +732,7 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
 	                requirementFlags
 	        );
         } catch (Exception e) {
-            Log.warning.println("BEAGLE failed to be initialized, check installation.");
+            Log.warning.println("beagle failed to be initialized, check installation.");
             System.exit(1);
         }
 
@@ -744,7 +741,7 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
         resourceDetails = BeagleFactory.getResourceDetails(instanceDetails.getResourceNumber());
 
         if (resourceDetails != null) {
-            StringBuilder sb = new StringBuilder("  Using BEAGLE version: " + BeagleInfo.getVersion()
+            StringBuilder sb = new StringBuilder("  Using beagle version: " + BeagleInfo.getVersion()
                     + " resource ");
             sb.append(resourceDetails.getNumber()).append(": ");
             sb.append(resourceDetails.getName()).append("\n");
@@ -759,7 +756,7 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
             sb.append("    with instance flags: ").append(instanceDetails.toString());
             Log.info.println(sb.toString());
         } else {
-            Log.warning.println("  Error retrieving BEAGLE resource for instance: " + instanceDetails.toString());
+            Log.warning.println("  Error retrieving beagle resource for instance: " + instanceDetails.toString());
             System.exit(1);
         }
 
@@ -767,9 +764,9 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
                 if (this.rescalingScheme == PartialsRescalingScheme.AUTO &&
                 resourceDetails != null &&
                 (resourceDetails.getFlags() & BeagleFlag.SCALING_AUTO.getMask()) == 0) {
-            // If auto scaling in BEAGLE is not supported then do it here
+            // If auto scaling in beagle is not supported then do it here
             this.rescalingScheme = PartialsRescalingScheme.DYNAMIC;
-            Log.warning.println("  Auto rescaling not supported in BEAGLE, using : " + this.rescalingScheme.getText());
+            Log.warning.println("  Auto rescaling not supported in beagle, using : " + this.rescalingScheme.getText());
         } else {
         	Log.warning.println("  Using rescaling scheme : " + this.rescalingScheme.getText());
         }
@@ -826,7 +823,7 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
     protected boolean useOrigin = false;
 
     // This property is a comma-delimited list of resource numbers (0 == CPU) to
-    // allocate each BEAGLE instance to. If less than the number of instances then
+    // allocate each beagle instance to. If less than the number of instances then
     // will wrap around.
     // note: to use a different device, say device 2, start beast with
     // java -Dbeagle.resource.order=2 beast.app.BeastMCMC
@@ -892,7 +889,7 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
     // an array used to transfer tip partials
     protected double[] tipPartials;
 
-    // the BEAGLE library instance
+    // the beagle library instance
     protected Beagle beagle;
     
     public Beagle getBeagle() {return beagle;}
@@ -965,7 +962,7 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
         DYNAMIC("dynamic"), // rescale when needed and reuse scaling factors
         ALWAYS("always"),   // rescale every node, every site, every time - slow but safe
         DELAYED("delayed"), // postpone until first underflow then switch to 'always'
-        AUTO("auto");       // BEAGLE automatic scaling - currently playing it safe with 'always'
+        AUTO("auto");       // beagle automatic scaling - currently playing it safe with 'always'
 
         PartialsRescalingScheme(String text) {
             this.text = text;
