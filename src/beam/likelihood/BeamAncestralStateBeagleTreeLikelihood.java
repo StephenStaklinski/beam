@@ -38,9 +38,7 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
     public static final String STATES_KEY = "states";
 
     public Input<String> tagInput = new Input<String>("tag","label used to report trait", Validate.REQUIRED);
-    public Input<Boolean> sampleTipsInput = new Input<Boolean>("sampleTips", "if tips have missing data/ambigous values sample them for logging (default true)", true);
-    
-	public Input<List<LeafTrait>> leafTriatsInput = new Input<List<LeafTrait>>("leaftrait", "list of leaf traits",
+	public Input<List<LeafTrait>> leafTraitsInput = new Input<List<LeafTrait>>("leaftrait", "list of leaf traits",
 			new ArrayList<LeafTrait>());
 
 	int[][] storedTipStates;
@@ -175,12 +173,12 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
 
 		traitDimension = tipStates[0].length;
 
-		leafNr = new int[leafTriatsInput.get().size()];
-		parameters = new IntegerParameter[leafTriatsInput.get().size()];
+		leafNr = new int[leafTraitsInput.get().size()];
+		parameters = new IntegerParameter[leafTraitsInput.get().size()];
 
 		List<String> taxaNames = dataInput.get().getTaxaNames();
 		for (int i = 0; i < leafNr.length; i++) {
-			LeafTrait leafTrait = leafTriatsInput.get().get(i);
+			LeafTrait leafTrait = leafTraitsInput.get().get(i);
 			parameters[i] = leafTrait.parameter.get();
 			// sanity check
 			if (parameters[i].getDimension() != traitDimension) {
@@ -368,10 +366,6 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
         return sb.toString();
     }
 
-    private int drawChoice(double[] measure) {
-        return Randomizer.randomChoicePDF(measure);
-    }
-
     public void getStates(int tipNum, int[] states)  {
         // Saved locally to reduce BEAGLE library access
         System.arraycopy(tipStates[tipNum], 0, states, 0, states.length);
@@ -430,7 +424,7 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
                         conditionalProbabilities[i] *= rootFrequencies[i];
                     }
                     try {
-                        state[j] = drawChoice(conditionalProbabilities);
+                        state[j] = Randomizer.randomChoicePDF(conditionalProbabilities);
                     } catch (Error e) {
                         System.err.println(e.toString());
                         System.err.println("Please report error to Marc");
@@ -464,7 +458,7 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
                         for (int j = 0; j < stateCount; j++) {
                             originPartials[j] *= rootFrequencies[j];
                         }
-                        parentState[i] = drawChoice(originPartials); 
+                        parentState[i] = Randomizer.randomChoicePDF(originPartials); 
 
                         // add the likelihood contribution of the origin
                         jointLogLikelihood += Math.log(rootFrequencies[parentState[i]]);
@@ -479,7 +473,7 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
                         conditionalProbabilities[i] = partialLikelihood[childIndex + i] * probabilities[parentIndex + i];
                     }
 
-                    state[j] = drawChoice(conditionalProbabilities);
+                    state[j] = Randomizer.randomChoicePDF(conditionalProbabilities);
                     reconstructedStates[nodeNum][j] = state[j];
                     double contrib = probabilities[parentIndex + state[j]];
                     jointLogLikelihood += Math.log(contrib);
@@ -495,20 +489,6 @@ public class BeamAncestralStateBeagleTreeLikelihood extends BeamBeagleTreeLikeli
         } else {
             // This is an external leaf
         	getStates(nodeNum, reconstructedStates[nodeNum]);
-
-        	if (sampleTipsInput.get()) {
-	            // Check for ambiguity codes and sample them
-	            for (int j = 0; j < patternCount; j++) {
-	                final int thisState = reconstructedStates[nodeNum][j];
-	                final int parentIndex = parentState[j] * stateCount;
-
-	                getTransitionMatrix(nodeNum, probabilities);
-
-	                double contrib = probabilities[parentIndex + reconstructedStates[nodeNum][j]];
-	                jointLogLikelihood += Math.log(contrib);
-	            }
-        	}
-        	
         }
     }
     
