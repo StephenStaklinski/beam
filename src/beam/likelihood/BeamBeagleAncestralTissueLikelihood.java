@@ -112,22 +112,17 @@ public class BeamBeagleAncestralTissueLikelihood extends BeamBeagleTreeLikelihoo
     @Override
     public void store() {
         super.store();
-
         // Store the reconstructed states
         System.arraycopy(reconstructedStates, 0, storedReconstructedStates, 0, reconstructedStates.length);
-
         // Flag to redraw the states
         storedAreStatesRedrawn = areStatesRedrawn;
     }
 
     @Override
     public void restore() {
-
         super.restore();
-
         // Restore the reconstructed states
         System.arraycopy(storedReconstructedStates, 0, reconstructedStates, 0, storedReconstructedStates.length);
-
         // Flag to redraw the states
         areStatesRedrawn = storedAreStatesRedrawn;
     }
@@ -162,16 +157,13 @@ public class BeamBeagleAncestralTissueLikelihood extends BeamBeagleTreeLikelihoo
     
     @Override
     public double calculateLogP() {
-
         // Calculate the likelihood
         super.calculateLogP();
-
         // Reset the states redrawn flag for new calculation
         areStatesRedrawn = false;
-
         // Set the likelihood known flag
         likelihoodKnown = true;
-        
+    
         return logP;
     }
 
@@ -225,61 +217,57 @@ public class BeamBeagleAncestralTissueLikelihood extends BeamBeagleTreeLikelihoo
             // only use root frequencies before sampling if the root is truly the start (no origin being used)
             if (parent == null && !useOrigin) {
 
+                // Get the partials at the root
                 beagle.getPartials(getPartialBufferHelper().getOffsetIndex(node.getNr()), Beagle.NONE, conditionalProbabilities);
-
-                double[] rootFrequencies = substitutionModel.getFrequencies();
-                if (rootFrequenciesInput.get() != null) {
-                    rootFrequencies = rootFrequenciesInput.get().getFreqs();
-                }
-
+                
+                // Get the root frequencies to multiply by the partials
+                double[] rootFrequencies = rootFrequenciesInput.get() == null ? substitutionModel.getFrequencies() : rootFrequenciesInput.get().getFreqs();
                 for (int i = 0; i < stateCount; i++) {
                     conditionalProbabilities[i] *= rootFrequencies[i];
                 }
 
-                state = Randomizer.randomChoicePDF(conditionalProbabilities);
-                reconstructedStates[nodeNum][0] = state;
+                // Sample the root state
+                reconstructedStates[nodeNum][0] = Randomizer.randomChoicePDF(conditionalProbabilities);
             } else {
                 // This is an internal node (not the root) or it is the root but there is an origin so the root has a transition probability matrix
                 double[] partialLikelihood = new double[stateCount];
                 beagle.getPartials(getPartialBufferHelper().getOffsetIndex(node.getNr()), Beagle.NONE, partialLikelihood);
                 beagle.getTransitionMatrix(getMatrixBufferHelper().getOffsetIndex(nodeNum), probabilities);
 
-                // If this is the root then we need to sample the parent state at the origin
+                // If this is the root then we need to sample the parent state at the origin since it is null
                 if (parent == null && useOrigin) {
 
                     // Get the origin partials
                     double[] oPs = new double[m_nStateCount];
                     System.arraycopy(originPartials, 0, oPs, 0, originPartials.length);
 
-                    double[] rootFrequencies = substitutionModel.getFrequencies();
-                    if (rootFrequenciesInput.get() != null) {
-                        rootFrequencies = rootFrequenciesInput.get().getFreqs();
-                    }
-
+                    // Get the root frequencies to multiply by the partials
+                    double[] rootFrequencies = rootFrequenciesInput.get() == null ? substitutionModel.getFrequencies() : rootFrequenciesInput.get().getFreqs();
                     for (int i = 0; i < stateCount; i++) {
                         oPs[i] *= rootFrequencies[i];
                     }
 
+                    // Sample the parent state at the origin
                     parentState = Randomizer.randomChoicePDF(oPs);
                 }
 
+                // Calculate the conditional probabilities for the parent state based on the partials at the node and transition matrix from the parent to the node
                 int parentIndex = parentState * stateCount;
                 int childIndex = 0;
-
                 for (int i = 0; i < stateCount; i++) {
                     conditionalProbabilities[i] = partialLikelihood[childIndex + i] * probabilities[parentIndex + i];
                 }
 
-                state = Randomizer.randomChoicePDF(conditionalProbabilities);
-                reconstructedStates[nodeNum][0] = state;
+                // Sample the node state
+                reconstructedStates[nodeNum][0] = Randomizer.randomChoicePDF(conditionalProbabilities);
             }
 
             // Traverse down the two child nodes
             Node child1 = node.getChild(0);
-            traverseSample(tree, child1, state);
-
+            traverseSample(tree, child1, reconstructedStates[nodeNum][0]);
+            
             Node child2 = node.getChild(1);
-            traverseSample(tree, child2, state);
+            traverseSample(tree, child2, reconstructedStates[nodeNum][0]);
         } else {
             // This is an external leaf
             System.arraycopy(tipStates[nodeNum], 0, reconstructedStates[nodeNum], 0, reconstructedStates[nodeNum].length);
