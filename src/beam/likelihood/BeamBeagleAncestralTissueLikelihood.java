@@ -143,8 +143,10 @@ public class BeamBeagleAncestralTissueLikelihood extends BeamBeagleTreeLikelihoo
     
     @Override
     public double calculateLogP() {
+
         // Calculate the likelihood
         super.calculateLogP();
+
         // Reset the states redrawn flag for new calculation
         areStatesRedrawn = false;
     
@@ -216,7 +218,12 @@ public class BeamBeagleAncestralTissueLikelihood extends BeamBeagleTreeLikelihoo
                 // This is an internal node (not the root) or it is the root but there is an origin so the root has a transition probability matrix
                 double[] partialLikelihood = new double[stateCount];
                 beagle.getPartials(partialBufferHelper.getOffsetIndex(node.getNr()), Beagle.NONE, partialLikelihood);
-                beagle.getTransitionMatrix(matrixBufferHelper.getOffsetIndex(nodeNum), probabilities);
+
+                // // DEBUGGING
+                // if (parent == null) {
+                //     System.out.println("Ancestral state root partials: " + Arrays.toString(partialLikelihood));
+                //     System.out.println("Ancestral state root transition matrix: " + Arrays.toString(probabilities));
+                // }
 
                 // If this is the root then we need to sample the parent state at the origin since it is null
                 if (parent == null && useOrigin) {
@@ -236,9 +243,14 @@ public class BeamBeagleAncestralTissueLikelihood extends BeamBeagleTreeLikelihoo
 
                     // Sample the parent state at the origin
                     parentState = Randomizer.randomChoicePDF(oPs);
+
+                    // Use the stored transition matrix from the origin to the root
+                    probabilities = rootTransitionMatrix;
+                } else {
+                    beagle.getTransitionMatrix(matrixBufferHelper.getOffsetIndex(nodeNum), probabilities);
                 }
 
-                // Calculate the conditional probabilities for the parent state based on the partials at the node and transition matrix from the parent to the node
+                // Calculate the conditional probabilities for the state based on the partials at the node and transition matrix from the parent to the node
                 int parentIndex = parentState * stateCount;
                 int childIndex = 0;
                 for (int i = 0; i < stateCount; i++) {
@@ -246,7 +258,10 @@ public class BeamBeagleAncestralTissueLikelihood extends BeamBeagleTreeLikelihoo
                 }
 
                 // // DEBUGGING
-                // System.out.println("Node " + nodeNum + " conditionalProbabilities: " + Arrays.toString(conditionalProbabilities));
+                // if (parent == null) {
+                //     System.out.println("Ancestral state matrix: " + Arrays.toString(probabilities));
+                //     System.out.println("Ancestral state root conditionalProbs: " + Arrays.toString(conditionalProbabilities));
+                // }
 
                 // Sample the node state
                 reconstructedStates[nodeNum][0] = Randomizer.randomChoicePDF(conditionalProbabilities);
