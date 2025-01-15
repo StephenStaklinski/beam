@@ -113,10 +113,10 @@ public class BeamBeagleAncestralTissueLikelihood extends BeamBeagleTreeLikelihoo
     public void store() {
         super.store();
 
-        for (int i = 0; i < reconstructedStates.length; i++) {
-            System.arraycopy(reconstructedStates[i], 0, storedReconstructedStates[i], 0, reconstructedStates[i].length);
-        }
+        // Store the reconstructed states
+        System.arraycopy(reconstructedStates, 0, storedReconstructedStates, 0, reconstructedStates.length);
 
+        // Flag to redraw the states
         storedAreStatesRedrawn = areStatesRedrawn;
     }
 
@@ -125,10 +125,10 @@ public class BeamBeagleAncestralTissueLikelihood extends BeamBeagleTreeLikelihoo
 
         super.restore();
 
-        int[][] temp = reconstructedStates;
-        reconstructedStates = storedReconstructedStates;
-        storedReconstructedStates = temp;
+        // Restore the reconstructed states
+        System.arraycopy(storedReconstructedStates, 0, reconstructedStates, 0, storedReconstructedStates.length);
 
+        // Flag to redraw the states
         areStatesRedrawn = storedAreStatesRedrawn;
     }
     
@@ -165,8 +165,9 @@ public class BeamBeagleAncestralTissueLikelihood extends BeamBeagleTreeLikelihoo
     
     @Override
     public double calculateLogP() {
+        // Reset the states redrawn flag for new calculation
         areStatesRedrawn = false;
-        double marginalLogLikelihood = super.calculateLogP();
+        super.calculateLogP();
         likelihoodKnown = true;
         return logP;
     }
@@ -297,13 +298,10 @@ public class BeamBeagleAncestralTissueLikelihood extends BeamBeagleTreeLikelihoo
     protected DataType dataType;
     private int[][] reconstructedStates;
     private int[][] storedReconstructedStates;
-
     private String tag;
     private boolean areStatesRedrawn = false;
     private boolean storedAreStatesRedrawn = false;
-
     boolean likelihoodKnown = false;
-
     int stateCount;
     int[][] tipStates;
 

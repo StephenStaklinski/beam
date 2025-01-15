@@ -355,7 +355,7 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
 
         logP = logL;
 
-        return logP;
+        return logL;
     }
 
 
