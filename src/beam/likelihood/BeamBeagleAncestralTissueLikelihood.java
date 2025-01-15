@@ -148,27 +148,30 @@ public class BeamBeagleAncestralTissueLikelihood extends BeamBeagleTreeLikelihoo
         if (tree != treeInput.get()) {
             throw new RuntimeException("Can only reconstruct states on treeModel given to constructor");
         }
-
         if (!likelihoodKnown) {
         	calculateLogP();
         }
-
         if (!areStatesRedrawn) {
             // redraw ancestral states for each node
-            traverseSample(tree, tree.getRoot(), null);
+            traverseSample(tree, tree.getRoot(), -1);
             areStatesRedrawn = true;
         }
-
         return reconstructedStates[node.getNr()];
     }
 
     
     @Override
     public double calculateLogP() {
+
+        // Calculate the likelihood
+        super.calculateLogP();
+
         // Reset the states redrawn flag for new calculation
         areStatesRedrawn = false;
-        super.calculateLogP();
+
+        // Set the likelihood known flag
         likelihoodKnown = true;
+        
         return logP;
     }
 
@@ -212,15 +215,13 @@ public class BeamBeagleAncestralTissueLikelihood extends BeamBeagleTreeLikelihoo
      * @param node        - current node
      * @param parentState - character state of the parent node to 'node'
      */
-    public void traverseSample(TreeInterface tree, Node node, int[] parentState) {
+    public void traverseSample(TreeInterface tree, Node node, int parentState) {
 
         int nodeNum = node.getNr();
         Node parent = node.getParent();
         double[] conditionalProbabilities = new double[stateCount];
-        int[] state = new int[1];
 
         if (!node.isLeaf()) {
-
             // only use root frequencies before sampling if the root is truly the start (no origin being used)
             if (parent == null && !useOrigin) {
 
@@ -235,8 +236,8 @@ public class BeamBeagleAncestralTissueLikelihood extends BeamBeagleTreeLikelihoo
                     conditionalProbabilities[i] *= rootFrequencies[i];
                 }
 
-                state[0] = Randomizer.randomChoicePDF(conditionalProbabilities);
-                reconstructedStates[nodeNum][0] = state[0];
+                state = Randomizer.randomChoicePDF(conditionalProbabilities);
+                reconstructedStates[nodeNum][0] = state;
             } else {
                 // This is an internal node (not the root) or it is the root but there is an origin so the root has a transition probability matrix
                 double[] partialLikelihood = new double[stateCount];
@@ -259,19 +260,18 @@ public class BeamBeagleAncestralTissueLikelihood extends BeamBeagleTreeLikelihoo
                         oPs[i] *= rootFrequencies[i];
                     }
 
-                    parentState = new int[1];
-                    parentState[0] = Randomizer.randomChoicePDF(oPs);
+                    parentState = Randomizer.randomChoicePDF(oPs);
                 }
 
-                int parentIndex = parentState[0] * stateCount;
+                int parentIndex = parentState * stateCount;
                 int childIndex = 0;
 
                 for (int i = 0; i < stateCount; i++) {
                     conditionalProbabilities[i] = partialLikelihood[childIndex + i] * probabilities[parentIndex + i];
                 }
 
-                state[0] = Randomizer.randomChoicePDF(conditionalProbabilities);
-                reconstructedStates[nodeNum][0] = state[0];
+                state = Randomizer.randomChoicePDF(conditionalProbabilities);
+                reconstructedStates[nodeNum][0] = state;
             }
 
             // Traverse down the two child nodes
@@ -303,6 +303,7 @@ public class BeamBeagleAncestralTissueLikelihood extends BeamBeagleTreeLikelihoo
     private boolean storedAreStatesRedrawn = false;
     boolean likelihoodKnown = false;
     int stateCount;
+    int state;
     int[][] tipStates;
 
     public static final String STATES_KEY = "states";
