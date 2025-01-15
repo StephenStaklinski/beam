@@ -36,7 +36,7 @@
 
     
 <!-- input data -->
-<data  id="alignment" spec="feast.fileio.AlignmentFromFasta" fileName="/Users/staklins/projects/crispr-barcode-cancer-metastasis/beam_dev/beam/examples/CP17/CP17.fasta">
+<data  id="alignment" spec="feast.fileio.AlignmentFromFasta" fileName="$(fileDir)/CP17.fasta">
     <userDataType spec="tidetree.evolution.datatype.EditData" nrOfStates="14"/>
 </data>
 
@@ -132,7 +132,7 @@
                 
                 <distribution id="traitLikelihood" spec="beam.likelihood.BeamBeagleAncestralTissueLikelihood" origin="@origin" tag="location" tree="@tree">
                     <data id="tissue" spec="beastclassic.evolution.alignment.AlignmentFromTrait">
-                        <traitSet id="traitset" spec="feast.fileio.TraitSetFromXSV" fileName="/Users/staklins/projects/crispr-barcode-cancer-metastasis/beam_dev/beam/examples/CP17/CP17_tip_tissues.csv" taxa="@taxonset" taxonNameCol="0" skipFirstRow="false" sep="," traitname="discrete"/>
+                        <traitSet id="traitset" spec="feast.fileio.TraitSetFromXSV" fileName="$(fileDir)/CP17_tip_tissues.csv" taxa="@taxonset" taxonNameCol="0" skipFirstRow="false" sep="," traitname="discrete"/>
                         <userDataType id="codeMap" spec="beast.base.evolution.datatype.UserDataType" codeMap="PRL=0,LVM=1,LVR=2,RBL=3,? = 0 1 2 3 " codelength="-1" states="4"/>
                     </data>
                     <siteModel id="geoSiteModel.s:tissue" spec="SiteModel" gammaCategoryCount="1">
