@@ -204,8 +204,6 @@ public class BeamBeagleTreeLikelihood extends GenericTreeLikelihood {
                 } else {
                     cumulateScaleBufferIndex = scaleBufferHelper.getOffsetIndex(internalNodeCount);
                 }
-            } else if (useAutoScaling) {
-                beagle.accumulateScaleFactors(scaleBufferIndices, internalNodeCount, Beagle.NONE);
             }
             
             // make sure the root frequencies are initialized properly and then updated if the frequencies change
@@ -440,9 +438,6 @@ public class BeamBeagleTreeLikelihood extends GenericTreeLikelihood {
                         operations[x + 2] = scaleBufferIndices[n]; // Read existing scaleFactor
                     }
                 } else {
-                    if (useAutoScaling) {
-                        scaleBufferIndices[nodeNum - tipCount] = partialBufferHelper.getOffsetIndex(nodeNum);
-                    }
                     operations[x + 1] = Beagle.NONE; // Not using scaleFactors
                     operations[x + 2] = Beagle.NONE;
                 }
@@ -524,7 +519,7 @@ public class BeamBeagleTreeLikelihood extends GenericTreeLikelihood {
         matrixBufferHelper.storeState();
 
         // Only store scale factors when actually used
-        if (useScaleFactors || useAutoScaling) {
+        if (useScaleFactors) {
             scaleBufferHelper.storeState();
             System.arraycopy(scaleBufferIndices, 0, storedScaleBufferIndices, 0, scaleBufferIndices.length);
         }
@@ -567,7 +562,7 @@ public class BeamBeagleTreeLikelihood extends GenericTreeLikelihood {
         partialBufferHelper.restoreState();
         matrixBufferHelper.restoreState();
 
-        if (useScaleFactors || useAutoScaling) {
+        if (useScaleFactors) {
             scaleBufferHelper.restoreState();
             int[] tmp2 = storedScaleBufferIndices;
             storedScaleBufferIndices = scaleBufferIndices;
@@ -740,6 +735,11 @@ public class BeamBeagleTreeLikelihood extends GenericTreeLikelihood {
             }
             return indexOffsets[i - minIndexValue] + i;
         }
+        void getIndices(int[] outIndices) {
+            for (int i = 0; i < maxIndexValue; i++) {
+                outIndices[i] = getOffsetIndex(i);
+            }
+        }
         void storeState() {
             System.arraycopy(indexOffsets, 0, storedIndexOffsets, 0, indexOffsets.length);
 
@@ -798,7 +798,6 @@ public class BeamBeagleTreeLikelihood extends GenericTreeLikelihood {
 
     protected boolean useScaleFactors = false;
     protected boolean storedUseScaleFactors;
-    private boolean useAutoScaling = false;
     private boolean recomputeScaleFactors = false;
     private boolean everUnderflowed = false;
     private boolean storedEverUnderflowed;

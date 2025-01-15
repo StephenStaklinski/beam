@@ -127,16 +127,6 @@ public class BeamBeagleAncestralTissueLikelihood extends BeamBeagleTreeLikelihoo
         areStatesRedrawn = storedAreStatesRedrawn;
     }
     
-    @Override
-    protected boolean requiresRecalculation() {
-    	boolean isDirty = super.requiresRecalculation();
-    	int hasDirt = Tree.IS_CLEAN;
-		isDirty |= super.requiresRecalculation();
-		this.hasDirt |= hasDirt;
-
-		return isDirty;
-    }
-    
 
     public int[] getStatesForNode(TreeInterface tree, Node node) {
         if (tree != treeInput.get()) {
@@ -212,7 +202,7 @@ public class BeamBeagleAncestralTissueLikelihood extends BeamBeagleTreeLikelihoo
             if (parent == null && !useOrigin) {
 
                 // Get the partials at the root
-                beagle.getPartials(getPartialBufferHelper().getOffsetIndex(node.getNr()), Beagle.NONE, conditionalProbabilities);
+                beagle.getPartials(partialBufferHelper.getOffsetIndex(node.getNr()), Beagle.NONE, conditionalProbabilities);
                 
                 // Get the root frequencies to multiply by the partials
                 double[] rootFrequencies = rootFrequenciesInput.get() == null ? substitutionModel.getFrequencies() : rootFrequenciesInput.get().getFreqs();
@@ -225,8 +215,8 @@ public class BeamBeagleAncestralTissueLikelihood extends BeamBeagleTreeLikelihoo
             } else {
                 // This is an internal node (not the root) or it is the root but there is an origin so the root has a transition probability matrix
                 double[] partialLikelihood = new double[stateCount];
-                beagle.getPartials(getPartialBufferHelper().getOffsetIndex(node.getNr()), Beagle.NONE, partialLikelihood);
-                beagle.getTransitionMatrix(getMatrixBufferHelper().getOffsetIndex(nodeNum), probabilities);
+                beagle.getPartials(partialBufferHelper.getOffsetIndex(node.getNr()), Beagle.NONE, partialLikelihood);
+                beagle.getTransitionMatrix(matrixBufferHelper.getOffsetIndex(nodeNum), probabilities);
 
                 // If this is the root then we need to sample the parent state at the origin since it is null
                 if (parent == null && useOrigin) {
@@ -257,18 +247,6 @@ public class BeamBeagleAncestralTissueLikelihood extends BeamBeagleTreeLikelihoo
 
                 // // DEBUGGING
                 // System.out.println("Node " + nodeNum + " conditionalProbabilities: " + Arrays.toString(conditionalProbabilities));
-
-                // // TEMPORARY HACK - NEED TO FIX LATER BUT NEEDED TO CHECK THE OTHER NON LOGGING MODEL IMPLEMENTATION
-                // boolean allNaN = true;
-                // for (double prob : conditionalProbabilities) {
-                //     if (!Double.isNaN(prob)) {
-                //         allNaN = false;
-                //         break;
-                //     }
-                // }
-                // if (allNaN) {
-                //     Arrays.fill(conditionalProbabilities, 1.0 / stateCount);
-                // }
 
                 // Sample the node state
                 reconstructedStates[nodeNum][0] = Randomizer.randomChoicePDF(conditionalProbabilities);
