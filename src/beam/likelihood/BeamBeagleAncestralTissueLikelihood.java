@@ -241,6 +241,9 @@ public class BeamBeagleAncestralTissueLikelihood extends BeamBeagleTreeLikelihoo
                         oPs[i] *= rootFrequencies[i];
                     }
 
+                    // DEBUGGING
+                    System.out.println("Origin partials: " + Arrays.toString(oPs));
+
                     // Sample the parent state at the origin
                     parentState = Randomizer.randomChoicePDF(oPs);
                 }
@@ -251,6 +254,10 @@ public class BeamBeagleAncestralTissueLikelihood extends BeamBeagleTreeLikelihoo
                 for (int i = 0; i < stateCount; i++) {
                     conditionalProbabilities[i] = partialLikelihood[childIndex + i] * probabilities[parentIndex + i];
                 }
+
+                // DEBUGGING
+                System.out.println("Node " + nodeNum + " conditionalProbabilities: " + Arrays.toString(conditionalProbabilities));
+
 
                 // Sample the node state
                 reconstructedStates[nodeNum][0] = Randomizer.randomChoicePDF(conditionalProbabilities);
@@ -268,14 +275,12 @@ public class BeamBeagleAncestralTissueLikelihood extends BeamBeagleTreeLikelihoo
         }
     }
 
-    @Override
-    public void log(final long sample, final PrintStream out) {
-    	// useful when logging on a fixed tree in an AncestralTreeLikelihood that is logged, but not part of the posterior
-    	hasDirt = Tree.IS_FILTHY;
-    	calculateLogP();
-        out.print(getCurrentLogP() + "\t");
-    }
-
+    // @Override
+    // public void log(final long sample, final PrintStream out) {
+    // 	hasDirt = Tree.IS_FILTHY;
+    // 	calculateLogP();
+    //     out.print(getCurrentLogP() + "\t");
+    // }
 
     protected DataType dataType;
     private int[][] reconstructedStates;

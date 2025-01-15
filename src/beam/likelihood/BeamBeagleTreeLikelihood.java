@@ -21,6 +21,7 @@ import beast.base.evolution.substitutionmodel.EigenDecomposition;
 import beast.base.evolution.substitutionmodel.SubstitutionModel;
 import beast.base.evolution.tree.Node;
 import beast.base.evolution.tree.Tree;
+import beast.base.evolution.likelihood.BeagleTreeLikelihood;
 import beast.base.evolution.likelihood.TreeLikelihood;
 import beast.base.inference.CalculationNode;
 import beast.base.evolution.tree.Tree;
@@ -233,8 +234,7 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
              * If scaling is required, we take advantage of the fact that the log scale factors are simply accumulated 
              * across nodes and added to the logL. We obtain the existing sum of log scale factors at the root, add the 
              * log scale factor for the origin-to-root branch, and then combine the total log scale factors sum back into
-             * the calculated logL. This approach is a workaround based on the scaling algorithm since beagle.getScaleFactors() 
-             * was not functioning correctly at the time this was implemented.
+             * the calculated logL.
              */
             if (useOrigin && root.getHeight() != origin.getValue()) {
 
@@ -526,8 +526,6 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
     @Override
     public void store() {
 
-        super.store();
-
         partialBufferHelper.storeState();
         matrixBufferHelper.storeState();
 
@@ -539,6 +537,8 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
 
         // store origin partials
         System.arraycopy(originPartials, 0, storedOriginPartials, 0, originPartials.length);
+
+        super.store();
 
         // store logP
         storedLogP = logP;
@@ -552,8 +552,6 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
      */
     @Override
     public void restore() {
-
-        super.restore();
         
         partialBufferHelper.restoreState();
         matrixBufferHelper.restoreState();
@@ -566,11 +564,14 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
         // restore origin partials
         System.arraycopy(storedOriginPartials, 0, originPartials, 0, storedOriginPartials.length);
 
+        super.restore();
+
         // restore logP
         logP = storedLogP;
 
         // restore branch lengths
         System.arraycopy(storedBranchLengths, 0, m_branchLengths, 0, storedBranchLengths.length);
+
     }
 
 
