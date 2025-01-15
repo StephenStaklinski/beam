@@ -534,6 +534,9 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
             scaleBufferHelper.storeState();
             System.arraycopy(scaleBufferIndices, 0, storedScaleBufferIndices, 0, scaleBufferIndices.length);
         }
+        // Always store scaling and underflow flags to ensure they are restored if a rejected state turns on scaling
+        storedEverUnderflowed = everUnderflowed;
+        storedUseScaleFactors = useScaleFactors;
 
         // store origin partials
         System.arraycopy(originPartials, 0, storedOriginPartials, 0, originPartials.length);
@@ -560,6 +563,10 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
             scaleBufferHelper.restoreState();
             System.arraycopy(storedScaleBufferIndices, 0, scaleBufferIndices, 0, storedScaleBufferIndices.length);
         }
+
+        // Restore flags for scaling and underflow
+        everUnderflowed = storedEverUnderflowed;
+        useScaleFactors = storedUseScaleFactors;
 
         // restore origin partials
         System.arraycopy(storedOriginPartials, 0, originPartials, 0, storedOriginPartials.length);
@@ -883,9 +890,12 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
     private PartialsRescalingScheme rescalingScheme = DEFAULT_RESCALING_SCHEME;
     private int rescalingFrequency = RESCALE_FREQUENCY;
     protected boolean useScaleFactors = false;
+    protected boolean storedUseScaleFactors;
     private boolean useAutoScaling = false;
     private boolean recomputeScaleFactors = false;
     private boolean everUnderflowed = false;
+    private boolean storedEverUnderflowed;
+
     private int rescalingCount = 0;
     private int rescalingCountInner = 0;
 
