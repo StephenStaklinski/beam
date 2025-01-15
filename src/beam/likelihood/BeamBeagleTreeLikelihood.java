@@ -4,27 +4,26 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import beast.base.core.Description;
 import beast.base.core.Input;
+import beast.base.core.Log;
+import beast.base.evolution.tree.Node;
+import beast.base.evolution.tree.Tree;
+import beast.base.inference.CalculationNode;
 import beast.base.inference.parameter.RealParameter;
+import beast.base.evolution.alignment.Alignment;
+import beast.base.evolution.sitemodel.SiteModel;
+import beast.base.evolution.substitutionmodel.Frequencies;
+import beast.base.evolution.substitutionmodel.SubstitutionModel;
+import beast.base.evolution.branchratemodel.BranchRateModel;
+import beast.base.evolution.likelihood.GenericTreeLikelihood;
+
 import beagle.Beagle;
 import beagle.BeagleFactory;
 import beagle.BeagleFlag;
 import beagle.BeagleInfo;
 import beagle.InstanceDetails;
 import beagle.ResourceDetails;
-import beast.base.core.Description;
-import beast.base.core.Log;
-import beast.base.evolution.alignment.Alignment;
-import beast.base.evolution.branchratemodel.StrictClockModel;
-import beast.base.evolution.sitemodel.SiteModel;
-import beast.base.evolution.substitutionmodel.EigenDecomposition;
-import beast.base.evolution.substitutionmodel.SubstitutionModel;
-import beast.base.evolution.tree.Node;
-import beast.base.evolution.tree.Tree;
-import beast.base.evolution.likelihood.BeagleTreeLikelihood;
-import beast.base.evolution.likelihood.TreeLikelihood;
-import beast.base.inference.CalculationNode;
-import beast.base.evolution.tree.Tree;
 
 /**
  *
@@ -34,10 +33,15 @@ import beast.base.evolution.tree.Tree;
 @Description("Uses the beagle library to calculate the tree likelihood by modifying the BeagleTreeLikelihood" +
             "code to include the origin node branch and output a log likelihood identical to TideTree" +
             "for the case when editing occurs the entire duration of the experiment.")
-public class BeamBeagleTreeLikelihood extends TreeLikelihood {
+public class BeamBeagleTreeLikelihood extends GenericTreeLikelihood {
 
 
     public Input<RealParameter> originInput = new Input<>("origin", "Start of the cell division process, usually start of the experiment.", Input.Validate.OPTIONAL);
+    final public Input<Frequencies> rootFrequenciesInput = new Input<>("rootFrequencies", "prior state frequencies at root, optional", Input.Validate.OPTIONAL);
+
+    public static enum Scaling {none, always, _default};
+    final public Input<Scaling> scaling = new Input<>("scaling", "type of scaling to use, one of " + Arrays.toString(Scaling.values()) + ". If not specified, the -beagle_scaling flag is used.", Scaling._default, Scaling.values());
+        
 
 
     @Override
@@ -69,7 +73,7 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
         // get the branch model with the default branch model as a strict clock if not specified in the input
         branchRateModel = branchRateModelInput.get();
         if (branchRateModel == null) {
-        	branchRateModel = new StrictClockModel();
+        	throw new IllegalArgumentException("Branch rate model must be specified in the current implementation.");
         }
 
         // get the number of possible outcome states in the substitution model (think unique barcode edits or tissue locations)
@@ -132,6 +136,9 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
      */
     @Override
     public double calculateLogP() {
+
+        // // DEBUGGING
+        // System.out.println("calculateLogP() called");
 
         if(useOrigin) {
             Double originHeight = origin.getValue();
@@ -541,13 +548,19 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
         // store origin partials
         System.arraycopy(originPartials, 0, storedOriginPartials, 0, originPartials.length);
 
+        // Store logP and reset isDirty to false
         super.store();
-
-        // store logP
-        storedLogP = logP;
 
         // store branch lengths
         System.arraycopy(m_branchLengths, 0, storedBranchLengths, 0, m_branchLengths.length);
+
+        // // DEBUGGING
+        // System.out.println("Original logP: " + logP);
+        // System.out.println("Original branch lengths: " + Arrays.toString(m_branchLengths));
+        // System.out.println("Original origin partials: " + Arrays.toString(originPartials));
+        // System.out.println("Original scale buffer indices: " + Arrays.toString(scaleBufferIndices));
+        // System.out.println("Original ever underflowed: " + everUnderflowed);
+        // System.out.println("Original use scale factors: " + useScaleFactors);
     }
 
     /**
@@ -555,13 +568,23 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
      */
     @Override
     public void restore() {
+
+        // // DEBUGGING
+        // System.out.println("New logP: " + logP);
+        // System.out.println("New branch lengths: " + Arrays.toString(m_branchLengths));
+        // System.out.println("New origin partials: " + Arrays.toString(originPartials));
+        // System.out.println("New scale buffer indices: " + Arrays.toString(scaleBufferIndices));
+        // System.out.println("New ever underflowed: " + everUnderflowed);
+        // System.out.println("New use scale factors: " + useScaleFactors);
         
         partialBufferHelper.restoreState();
         matrixBufferHelper.restoreState();
 
         if (useScaleFactors || useAutoScaling) {
             scaleBufferHelper.restoreState();
-            System.arraycopy(storedScaleBufferIndices, 0, scaleBufferIndices, 0, storedScaleBufferIndices.length);
+            int[] tmp2 = storedScaleBufferIndices;
+            storedScaleBufferIndices = scaleBufferIndices;
+            scaleBufferIndices = tmp2;
         }
 
         // Restore flags for scaling and underflow
@@ -569,15 +592,29 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
         useScaleFactors = storedUseScaleFactors;
 
         // restore origin partials
-        System.arraycopy(storedOriginPartials, 0, originPartials, 0, storedOriginPartials.length);
+        double[] tmp3 = storedOriginPartials;
+        storedOriginPartials = originPartials;
+        originPartials = tmp3;
 
-        super.restore();
-
-        // restore logP
+        // Restore logP and reset isDirty to false
         logP = storedLogP;
 
+        // Reset isDirty to false
+        super.restore(); 
+
         // restore branch lengths
-        System.arraycopy(storedBranchLengths, 0, m_branchLengths, 0, storedBranchLengths.length);
+        double[] tmp = m_branchLengths;
+        m_branchLengths = storedBranchLengths;
+        storedBranchLengths = tmp;
+
+        // // DEBUGGING
+        // System.out.println("Restored logP: " + logP);
+        // System.out.println("Stored branch lengths: " + Arrays.toString(storedBranchLengths));
+        // System.out.println("Restored branch lengths: " + Arrays.toString(m_branchLengths));
+        // System.out.println("Restored origin partials: " + Arrays.toString(originPartials));
+        // System.out.println("Restored scale buffer indices: " + Arrays.toString(scaleBufferIndices));
+        // System.out.println("Restored ever underflowed: " + everUnderflowed);
+        // System.out.println("Restored use scale factors: " + useScaleFactors);
 
     }
 
@@ -828,6 +865,77 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
     }
 
 
+    public class BufferIndexHelper {
+        /**
+         * @param maxIndexValue the number of possible input values for the index
+         * @param minIndexValue the minimum index value to have the mirrored buffers
+         */
+        BufferIndexHelper(int maxIndexValue, int minIndexValue) {
+            this.maxIndexValue = maxIndexValue;
+            this.minIndexValue = minIndexValue;
+
+            offsetCount = maxIndexValue - minIndexValue;
+            indexOffsets = new int[offsetCount];
+            storedIndexOffsets = new int[offsetCount];
+        }
+        public int getBufferCount() {
+            return 2 * offsetCount + minIndexValue;
+        }
+        void flipOffset(int i) {
+            if (i >= minIndexValue) {
+                indexOffsets[i - minIndexValue] = offsetCount - indexOffsets[i - minIndexValue];
+            } // else do nothing
+        }
+        public int getOffsetIndex(int i) {
+            if (i < minIndexValue) {
+                return i;
+            }
+            return indexOffsets[i - minIndexValue] + i;
+        }
+        void getIndices(int[] outIndices) {
+            for (int i = 0; i < maxIndexValue; i++) {
+                outIndices[i] = getOffsetIndex(i);
+            }
+        }
+        void storeState() {
+            System.arraycopy(indexOffsets, 0, storedIndexOffsets, 0, indexOffsets.length);
+
+        }
+        void restoreState() {
+            int[] tmp = storedIndexOffsets;
+            storedIndexOffsets = indexOffsets;
+            indexOffsets = tmp;
+        }
+        private final int maxIndexValue;
+        private final int minIndexValue;
+        private final int offsetCount;
+        private int[] indexOffsets;
+        private int[] storedIndexOffsets;
+    }
+
+    public enum PartialsRescalingScheme {
+        DEFAULT("default"), // whatever our current favourite default is
+        NONE("none"),       // no scaling
+        DYNAMIC("dynamic"), // rescale when needed and reuse scaling factors
+        ALWAYS("always"),   // rescale every node, every site, every time - slow but safe
+        DELAYED("delayed"), // postpone until first underflow then switch to 'always'
+        AUTO("auto");       // beagle automatic scaling - currently playing it safe with 'always'
+        PartialsRescalingScheme(String text) {
+            this.text = text;
+        }
+        public String getText() {
+            return text;
+        }
+        private final String text;
+        public static PartialsRescalingScheme parseFromString(String text) {
+            for (PartialsRescalingScheme scheme : PartialsRescalingScheme.values()) {
+                if (scheme.getText().compareToIgnoreCase(text) == 0)
+                    return scheme;
+            }
+            return DEFAULT;
+        }
+    }
+
     // Initialize origin variable
     protected RealParameter origin;
     protected boolean useOrigin = false;
@@ -911,89 +1019,35 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
     protected double[] originPartials;
     protected double[] storedOriginPartials;
 
-    // Class BufferIndexHelper
-    public class BufferIndexHelper {
-        /**
-         * @param maxIndexValue the number of possible input values for the index
-         * @param minIndexValue the minimum index value to have the mirrored buffers
-         */
-        BufferIndexHelper(int maxIndexValue, int minIndexValue) {
-            this.maxIndexValue = maxIndexValue;
-            this.minIndexValue = minIndexValue;
+    // Declare branch lengths arrays
+    protected double[] m_branchLengths;
+    protected double[] storedBranchLengths;
 
-            offsetCount = maxIndexValue - minIndexValue;
-            indexOffsets = new int[offsetCount];
-            storedIndexOffsets = new int[offsetCount];
-        }
+    /**
+     * flag to indicate the
+     * // when CLEAN=0, nothing needs to be recalculated for the node
+     * // when DIRTY=1 indicates a node partial needs to be recalculated
+     * // when FILTHY=2 indicates the indices for the node need to be recalculated
+     * // (often not necessary while node partial recalculation is required)
+     */
+    protected int hasDirt;
 
-        public int getBufferCount() {
-            return 2 * offsetCount + minIndexValue;
-        }
+    /**
+     * BEASTObject associated with inputs. Since none of the inputs are StateNodes, it
+     * is safe to link to them only once, during initAndValidate.
+     */
+    protected SubstitutionModel substitutionModel;
+    protected SiteModel.Base m_siteModel;
+    protected BranchRateModel.Base branchRateModel;
 
-        void flipOffset(int i) {
-            if (i >= minIndexValue) {
-                indexOffsets[i - minIndexValue] = offsetCount - indexOffsets[i - minIndexValue];
-            } // else do nothing
-        }
+    /**
+     * memory allocation for likelihoods for each of the patterns *
+     */
+    protected double[] patternLogLikelihoods;
 
-        public int getOffsetIndex(int i) {
-            if (i < minIndexValue) {
-                return i;
-            }
-            return indexOffsets[i - minIndexValue] + i;
-        }
-
-        void getIndices(int[] outIndices) {
-            for (int i = 0; i < maxIndexValue; i++) {
-                outIndices[i] = getOffsetIndex(i);
-            }
-        }
-
-        void storeState() {
-            System.arraycopy(indexOffsets, 0, storedIndexOffsets, 0, indexOffsets.length);
-
-        }
-
-        void restoreState() {
-            int[] tmp = storedIndexOffsets;
-            storedIndexOffsets = indexOffsets;
-            indexOffsets = tmp;
-        }
-
-        private final int maxIndexValue;
-        private final int minIndexValue;
-        private final int offsetCount;
-
-        private int[] indexOffsets;
-        private int[] storedIndexOffsets;
-
-    }
-
-    public enum PartialsRescalingScheme {
-        DEFAULT("default"), // whatever our current favourite default is
-        NONE("none"),       // no scaling
-        DYNAMIC("dynamic"), // rescale when needed and reuse scaling factors
-        ALWAYS("always"),   // rescale every node, every site, every time - slow but safe
-        DELAYED("delayed"), // postpone until first underflow then switch to 'always'
-        AUTO("auto");       // beagle automatic scaling - currently playing it safe with 'always'
-
-        PartialsRescalingScheme(String text) {
-            this.text = text;
-        }
-
-        public String getText() {
-            return text;
-        }
-
-        private final String text;
-
-        public static PartialsRescalingScheme parseFromString(String text) {
-            for (PartialsRescalingScheme scheme : PartialsRescalingScheme.values()) {
-                if (scheme.getText().compareToIgnoreCase(text) == 0)
-                    return scheme;
-            }
-            return DEFAULT;
-        }
-    }
+    /**
+     * memory allocation for probability tables obtained from the SiteModel *
+     */
+    protected double[] probabilities;
 
 }

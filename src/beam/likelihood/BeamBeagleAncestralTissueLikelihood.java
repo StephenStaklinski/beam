@@ -258,6 +258,17 @@ public class BeamBeagleAncestralTissueLikelihood extends BeamBeagleTreeLikelihoo
                 // // DEBUGGING
                 // System.out.println("Node " + nodeNum + " conditionalProbabilities: " + Arrays.toString(conditionalProbabilities));
 
+                // // TEMPORARY HACK - NEED TO FIX LATER BUT NEEDED TO CHECK THE OTHER NON LOGGING MODEL IMPLEMENTATION
+                // boolean allNaN = true;
+                // for (double prob : conditionalProbabilities) {
+                //     if (!Double.isNaN(prob)) {
+                //         allNaN = false;
+                //         break;
+                //     }
+                // }
+                // if (allNaN) {
+                //     Arrays.fill(conditionalProbabilities, 1.0 / stateCount);
+                // }
 
                 // Sample the node state
                 reconstructedStates[nodeNum][0] = Randomizer.randomChoicePDF(conditionalProbabilities);

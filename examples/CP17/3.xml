@@ -40,10 +40,6 @@
     <userDataType spec="tidetree.evolution.datatype.EditData" nrOfStates="14"/>
 </data>
 
-<taxonset id="taxonset" spec="TaxonSet" alignment="@alignment"/>
-
-<traitSet id="dateTrait" spec="feast.fileio.TraitSetFromXSV" taxa="@taxonset" fileName="/Users/staklins/projects/crispr-barcode-cancer-metastasis/beam_dev/beam/examples/CP17/CP17_date_traits.csv" sep="," taxonNameCol="0" traitValueCol="1" skipFirstRow="false" traitname="date-forward"/>
-
 
 <substModel id="substModel" spec="beam.substitutionmodel.BeamGeneralMutationSubstitutionModel" editRates="@editRate" silencingRate="@silencingRate" editHeight="364" editDuration="364">
     <frequencies spec="beast.base.evolution.substitutionmodel.Frequencies" frequencies="1.0 0 0" estimate="false"/>
@@ -51,11 +47,10 @@
 
 <siteModel spec="SiteModel" id="siteModel" mutationRate="@mutationRate" gammaCategoryCount="0" substModel="@substModel"></siteModel>
 
-<run id="mcmc" spec="MCMC" chainLength="500000000">
+<run id="mcmc" spec="MCMC" chainLength="1000000000">
         <state id="state" spec="State" storeEvery="5000">
             <stateNode id="tree" spec="beam.tree.BeamStartingTreeFromNewick" taxa="@alignment" IsLabelledNewick="true" adjustTipHeights="true" newick="(ASV209:289.7780764849471,((((ASV438:142.41676679600346,(ASV480:136.41035461402765,(ASV481:130.40394306356015,(ASV543:124.39753179892465,(ASV544:118.39112068485487,(ASV697:112.38470964666108,(ASV010_0:6.006410378650726,ASV010_1:6.006410378650726,ASV010_3:6.006410378650726,ASV010_2:6.006410378650726):106.37829926801035):6.006411038193787):6.0064111140697864):6.006411264635485):6.006411550467505):6.006412181975823):6.006414362492349,(ASV415_0:6.0064106629719065,ASV415_1:6.0064106629719065):142.4167704955239):11.366320553333665,(ASV078_0:6.006410483189404,ASV078_1:6.006410483189404):153.7830925036877):6.006412004499097,(ASV007_0:6.006410348323553,ASV007_1:6.006410348323553,ASV007_3:6.006410348323553,ASV007_2:6.006410348323553):159.78950258518222):123.9821606687708):74.22192351505292">
-                <trait idref="dateTrait"/>
-                <taxonset idref="taxonset"/>
+                <taxonset id="taxonset" spec="TaxonSet" alignment="@alignment"/>
             </stateNode>
 
             <parameter id="editRate" spec="parameter.RealParameter" estimate="true" name="stateNode" lower="0.0" dimension="12">.5428571428 .1142857142 .0571428571 .0285714285 .0285714285 .0571428571 .0285714285 .0285714285 .0285714285 .0285714285 .0285714285 .0285714285</parameter>
@@ -196,7 +191,7 @@
             <log idref="relativeGeoRates.s:tissue"/>
             <log idref="traitClockRate.c:tissue"/>
             <log id="geoSubstModelLogger.s:tissue" spec="beam.substitutionmodel.BeamGtiTissueSubstitutionModelLogger" dataType="@codeMap" model="@svs.s:tissue"/>
-            <log idref="treeLikelihood"/>
+            <!-- <log idref="treeLikelihood"/> -->
             <log idref="traitLikelihood"/>
             <log idref="birthRate"/>
             <log idref="deathRate"/>
@@ -209,13 +204,13 @@
             <log idref="prior"/>
         </logger>
 
-        <logger id="treeWithTraitLogger" spec="Logger" fileName="chain_3.trees" logEvery="10000" mode="tree">
+        <!-- <logger id="treeWithTraitLogger" spec="Logger" fileName="chain_3.trees" logEvery="10000" mode="tree">
                 <log id="treeWithTraitLoggerItem" spec="beastclassic.evolution.tree.TreeWithTraitLogger" tree="@tree">
                     <metadata idref="posterior"/>
                     <metadata idref="treeLikelihood"/>
                     <metadata idref="traitLikelihood"/>
                 </log>
-        </logger>
+        </logger> -->
 
         <!-- log tree -->
         <logger id="treelog.t:cluster" spec="Logger" fileName="chain_3_no_trait.trees" logEvery="10000" mode="tree">
