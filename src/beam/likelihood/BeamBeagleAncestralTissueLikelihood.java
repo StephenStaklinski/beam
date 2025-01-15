@@ -129,7 +129,6 @@ public class BeamBeagleAncestralTissueLikelihood extends BeamBeagleTreeLikelihoo
     
     @Override
     protected boolean requiresRecalculation() {
-    	likelihoodKnown = false;
     	boolean isDirty = super.requiresRecalculation();
     	int hasDirt = Tree.IS_CLEAN;
 		isDirty |= super.requiresRecalculation();
@@ -142,9 +141,6 @@ public class BeamBeagleAncestralTissueLikelihood extends BeamBeagleTreeLikelihoo
     public int[] getStatesForNode(TreeInterface tree, Node node) {
         if (tree != treeInput.get()) {
             throw new RuntimeException("Can only reconstruct states on treeModel given to constructor");
-        }
-        if (!likelihoodKnown) {
-        	calculateLogP();
         }
         if (!areStatesRedrawn) {
             // redraw ancestral states for each node
@@ -161,8 +157,6 @@ public class BeamBeagleAncestralTissueLikelihood extends BeamBeagleTreeLikelihoo
         super.calculateLogP();
         // Reset the states redrawn flag for new calculation
         areStatesRedrawn = false;
-        // Set the likelihood known flag
-        likelihoodKnown = true;
     
         return logP;
     }
@@ -265,7 +259,7 @@ public class BeamBeagleAncestralTissueLikelihood extends BeamBeagleTreeLikelihoo
             // Traverse down the two child nodes
             Node child1 = node.getChild(0);
             traverseSample(tree, child1, reconstructedStates[nodeNum][0]);
-            
+
             Node child2 = node.getChild(1);
             traverseSample(tree, child2, reconstructedStates[nodeNum][0]);
         } else {
@@ -289,7 +283,6 @@ public class BeamBeagleAncestralTissueLikelihood extends BeamBeagleTreeLikelihoo
     private String tag;
     private boolean areStatesRedrawn = false;
     private boolean storedAreStatesRedrawn = false;
-    boolean likelihoodKnown = false;
     int stateCount;
     int state;
     int[][] tipStates;
