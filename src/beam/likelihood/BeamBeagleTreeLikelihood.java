@@ -496,6 +496,8 @@ public class BeamBeagleTreeLikelihood extends TreeLikelihood {
     @Override
     protected boolean requiresRecalculation() {
 
+        hasDirt = Tree.IS_CLEAN;
+
         if (substitutionModel instanceof CalculationNode) {
             if (((CalculationNode) substitutionModel).isDirtyCalculation()) {
                 hasDirt = Tree.IS_DIRTY;
