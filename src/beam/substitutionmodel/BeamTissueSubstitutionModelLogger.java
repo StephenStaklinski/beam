@@ -12,10 +12,10 @@ import java.io.PrintStream;
  * @author Stephen Staklinski
  **/
 
-@Description("Logger for BeamOneRateReseedingTissueSubstitutionModel.")
-public class BeamOneRateReseedingTissueSubstitutionModelLogger extends BEASTObject implements Loggable{
+@Description("Logger for BeamGtiTissueSubstitutionModel.")
+public class BeamTissueSubstitutionModelLogger extends BEASTObject implements Loggable{
 
-    public Input<BeamOneRateReseedingTissueSubstitutionModel> modelInput = new Input<>(
+    public Input<BeamGtiTissueSubstitutionModel> modelInput = new Input<>(
             "model",
             "Beam general substitution model.",
             Input.Validate.REQUIRED);
@@ -34,9 +34,9 @@ public class BeamOneRateReseedingTissueSubstitutionModelLogger extends BEASTObje
 
     private int nrOfStates;
 
-    protected BeamOneRateReseedingTissueSubstitutionModel model;
+    protected BeamGtiTissueSubstitutionModel model;
 
-    public BeamOneRateReseedingTissueSubstitutionModelLogger() { }
+    public BeamTissueSubstitutionModelLogger() { }
 
     @Override
     public void initAndValidate() {
@@ -69,9 +69,11 @@ public class BeamOneRateReseedingTissueSubstitutionModelLogger extends BEASTObje
 
         for (int i=0; i<nrOfStates; i++) {
             String iStr = getLocationString(i);
+
             for (int j=0 ; j<nrOfStates; j++) {
-                if (j==i)
+                if (j==i) {
                     continue;
+                }
 
                 String jStr = getLocationString(j);
                 out.print(relRatePrefix + iStr + "_" + jStr + "\t");
@@ -81,19 +83,17 @@ public class BeamOneRateReseedingTissueSubstitutionModelLogger extends BEASTObje
 
     @Override
     public void log(long nSample, PrintStream out) {
+
+        // Logging normalized rates directly from the rate matrix, not the input rate parameters used to setup the rate matrix.
+        double[][] rateMatrix = model.getRateMatrix();
+
         for (int i=0; i<nrOfStates; i++) {
             for (int j=0; j<nrOfStates; j++) {
                 if (j==i) {
                     continue;
                 }
 
-                if (i == 0) {
-                    out.print(model.ratesInput.get().getArrayValue(0) + "\t");
-                } else if (j == 0) {
-                    out.print(model.ratesInput.get().getArrayValue(2) + "\t");
-                } else {
-                    out.print(model.ratesInput.get().getArrayValue(1) + "\t");
-                }
+                out.print(rateMatrix[i][j] + "\t");
             }
         }
     }

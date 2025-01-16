@@ -21,7 +21,7 @@ import java.util.stream.Stream;
  **/
 @Description("TideTree model that can be used with the modified BEAGLE tree likelihood" +
             "under the assumption that editing happens during the entire experiment.")
-public class BeamGeneralMutationSubstitutionModel extends EditAndSilencingModel {
+public class BeamMutationSubstitutionModel extends EditAndSilencingModel {
 
     RealParameter editHeightP;
     RealParameter editDurationP;

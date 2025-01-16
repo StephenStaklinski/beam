@@ -58,11 +58,9 @@
             <parameter id="silencingRate" spec="parameter.RealParameter" dimension="1" lower="0.0" name="stateNode" upper="1000">0.0001</parameter>
 
             <!-- the clock rate is the rate of acquiring edited state -->
-            <parameter id="clockRate.c" spec="parameter.RealParameter" name="stateNode">1.0</parameter>
-            <!-- the mutation rate could be another rate multiplier, but we leave it fixed to 1 -->
-            <parameter id="origin" spec="parameter.RealParameter" name="stateNode" upper="364.0001">364.001</parameter>
+            <parameter id="clockRate.c" spec="parameter.RealParameter" name="stateNode">0.01</parameter>
             <parameter id="relativeGeoRates.s:tissue" spec="parameter.RealParameter" lower="0.0" dimension="12" name="stateNode">1.0</parameter>
-            <parameter id="traitClockRate.c:tissue" spec="parameter.RealParameter" name="stateNode">1.0</parameter>
+            <parameter id="traitClockRate.c:tissue" spec="parameter.RealParameter" name="stateNode">0.01</parameter>
 
             <!-- birth rate corresponds to cell division rate -->
             <parameter id="birthRate" spec="parameter.RealParameter" dimension="1" lower="0.0" name="stateNode" upper="5">0.6</parameter>
@@ -77,7 +75,7 @@
             <distribution id="prior" spec="CompoundDistribution">
 
                 <distribution id="birthDeathSamplingModel" spec="bdsky.evolution.speciation.BirthDeathSkylineModel"
-                          conditionOnSurvival="True" tree="@tree" origin="@origin" contemp="true"
+                          conditionOnSurvival="True" tree="@tree" origin="364.001" contemp="true"
                           birthRate="@birthRate" deathRate="@deathRate" rho="1.0"
                           samplingRate="0.0" >
                 </distribution>
@@ -96,7 +94,7 @@
                 </prior>
 
                 <prior id="ClockPrior.c" name="distribution" x="@clockRate.c">
-                    <Uniform name="distr" lower="0.0" upper="Infinity"/>
+                    <Uniform name="distr" lower="0.0" upper="1000"/>
                 </prior>
 
                 <prior id="relativeGeoRatesPrior.s:tissue" name="distribution" x="@relativeGeoRates.s:tissue">
@@ -105,7 +103,7 @@
                     </Exponential>
                 </prior>
                 <prior id="geoclockPrior.c:tissue" name="distribution" x="@traitClockRate.c:tissue">
-                    <Uniform name="distr" lower="0.0" upper="Infinity"/>
+                    <Uniform name="distr" lower="0.0" upper="1000"/>
                 </prior>
 
 
@@ -126,14 +124,14 @@
                 
                 <distribution id="treeLikelihood" spec="beam.likelihood.BeamBeagleTreeLikelihood" origin="364.001" data="@alignment" tree="@tree">
                     <siteModel spec="SiteModel" id="siteModel" mutationRate="1.0" gammaCategoryCount="0">
-                        <substModel id="substModel" spec="beam.substitutionmodel.BeamGeneralMutationSubstitutionModel" editRates="@editRate" silencingRate="@silencingRate" editHeight="364" editDuration="364">
+                        <substModel id="substModel" spec="beam.substitutionmodel.BeamMutationSubstitutionModel" editRates="@editRate" silencingRate="@silencingRate" editHeight="364" editDuration="364">
                             <frequencies spec="beast.base.evolution.substitutionmodel.Frequencies" frequencies="1.0 0 0" estimate="false"/>
                         </substModel>
                     </siteModel>
                     <branchRateModel spec="beast.base.evolution.branchratemodel.StrictClockModel" clock.rate="@clockRate.c"/>
                 </distribution>
                 
-                <distribution id="traitLikelihood" spec="beam.likelihood.BeamBeagleAncestralTissueLikelihood" origin="@origin" tag="location" tree="@tree" data="@tissue">
+                <distribution id="traitLikelihood" spec="beam.likelihood.BeamBeagleAncestralTissueLikelihood" origin="364.001" tag="location" tree="@tree" data="@tissue">
                     <siteModel id="geoSiteModel.s:tissue" spec="SiteModel" gammaCategoryCount="1" mutationRate="1.0">
                         <parameter id="gammaShape.s:tissue" spec="parameter.RealParameter" estimate="false" name="shape">1.0</parameter>
                         <substModel id="svs.s:tissue" spec="beam.substitutionmodel.BeamGtiTissueSubstitutionModel" rates="@relativeGeoRates.s:tissue">
@@ -187,7 +185,7 @@
             <log idref="clockRate.c"/>
             <log idref="relativeGeoRates.s:tissue"/>
             <log idref="traitClockRate.c:tissue"/>
-            <log id="geoSubstModelLogger.s:tissue" spec="beam.substitutionmodel.BeamGtiTissueSubstitutionModelLogger" dataType="@codeMap" model="@svs.s:tissue"/>
+            <log id="geoSubstModelLogger.s:tissue" spec="beam.substitutionmodel.BeamTissueSubstitutionModelLogger" dataType="@codeMap" model="@svs.s:tissue"/>
             <log idref="treeLikelihood"/>
             <log idref="traitLikelihood"/>
             <log idref="birthRate"/>
@@ -202,16 +200,7 @@
         </logger>
 
         <logger id="treeWithTraitLogger" spec="Logger" fileName="chain_3.trees" logEvery="10000" mode="tree">
-                <log id="treeWithTraitLoggerItem" spec="beastclassic.evolution.tree.TreeWithTraitLogger" tree="@tree">
-                    <metadata idref="posterior"/>
-                    <metadata idref="treeLikelihood"/>
-                    <metadata idref="traitLikelihood"/>
-                </log>
-        </logger>
-
-        <!-- log tree -->
-        <logger id="treelog.t:cluster" spec="Logger" fileName="chain_3_no_trait.trees" logEvery="10000" mode="tree">
-                    <log idref="tree" printMetaData="true"/>
+                <log id="treeWithTraitLoggerItem" spec="beastclassic.evolution.tree.TreeWithTraitLogger" tree="@tree"/>
         </logger>
 
     <operatorschedule id="OperatorSchedule" spec="OperatorSchedule"/>
