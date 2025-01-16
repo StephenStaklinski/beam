@@ -431,7 +431,7 @@ public class BeamBeagleTreeLikelihood extends GenericTreeLikelihood {
             hasDirt = Tree.IS_DIRTY;
             return true;
         }
-        if (branchRateModel != null && branchRateModel.isDirtyCalculation()) {
+        if (branchRateModel.isDirtyCalculation()) {
             hasDirt = Tree.IS_FILTHY;
             return true;
         }

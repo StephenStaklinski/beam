@@ -46,7 +46,7 @@
 </data>
 
 
-<run id="mcmc" spec="MCMC" chainLength="1000000000">
+<run id="mcmc" spec="MCMC" chainLength="5000000">
         <state id="state" spec="State" storeEvery="5000">
             <stateNode id="tree" spec="beam.tree.BeamStartingTreeFromNewick" taxa="@alignment" IsLabelledNewick="true" adjustTipHeights="true" newick="(ASV209:289.7780764849471,((((ASV438:142.41676679600346,(ASV480:136.41035461402765,(ASV481:130.40394306356015,(ASV543:124.39753179892465,(ASV544:118.39112068485487,(ASV697:112.38470964666108,(ASV010_0:6.006410378650726,ASV010_1:6.006410378650726,ASV010_3:6.006410378650726,ASV010_2:6.006410378650726):106.37829926801035):6.006411038193787):6.0064111140697864):6.006411264635485):6.006411550467505):6.006412181975823):6.006414362492349,(ASV415_0:6.0064106629719065,ASV415_1:6.0064106629719065):142.4167704955239):11.366320553333665,(ASV078_0:6.006410483189404,ASV078_1:6.006410483189404):153.7830925036877):6.006412004499097,(ASV007_0:6.006410348323553,ASV007_1:6.006410348323553,ASV007_3:6.006410348323553,ASV007_2:6.006410348323553):159.78950258518222):123.9821606687708):74.22192351505292">
                 <taxonset id="taxonset" spec="TaxonSet" alignment="@alignment"/>
@@ -58,9 +58,9 @@
             <parameter id="silencingRate" spec="parameter.RealParameter" dimension="1" lower="0.0" name="stateNode" upper="1000">0.0001</parameter>
 
             <!-- the clock rate is the rate of acquiring edited state -->
-            <parameter id="clockRate.c" spec="parameter.RealParameter" name="stateNode">0.01</parameter>
+            <parameter id="clockRate.c" spec="parameter.RealParameter" name="stateNode">0.0001</parameter>
             <parameter id="relativeGeoRates.s:tissue" spec="parameter.RealParameter" lower="0.0" dimension="12" name="stateNode">1.0</parameter>
-            <parameter id="traitClockRate.c:tissue" spec="parameter.RealParameter" name="stateNode">0.01</parameter>
+            <parameter id="traitClockRate.c:tissue" spec="parameter.RealParameter" name="stateNode">0.0001</parameter>
 
             <!-- birth rate corresponds to cell division rate -->
             <parameter id="birthRate" spec="parameter.RealParameter" dimension="1" lower="0.0" name="stateNode" upper="5">0.6</parameter>
@@ -94,7 +94,7 @@
                 </prior>
 
                 <prior id="ClockPrior.c" name="distribution" x="@clockRate.c">
-                    <Uniform name="distr" lower="0.0" upper="1000"/>
+                    <Uniform name="distr" lower="0.0" upper="0.01"/>
                 </prior>
 
                 <prior id="relativeGeoRatesPrior.s:tissue" name="distribution" x="@relativeGeoRates.s:tissue">
@@ -102,12 +102,11 @@
                         <parameter spec="parameter.RealParameter" estimate="false" name="mean">1.0</parameter>
                     </Exponential>
                 </prior>
+
                 <prior id="geoclockPrior.c:tissue" name="distribution" x="@traitClockRate.c:tissue">
-                    <Uniform name="distr" lower="0.0" upper="1000"/>
+                    <Uniform name="distr" lower="0.0" upper="0.001"/>
                 </prior>
 
-
-                <!-- prior distributions on phylodynamic parameters -->
                 <prior id="birthRatePrior" name="distribution" x="@birthRate">
                     <Uniform name="distr" lower="0.0" upper="5.0"/>
                 </prior>
@@ -125,7 +124,7 @@
                 <distribution id="treeLikelihood" spec="beam.likelihood.BeamBeagleTreeLikelihood" origin="364.001" data="@alignment" tree="@tree">
                     <siteModel spec="SiteModel" id="siteModel" mutationRate="1.0" gammaCategoryCount="0">
                         <substModel id="substModel" spec="beam.substitutionmodel.BeamMutationSubstitutionModel" editRates="@editRate" silencingRate="@silencingRate" editHeight="364" editDuration="364">
-                            <frequencies spec="beast.base.evolution.substitutionmodel.Frequencies" frequencies="1.0 0 0" estimate="false"/>
+                            <frequencies spec="beast.base.evolution.substitutionmodel.Frequencies" frequencies="1" estimate="false"/>
                         </substModel>
                     </siteModel>
                     <branchRateModel spec="beast.base.evolution.branchratemodel.StrictClockModel" clock.rate="@clockRate.c"/>
@@ -161,7 +160,7 @@
         
     <!-- operators on ancestral state model sparameters -->
     <operator id="georateScaler.s:tissue" spec="ScaleOperator" parameter="@relativeGeoRates.s:tissue" scaleAllIndependently="true" scaleFactor="0.99" weight="30.0"/>
-    <operator id="geoMuScaler.c:tissue" spec="ScaleOperator" parameter="@traitClockRate.c:tissue" scaleFactor="0.8" weight="3.0"/>
+    <operator id="tissueClockRateScaler" spec="ScaleOperator" parameter="@traitClockRate.c:tissue" scaleFactor="0.8" weight="3.0"/>
     
 
     <!-- Operators on phylodynamic parameters -->
