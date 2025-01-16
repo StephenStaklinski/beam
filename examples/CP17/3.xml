@@ -40,12 +40,11 @@
     <userDataType spec="tidetree.evolution.datatype.EditData" nrOfStates="14"/>
 </data>
 
+<data id="tissue" spec="beastclassic.evolution.alignment.AlignmentFromTrait">
+    <traitSet id="traitset" spec="feast.fileio.TraitSetFromXSV" fileName="$(fileDir)/CP17_tip_tissues.csv" taxa="@taxonset" taxonNameCol="0" skipFirstRow="false" sep="," traitname="discrete"/>
+    <userDataType id="codeMap" spec="beast.base.evolution.datatype.UserDataType" codeMap="PRL=0,LVM=1,LVR=2,RBL=3,? = 0 1 2 3 " codelength="-1" states="4"/>
+</data>
 
-<substModel id="substModel" spec="beam.substitutionmodel.BeamGeneralMutationSubstitutionModel" editRates="@editRate" silencingRate="@silencingRate" editHeight="364" editDuration="364">
-    <frequencies spec="beast.base.evolution.substitutionmodel.Frequencies" frequencies="1.0 0 0" estimate="false"/>
-</substModel>
-
-<siteModel spec="SiteModel" id="siteModel" mutationRate="@mutationRate" gammaCategoryCount="0" substModel="@substModel"></siteModel>
 
 <run id="mcmc" spec="MCMC" chainLength="1000000000">
         <state id="state" spec="State" storeEvery="5000">
@@ -126,26 +125,26 @@
             
             <distribution id="likelihood" spec="CompoundDistribution" useThreads="true">
                 
-                <distribution id="treeLikelihood" spec="beam.likelihood.BeamBeagleTreeLikelihood" origin="364.001" data="@alignment" tree="@tree" siteModel="@siteModel">
+                <distribution id="treeLikelihood" spec="beam.likelihood.BeamBeagleTreeLikelihood" origin="364.001" data="@alignment" tree="@tree">
+                    <siteModel spec="SiteModel" id="siteModel" mutationRate="@mutationRate" gammaCategoryCount="0">
+                        <substModel id="substModel" spec="beam.substitutionmodel.BeamGeneralMutationSubstitutionModel" editRates="@editRate" silencingRate="@silencingRate" editHeight="364" editDuration="364">
+                            <frequencies spec="beast.base.evolution.substitutionmodel.Frequencies" frequencies="1.0 0 0" estimate="false"/>
+                        </substModel>
+                    </siteModel>
                     <branchRateModel spec="beast.base.evolution.branchratemodel.StrictClockModel" clock.rate="@clockRate.c"/>
                 </distribution>
                 
-                <distribution id="traitLikelihood" spec="beam.likelihood.BeamBeagleAncestralTissueLikelihood" origin="@origin" tag="location" tree="@tree">
-                    <data id="tissue" spec="beastclassic.evolution.alignment.AlignmentFromTrait">
-                        <traitSet id="traitset" spec="feast.fileio.TraitSetFromXSV" fileName="$(fileDir)/CP17_tip_tissues.csv" taxa="@taxonset" taxonNameCol="0" skipFirstRow="false" sep="," traitname="discrete"/>
-                        <userDataType id="codeMap" spec="beast.base.evolution.datatype.UserDataType" codeMap="PRL=0,LVM=1,LVR=2,RBL=3,? = 0 1 2 3 " codelength="-1" states="4"/>
-                    </data>
+                <distribution id="traitLikelihood" spec="beam.likelihood.BeamBeagleAncestralTissueLikelihood" origin="@origin" tag="location" tree="@tree" data="@tissue">
                     <siteModel id="geoSiteModel.s:tissue" spec="SiteModel" gammaCategoryCount="1">
                         <parameter id="mutationRate.s:tissue" spec="parameter.RealParameter" estimate="false" name="mutationRate">1.0</parameter>
                         <parameter id="gammaShape.s:tissue" spec="parameter.RealParameter" estimate="false" name="shape">1.0</parameter>
-                        <parameter id="proportionInvariant.s:tissue" spec="parameter.RealParameter" estimate="false" lower="0.0" name="proportionInvariant" upper="1.0">0.0</parameter>
                         <substModel id="svs.s:tissue" spec="beam.substitutionmodel.BeamGtiTissueSubstitutionModel" rates="@relativeGeoRates.s:tissue">
                             <frequencies id="traitfreqs.s:tissue" spec="Frequencies">
                                 <parameter id="traitfrequencies.s:tissue" spec="parameter.RealParameter" dimension="4" name="frequencies">1 0 0 0</parameter>
                             </frequencies>
                         </substModel>
                     </siteModel>
-                    <branchRateModel id="StrictClockModel.c:tissue" spec="beast.base.evolution.branchratemodel.StrictClockModel" clock.rate="@traitClockRate.c:tissue"/>
+                    <branchRateModel spec="beast.base.evolution.branchratemodel.StrictClockModel" clock.rate="@traitClockRate.c:tissue"/>
                 </distribution>
                 
             </distribution>
@@ -166,7 +165,7 @@
         
     <!-- operators on ancestral state model sparameters -->
     <operator id="georateScaler.s:tissue" spec="ScaleOperator" parameter="@relativeGeoRates.s:tissue" scaleAllIndependently="true" scaleFactor="0.99" weight="30.0"/>
-    <operator id="geoMuScaler.c:tissue" spec="ScaleOperator" parameter="@traitClockRate.c:tissue" scaleFactor="0.9" weight="3.0"/>
+    <operator id="geoMuScaler.c:tissue" spec="ScaleOperator" parameter="@traitClockRate.c:tissue" scaleFactor="0.8" weight="3.0"/>
     
 
     <!-- Operators on phylodynamic parameters -->
@@ -191,7 +190,7 @@
             <log idref="relativeGeoRates.s:tissue"/>
             <log idref="traitClockRate.c:tissue"/>
             <log id="geoSubstModelLogger.s:tissue" spec="beam.substitutionmodel.BeamGtiTissueSubstitutionModelLogger" dataType="@codeMap" model="@svs.s:tissue"/>
-            <!-- <log idref="treeLikelihood"/> -->
+            <log idref="treeLikelihood"/>
             <log idref="traitLikelihood"/>
             <log idref="birthRate"/>
             <log idref="deathRate"/>
@@ -204,13 +203,13 @@
             <log idref="prior"/>
         </logger>
 
-        <!-- <logger id="treeWithTraitLogger" spec="Logger" fileName="chain_3.trees" logEvery="10000" mode="tree">
+        <logger id="treeWithTraitLogger" spec="Logger" fileName="chain_3.trees" logEvery="10000" mode="tree">
                 <log id="treeWithTraitLoggerItem" spec="beastclassic.evolution.tree.TreeWithTraitLogger" tree="@tree">
                     <metadata idref="posterior"/>
                     <metadata idref="treeLikelihood"/>
                     <metadata idref="traitLikelihood"/>
                 </log>
-        </logger> -->
+        </logger>
 
         <!-- log tree -->
         <logger id="treelog.t:cluster" spec="Logger" fileName="chain_3_no_trait.trees" logEvery="10000" mode="tree">
