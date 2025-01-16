@@ -74,9 +74,17 @@ public class BeamBeagleTreeLikelihood extends GenericTreeLikelihood {
         // get the number of possible outcome states in the substitution model (think unique barcode edits or tissue locations)
         m_nStateCount = substitutionModel.getStateCount();
 
+        if (debugInputData) {
+            System.out.println("There are " + m_nStateCount + " unique states.");
+        }
+
         // number of sites
         patternCount = dataInput.get().getPatternCount();
         Log.warning.println("There are " + patternCount + " unique site patterns.");
+        
+        if (debugInputData) {
+            System.out.println("There are " + patternCount + " unique site patterns.");
+        }
 
         // number of rates for the sites
         if (m_siteModel.getCategoryRates(null).length != 1) {
@@ -115,6 +123,11 @@ public class BeamBeagleTreeLikelihood extends GenericTreeLikelihood {
         Node [] nodes = treeInput.get().getNodesAsArray();
         for (int i = 0; i < tipCount; i++) {
             int taxon = getTaxonIndex(nodes[i].getID(), dataInput.get());  
+
+            if (debugInputData) {
+                System.out.println("Setting states for taxon: " + nodes[i].getID());
+            }
+
             setStates(beagle, i, taxon);
         }
 
@@ -135,12 +148,18 @@ public class BeamBeagleTreeLikelihood extends GenericTreeLikelihood {
     @Override
     public double calculateLogP() {
 
-        // // DEBUGGING
-        // System.out.println("calculateLogP() called");
+        if (transitionMatrixDebug || partialsDebug || storeRestoreDebug) {
+            System.out.println("calculateLogP() called");
+        }
 
         if(useOrigin) {
             Double originHeight = origin.getValue();
             if (treeInput.get().getRoot().getHeight() >= originHeight) {
+
+                if (transitionMatrixDebug || partialsDebug || storeRestoreDebug) {
+                    System.out.println("Tree height larger than origin.");
+                }
+
                 return Double.NEGATIVE_INFINITY;
             }
         }
@@ -178,6 +197,10 @@ public class BeamBeagleTreeLikelihood extends GenericTreeLikelihood {
         branchUpdateCount = 0;
         operationCount = 0;
 
+        if (useScaleFactors && (transitionMatrixDebug || partialsDebug || storeRestoreDebug)) {
+            System.out.println("Using scaling");
+        }
+
         // Traverse the tree to update any necessary transition matrices
         final Node root = treeInput.get().getRoot();
         traverse(root, true);
@@ -190,6 +213,10 @@ public class BeamBeagleTreeLikelihood extends GenericTreeLikelihood {
         do {
             // Update partial likelihood up to the root in beagle
             beagle.updatePartials(operations[0], operationCount, Beagle.NONE);
+
+            // if (partialsDebug) {
+            //     traverseGetPartials(root);
+            // }
 
             int rootIndex = partialBufferHelper.getOffsetIndex(root.getNr());
 
@@ -233,6 +260,10 @@ public class BeamBeagleTreeLikelihood extends GenericTreeLikelihood {
              */
             if (useOrigin && root.getHeight() != origin.getValue()) {
 
+                if (partialsDebug) {
+                    System.out.println("Using origin, so starting root to origin partials calculation.");
+                }
+
                 // get the beagle calculated root partials
                 double[] rootPartials = new double[patternCount * m_nStateCount];
                 beagle.getPartials(rootIndex, Beagle.NONE, rootPartials);
@@ -244,12 +275,30 @@ public class BeamBeagleTreeLikelihood extends GenericTreeLikelihood {
                 substitutionModel.getTransitionProbabilities(root, origin.getValue(), root.getHeight(), br, probabilities);
                 System.arraycopy(probabilities, 0, rootTransitionMatrix,  0, matrixDimensions);
 
+                if (transitionMatrixDebug) {
+                    System.out.println("Root to origin transition matrix: " + Arrays.toString(probabilities));
+                }
+
                 // calculate the origin partials
                 calculateOriginPartials(rootPartials, rootTransitionMatrix, originPartials);
+
+                if (partialsDebug) {
+                    System.out.println("Root partials: " + Arrays.toString(rootPartials));
+                    System.out.println("Root transition matrix: " + Arrays.toString(rootTransitionMatrix));
+                    System.out.println("Branch rate: " + br);
+                    double length = origin.getValue() - root.getHeight();
+                    System.out.println("Branch length: " + length);
+                    System.out.println("Origin partials: " + Arrays.toString(originPartials));
+                }
 
                 // scale origin partials if scaling is on
                 double totalScaleFactorsSum = 0.0;
                 if (useScaleFactors) {
+
+                    if (partialsDebug) {
+                        System.out.println("Scaling origin partials");
+                    }
+
                     double[] originScaleFactors = new double[patternCount];
                     int u = 0;
                     for (int i = 0; i < patternCount; i++) {
@@ -305,6 +354,11 @@ public class BeamBeagleTreeLikelihood extends GenericTreeLikelihood {
                 // calculate the likelihood with the new partials
                 beagle.calculateRootLogLikelihoods(new int[]{rootIndex}, new int[]{0}, new int[]{0}, new int[]{Beagle.NONE}, 1, sumLogLikelihoods);
                 logL = sumLogLikelihoods[0] + totalScaleFactorsSum;
+
+                if (partialsDebug) {
+                    System.out.println("sumLogLikelihoods: " + Arrays.toString(sumLogLikelihoods));
+                    System.out.println("totalScaleFactorsSum: " + totalScaleFactorsSum);
+                }
             
                 // restore the original root partials in case the step is rejected or rescaling is required
                 // this is also necessary to get the correct partials for sampling the tissue state at the root node
@@ -316,13 +370,26 @@ public class BeamBeagleTreeLikelihood extends GenericTreeLikelihood {
                 logL = sumLogLikelihoods[0];
             }
 
+            if (partialsDebug) {
+                System.out.println("Before underflow check logL: " + logL);
+            }
+
             // If the logL has numerical instability, then generally repeat calculation with scaling on
             if (Double.isNaN(logL) || Double.isInfinite(logL)) {
+
+                if (partialsDebug) {
+                    System.out.println("Underflow in likelihood!");
+                }
 
                 everUnderflowed = true;
                 logL = Double.NEGATIVE_INFINITY;
 
                 if (firstRescaleAttempt) {
+
+                    if (partialsDebug) {
+                        System.out.println("Attempting first rescale.");
+                    }
+
                     // we have had a potential under/over flow so attempt a rescaling                	
                 	useScaleFactors = true;
                     recomputeScaleFactors = true;
@@ -335,16 +402,25 @@ public class BeamBeagleTreeLikelihood extends GenericTreeLikelihood {
                     done = false; // Run through do-while loop again
                     firstRescaleAttempt = false; // Only try to rescale once
                 } else {
+
+                    if (partialsDebug) {
+                        System.out.println("Rescale failed.");
+                    }
+
                     // we have already tried a rescale, not rescaling, or always rescaling, so just return the likelihood...
                     done = true;
                 }
             } else {
-                done = true; // No under-/over-flow, then done
+                done = true; // Done if no underflow or already tried to rescale once
             }
 
         } while (!done);
 
         logP = logL;
+
+        if (partialsDebug) {
+            System.out.println("Returning logL: " + logL);
+        }
 
         return logL;
     }
@@ -363,6 +439,10 @@ public class BeamBeagleTreeLikelihood extends GenericTreeLikelihood {
 
         // Decide if this node needs to be updated
         int update = (node.isDirty() | hasDirt);
+
+        if (transitionMatrixDebug || partialsDebug) {
+            System.out.println("Traversing node: " + node.getNr() + " with update: " + update);
+        }
 
         // Get the clock rate for the branch
         final double branchRate = branchRateModel.getRateForBranch(node);
@@ -386,12 +466,19 @@ public class BeamBeagleTreeLikelihood extends GenericTreeLikelihood {
             }
 
             // Set which matrix to update
-            matrixUpdateIndices[0][branchUpdateCount] = matrixBufferHelper.getOffsetIndex(nodeNum);
+            final int updateCount = branchUpdateCount;
+            matrixUpdateIndices[0][updateCount] = matrixBufferHelper.getOffsetIndex(nodeNum);
 
             // Get the new transition probability matrix and store it in beagle
             substitutionModel.getTransitionProbabilities(node, node.getParent().getHeight(), node.getHeight(), branchRate, probabilities);
             System.arraycopy(probabilities, 0, matrices,  0, matrixDimensions);
-            beagle.setTransitionMatrix(matrixBufferHelper.getOffsetIndex(nodeNum), matrices, 1);
+            int matrixIndex = matrixBufferHelper.getOffsetIndex(nodeNum);
+            beagle.setTransitionMatrix(matrixIndex, matrices, 1);
+
+            if (transitionMatrixDebug) {
+                System.out.println("Node: " + node.getNr() + " Branch Rate: " + branchRate + " Branch Time: " + branchTime);
+                System.out.println("Node: " + node.getNr() + " Transition Matrix: " + Arrays.toString(probabilities));
+            }
 
             branchUpdateCount++;
 
@@ -447,6 +534,11 @@ public class BeamBeagleTreeLikelihood extends GenericTreeLikelihood {
                 operations[x + 5] = partialBufferHelper.getOffsetIndex(child2.getNr()); // source node 2
                 operations[x + 6] = matrixBufferHelper.getOffsetIndex(child2.getNr()); // source matrix 2
 
+                if (partialsDebug) {
+                    System.out.println("Updating partials for node: " + nodeNum);
+                    System.out.println("Operations: " + Arrays.toString(Arrays.copyOfRange(operations, x, x + Beagle.OPERATION_TUPLE_SIZE)));
+                }
+
                 operationCount++;
 
                 update |= (update1 | update2);
@@ -478,6 +570,17 @@ public class BeamBeagleTreeLikelihood extends GenericTreeLikelihood {
         }
 
         return partials3;
+    }
+
+    private void traverseGetPartials(Node node) {
+        if (!node.isLeaf()) {
+            traverseGetPartials(node.getLeft());
+            traverseGetPartials(node.getRight());
+        }
+        double[] partials = new double[patternCount * m_nStateCount];
+        int index = partialBufferHelper.getOffsetIndex(node.getNr());
+        beagle.getPartials(index, Beagle.NONE, partials);
+        System.out.println("Node " + node.getNr() + " partials: " + Arrays.toString(partials));
     }
 
 
@@ -540,17 +643,18 @@ public class BeamBeagleTreeLikelihood extends GenericTreeLikelihood {
         // store branch lengths
         System.arraycopy(m_branchLengths, 0, storedBranchLengths, 0, m_branchLengths.length);
 
-        // // DEBUGGING
-        // System.out.println("Original logP: " + logP);
-        // System.out.println("Original branch lengths: " + Arrays.toString(m_branchLengths));
-        // double[] rootPartials = new double[patternCount * m_nStateCount];
-        // beagle.getPartials(partialBufferHelper.getOffsetIndex(treeInput.get().getRoot().getNr()), Beagle.NONE, rootPartials);
-        // System.out.println("Original root partials: " + Arrays.toString(rootPartials));
-        // System.out.println("Original origin partials: " + Arrays.toString(originPartials));
-        // System.out.println("Original scale buffer indices: " + Arrays.toString(scaleBufferIndices));
-        // System.out.println("Original ever underflowed: " + everUnderflowed);
-        // System.out.println("Original use scale factors: " + useScaleFactors);
-        // System.out.println("Original root matrix: " + Arrays.toString(rootTransitionMatrix));
+        if (storeRestoreDebug) {
+            System.out.println("Original logP: " + logP);
+            System.out.println("Original branch lengths: " + Arrays.toString(m_branchLengths));
+            double[] rootPartials = new double[patternCount * m_nStateCount];
+            beagle.getPartials(partialBufferHelper.getOffsetIndex(treeInput.get().getRoot().getNr()), Beagle.NONE, rootPartials);
+            System.out.println("Original root partials: " + Arrays.toString(rootPartials));
+            System.out.println("Original origin partials: " + Arrays.toString(originPartials));
+            System.out.println("Original scale buffer indices: " + Arrays.toString(scaleBufferIndices));
+            System.out.println("Original ever underflowed: " + everUnderflowed);
+            System.out.println("Original use scale factors: " + useScaleFactors);
+            System.out.println("Original root matrix: " + Arrays.toString(rootTransitionMatrix));
+        }
     }
 
     /**
@@ -559,18 +663,18 @@ public class BeamBeagleTreeLikelihood extends GenericTreeLikelihood {
     @Override
     public void restore() {
 
-        // // DEBUGGING
-        // System.out.println("New logP: " + logP);
-        // System.out.println("New branch lengths: " + Arrays.toString(m_branchLengths));
-        // Get and print the root partials for debugging
-        // double[] rootPartials = new double[patternCount * m_nStateCount];
-        // beagle.getPartials(partialBufferHelper.getOffsetIndex(treeInput.get().getRoot().getNr()), Beagle.NONE, rootPartials);
-        // System.out.println("New root partials: " + Arrays.toString(rootPartials));
-        // System.out.println("New origin partials: " + Arrays.toString(originPartials));
-        // System.out.println("New scale buffer indices: " + Arrays.toString(scaleBufferIndices));
-        // System.out.println("New ever underflowed: " + everUnderflowed);
-        // System.out.println("New use scale factors: " + useScaleFactors);
-        // System.out.println("New root matrix: " + Arrays.toString(rootTransitionMatrix));
+        if (storeRestoreDebug) {
+            System.out.println("New logP: " + logP);
+            System.out.println("New branch lengths: " + Arrays.toString(m_branchLengths));
+            double[] rootPartials = new double[patternCount * m_nStateCount];
+            beagle.getPartials(partialBufferHelper.getOffsetIndex(treeInput.get().getRoot().getNr()), Beagle.NONE, rootPartials);
+            System.out.println("New root partials: " + Arrays.toString(rootPartials));
+            System.out.println("New origin partials: " + Arrays.toString(originPartials));
+            System.out.println("New scale buffer indices: " + Arrays.toString(scaleBufferIndices));
+            System.out.println("New ever underflowed: " + everUnderflowed);
+            System.out.println("New use scale factors: " + useScaleFactors);
+            System.out.println("New root matrix: " + Arrays.toString(rootTransitionMatrix));
+        }
         
         partialBufferHelper.restoreState();
         matrixBufferHelper.restoreState();
@@ -608,17 +712,18 @@ public class BeamBeagleTreeLikelihood extends GenericTreeLikelihood {
         storedBranchLengths = m_branchLengths;
         m_branchLengths = tmp;
 
-        // // DEBUGGING
-        // System.out.println("Restored logP: " + logP);
-        // System.out.println("Restored branch lengths: " + Arrays.toString(m_branchLengths));
-        // double[] rootPartials2 = new double[patternCount * m_nStateCount];
-        // beagle.getPartials(partialBufferHelper.getOffsetIndex(treeInput.get().getRoot().getNr()), Beagle.NONE, rootPartials2);
-        // System.out.println("Restored root partials: " + Arrays.toString(rootPartials2));
-        // System.out.println("Restored origin partials: " + Arrays.toString(originPartials));
-        // System.out.println("Restored scale buffer indices: " + Arrays.toString(scaleBufferIndices));
-        // System.out.println("Restored ever underflowed: " + everUnderflowed);
-        // System.out.println("Restored use scale factors: " + useScaleFactors);
-        // System.out.println("Restored root matrix: " + Arrays.toString(rootTransitionMatrix));
+        if (storeRestoreDebug) {
+            System.out.println("Restored logP: " + logP);
+            System.out.println("Restored branch lengths: " + Arrays.toString(m_branchLengths));
+            double[] rootPartials2 = new double[patternCount * m_nStateCount];
+            beagle.getPartials(partialBufferHelper.getOffsetIndex(treeInput.get().getRoot().getNr()), Beagle.NONE, rootPartials2);
+            System.out.println("Restored root partials: " + Arrays.toString(rootPartials2));
+            System.out.println("Restored origin partials: " + Arrays.toString(originPartials));
+            System.out.println("Restored scale buffer indices: " + Arrays.toString(scaleBufferIndices));
+            System.out.println("Restored ever underflowed: " + everUnderflowed);
+            System.out.println("Restored use scale factors: " + useScaleFactors);
+            System.out.println("Restored root matrix: " + Arrays.toString(rootTransitionMatrix));
+        }
 
     }
 
@@ -637,6 +742,10 @@ public class BeamBeagleTreeLikelihood extends GenericTreeLikelihood {
 
         int[] states = new int[patternCount];
 
+        if (debugInputData) {
+            System.out.println("Number of site patterns to set: " + patternCount);
+        }
+
         for (i = 0; i < patternCount; i++) {
             int code = data.getPattern(taxon, i);
             int[] statesForCode = data.getDataType().getStatesForCode(code);
@@ -644,6 +753,15 @@ public class BeamBeagleTreeLikelihood extends GenericTreeLikelihood {
                 states[i] = statesForCode[0];
             else
                 states[i] = code; // Causes ambiguous states to be ignored.
+        
+            if (debugInputData) {
+                System.out.println("For pattern " + i + " the code is " + code + " and the stateForCode is " + Arrays.toString(statesForCode) + " so the state is " + states[i]);
+            }
+
+            }
+
+        if (debugInputData) {
+            System.out.println("Setting states for node: " + nodeIndex + " with states: " + Arrays.toString(states));
         }
 
         beagle.setTipStates(nodeIndex, states);
@@ -819,7 +937,7 @@ public class BeamBeagleTreeLikelihood extends GenericTreeLikelihood {
     private int rescalingCountInner = 0;
     private int rescaleTimes = 1;
 
-    protected boolean useScaleFactors = true;
+    protected boolean useScaleFactors = false;
     protected boolean storedUseScaleFactors;
     private boolean recomputeScaleFactors = false;
     private boolean everUnderflowed = false;
@@ -856,5 +974,11 @@ public class BeamBeagleTreeLikelihood extends GenericTreeLikelihood {
 
     protected double[] patternLogLikelihoods;
     protected double[] probabilities;
+
+    // Various debug flags
+    private boolean storeRestoreDebug = false;
+    private boolean transitionMatrixDebug = false;
+    private boolean partialsDebug = false;
+    private boolean debugInputData = false;
 
 }
