@@ -41,6 +41,8 @@ public class BeamGtiTissueSubstitutionModel extends ComplexSubstitutionModel {
     @Override
     public void setupRateMatrix() {
 
+        // ASSUMES EQUAL EQUILIBRIUM FREQUENCIES
+
         // set up rate matrix and diagonal in one pass
         double[] rowSums = new double[nrOfStates];
         int count = 0;

@@ -41,6 +41,8 @@ public class BeamOneRateReseedingTissueSubstitutionModel extends ComplexSubstitu
     @Override
     public void setupRateMatrix() {
 
+        // ASSUMES EQUAL EQUILIBRIUM FREQUENCIES
+
         // set up rate matrix
         double[] rowSums = new double[nrOfStates];
         for (int i = 0; i < nrOfStates; i++) {

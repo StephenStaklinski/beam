@@ -5,6 +5,7 @@ import beast.base.core.Description;
 import beast.base.core.Input;
 import beast.base.core.Loggable;
 import beast.base.evolution.datatype.UserDataType;
+import beast.base.evolution.substitutionmodel.GeneralSubstitutionModel;
 
 import java.io.PrintStream;
 
@@ -15,7 +16,7 @@ import java.io.PrintStream;
 @Description("Logger for BeamGtiTissueSubstitutionModel.")
 public class BeamTissueSubstitutionModelLogger extends BEASTObject implements Loggable{
 
-    public Input<BeamGtiTissueSubstitutionModel> modelInput = new Input<>(
+    public Input<GeneralSubstitutionModel> modelInput = new Input<>(
             "model",
             "Beam general substitution model.",
             Input.Validate.REQUIRED);
@@ -34,7 +35,7 @@ public class BeamTissueSubstitutionModelLogger extends BEASTObject implements Lo
 
     private int nrOfStates;
 
-    protected BeamGtiTissueSubstitutionModel model;
+    protected GeneralSubstitutionModel model;
 
     public BeamTissueSubstitutionModelLogger() { }
 

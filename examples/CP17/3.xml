@@ -46,7 +46,7 @@
 </data>
 
 
-<run id="mcmc" spec="MCMC" chainLength="5000000">
+<run id="mcmc" spec="MCMC" chainLength="100000000">
         <state id="state" spec="State" storeEvery="5000">
             <stateNode id="tree" spec="beam.tree.BeamStartingTreeFromNewick" taxa="@alignment" IsLabelledNewick="true" adjustTipHeights="true" newick="(ASV209:289.7780764849471,((((ASV438:142.41676679600346,(ASV480:136.41035461402765,(ASV481:130.40394306356015,(ASV543:124.39753179892465,(ASV544:118.39112068485487,(ASV697:112.38470964666108,(ASV010_0:6.006410378650726,ASV010_1:6.006410378650726,ASV010_3:6.006410378650726,ASV010_2:6.006410378650726):106.37829926801035):6.006411038193787):6.0064111140697864):6.006411264635485):6.006411550467505):6.006412181975823):6.006414362492349,(ASV415_0:6.0064106629719065,ASV415_1:6.0064106629719065):142.4167704955239):11.366320553333665,(ASV078_0:6.006410483189404,ASV078_1:6.006410483189404):153.7830925036877):6.006412004499097,(ASV007_0:6.006410348323553,ASV007_1:6.006410348323553,ASV007_3:6.006410348323553,ASV007_2:6.006410348323553):159.78950258518222):123.9821606687708):74.22192351505292">
                 <taxonset id="taxonset" spec="TaxonSet" alignment="@alignment"/>
@@ -59,14 +59,16 @@
 
             <!-- the clock rate is the rate of acquiring edited state -->
             <parameter id="clockRate.c" spec="parameter.RealParameter" name="stateNode">0.0001</parameter>
-            <parameter id="relativeGeoRates.s:tissue" spec="parameter.RealParameter" lower="0.0" dimension="12" name="stateNode">1.0</parameter>
-            <parameter id="traitClockRate.c:tissue" spec="parameter.RealParameter" name="stateNode">0.0001</parameter>
+            <!-- <parameter id="relativeGeoRates.s:tissue" spec="parameter.RealParameter" lower="0.0" dimension="12" name="stateNode">1.0</parameter> -->
+            <parameter id="relativeGeoRates.s:tissue" spec="parameter.RealParameter" lower="0.0" dimension="6" name="stateNode">1.0</parameter>
+            <parameter id="traitClockRate.c:tissue" spec="parameter.RealParameter" name="stateNode">1.0</parameter>
+
+            <parameter id="piPrimaryTissueFreq" spec="parameter.RealParameter" dimension="1" estimate="true" lower="0.0" upper="1.0" name="stateNode">0.5</parameter>
 
             <!-- birth rate corresponds to cell division rate -->
             <parameter id="birthRate" spec="parameter.RealParameter" dimension="1" lower="0.0" name="stateNode" upper="5">0.6</parameter>
             <!-- death rate corresponds to apoptosis rate -->
             <parameter id="deathRate" spec="parameter.RealParameter" dimension="1" lower="0.0" name="stateNode" upper="5">0.01</parameter>
-
         </state>
         
         
@@ -86,7 +88,6 @@
                     </Exponential>
                 </prior>
 
-                <!-- optional silencing rate prior if silencing is being modeled -->
                 <prior id="silencingRatePrior" name="distribution" x="@silencingRate">
                     <Exponential name="distr">
                         <parameter spec="parameter.RealParameter" estimate="false" name="mean">0.0001</parameter>
@@ -94,7 +95,7 @@
                 </prior>
 
                 <prior id="ClockPrior.c" name="distribution" x="@clockRate.c">
-                    <Uniform name="distr" lower="0.0" upper="0.01"/>
+                    <Uniform name="distr" lower="0.0" upper="10000"/>
                 </prior>
 
                 <prior id="relativeGeoRatesPrior.s:tissue" name="distribution" x="@relativeGeoRates.s:tissue">
@@ -104,7 +105,14 @@
                 </prior>
 
                 <prior id="geoclockPrior.c:tissue" name="distribution" x="@traitClockRate.c:tissue">
-                    <Uniform name="distr" lower="0.0" upper="0.001"/>
+                    <Uniform name="distr" lower="0.0" upper="10000"/>
+                    <!-- <LogNormal name="distr">
+                        <parameter spec="parameter.RealParameter" name="M" estimate="false">0.001</parameter>
+                        <parameter spec="parameter.RealParameter" name="S" estimate="false">5.0</parameter>
+                    </LogNormal> -->
+                    <!-- <Exponential name="distr">
+                        <parameter spec="parameter.RealParameter" estimate="false" name="mean">1.0</parameter>
+                    </Exponential> -->
                 </prior>
 
                 <prior id="birthRatePrior" name="distribution" x="@birthRate">
@@ -113,6 +121,10 @@
                 
                 <prior id="deathRatePrior" name="distribution" x="@deathRate">
                     <Uniform name="distr" lower="0.0" upper="5.0"/>
+                </prior>
+
+                <prior id="piPrimaryTissueFreqPrior" name="distribution" x="@piPrimaryTissueFreq">
+                    <Uniform name="distr" lower="0.0" upper="1.0"/>
                 </prior>
 
 
@@ -133,7 +145,7 @@
                 <distribution id="traitLikelihood" spec="beam.likelihood.BeamBeagleAncestralTissueLikelihood" origin="364.001" tag="location" tree="@tree" data="@tissue">
                     <siteModel id="geoSiteModel.s:tissue" spec="SiteModel" gammaCategoryCount="1" mutationRate="1.0">
                         <parameter id="gammaShape.s:tissue" spec="parameter.RealParameter" estimate="false" name="shape">1.0</parameter>
-                        <substModel id="svs.s:tissue" spec="beam.substitutionmodel.BeamGtiTissueSubstitutionModel" rates="@relativeGeoRates.s:tissue">
+                        <substModel id="svs.s:tissue" spec="beam.substitutionmodel.BeamGtrTissueSubstitutionModel" rates="@relativeGeoRates.s:tissue" pi="@piPrimaryTissueFreq">
                             <frequencies id="traitfreqs.s:tissue" spec="Frequencies">
                                 <parameter id="traitfrequencies.s:tissue" spec="parameter.RealParameter" dimension="4" name="frequencies">1 0 0 0</parameter>
                             </frequencies>
@@ -161,6 +173,7 @@
     <!-- operators on ancestral state model sparameters -->
     <operator id="georateScaler.s:tissue" spec="ScaleOperator" parameter="@relativeGeoRates.s:tissue" scaleAllIndependently="true" scaleFactor="0.99" weight="30.0"/>
     <operator id="tissueClockRateScaler" spec="ScaleOperator" parameter="@traitClockRate.c:tissue" scaleFactor="0.8" weight="3.0"/>
+    <operator id="piPrimaryTissueFreqScaler" spec="ScaleOperator" parameter="@piPrimaryTissueFreq" scaleFactor="0.8" weight="3.0"/>
     
 
     <!-- Operators on phylodynamic parameters -->
@@ -189,6 +202,7 @@
             <log idref="traitLikelihood"/>
             <log idref="birthRate"/>
             <log idref="deathRate"/>
+            <log idref="piPrimaryTissueFreq"/>
         </logger>
 
         <logger id="screenlog" spec="Logger" logEvery="10000">

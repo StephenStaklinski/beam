@@ -61,9 +61,6 @@ public class BeamBeagleTreeLikelihood extends GenericTreeLikelihood {
 
         // get substitution model
         substitutionModel = (SubstitutionModel.Base) m_siteModel.substModelInput.get();
-        if (!substitutionModel.canReturnComplexDiagonalization()) {
-            throw new IllegalArgumentException("Substitution model needs to be able to return complex diagonalization in the current implementation.");
-        }
 
         // get the branch model with the default branch model as a strict clock if not specified in the input
         branchRateModel = branchRateModelInput.get();
@@ -73,6 +70,11 @@ public class BeamBeagleTreeLikelihood extends GenericTreeLikelihood {
 
         // get the number of possible outcome states in the substitution model (think unique barcode edits or tissue locations)
         m_nStateCount = substitutionModel.getStateCount();
+
+        // DEBUGGING
+        // if (m_nStateCount == 4) {
+        //     transitionMatrixDebug = true;
+        // }
 
         if (debugInputData) {
             System.out.println("There are " + m_nStateCount + " unique states.");
@@ -224,11 +226,25 @@ public class BeamBeagleTreeLikelihood extends GenericTreeLikelihood {
             int rootNodeNum = root.getNr();
 
             double br = branchRateModel.getRateForBranch(root);
+
+            if (transitionMatrixDebug) {
+                // System.out.println("Root to origin rate matrix matrix: " + );
+                double len = origin.getValue() - root.getHeight();
+                System.out.println("Root to origin length: " + len);
+                System.out.println("Root to origin clockRate: " + br);
+                double dist = len * br;
+                System.out.println("Root to origin distance (length * clockRate): " + dist);
+            }
+
             substitutionModel.getTransitionProbabilities(root, origin.getValue(), root.getHeight(), br, probabilities);
             System.arraycopy(probabilities, 0, rootTransitionMatrix,  0, matrixDimensions);
 
             if (transitionMatrixDebug) {
-                System.out.println("Root to origin transition matrix: " + Arrays.toString(probabilities));
+                System.out.println();
+                System.out.println("Root to origin transition matrix returned to likelihood:");
+                for (int i = 0; i < m_nStateCount; i++) {
+                    System.out.println(Arrays.toString(Arrays.copyOfRange(probabilities, i * m_nStateCount, (i + 1) * m_nStateCount)));
+                }
             }
 
             // calculate the origin partials
@@ -242,7 +258,7 @@ public class BeamBeagleTreeLikelihood extends GenericTreeLikelihood {
                 System.out.println("Branch length: " + length);
                 System.out.println("Origin partials: " + Arrays.toString(originPartials));
             }
-
+            
             // replace the root partials with the origin partials in beagle to allow for the final likelihood calculation in in beagle
             beagle.setPartials(partialBufferHelper.getOffsetIndex(rootNodeNum), originPartials);
 
@@ -295,7 +311,9 @@ public class BeamBeagleTreeLikelihood extends GenericTreeLikelihood {
         int update = (node.isDirty() | hasDirt);
 
         if (transitionMatrixDebug || partialsDebug) {
-            System.out.println("Traversing node: " + node.getNr() + " with update: " + update);
+            System.out.println();
+            System.out.println();
+            System.out.println("Traversing node: " + node.getNr());
         }
 
         // Get the clock rate for the branch
@@ -323,6 +341,15 @@ public class BeamBeagleTreeLikelihood extends GenericTreeLikelihood {
             final int updateCount = branchUpdateCount;
             matrixUpdateIndices[0][updateCount] = matrixBufferHelper.getOffsetIndex(nodeNum);
 
+            if (transitionMatrixDebug) {
+                System.out.println("Updating transition matrix for node: " + nodeNum);
+                double len = node.getParent().getHeight() - node.getHeight();
+                System.out.println("Node: " + node.getNr() + " real time length: " + len);
+                System.out.println("Node: " + node.getNr() + " Clock Rate: " + branchRate);
+                double dist = len * branchRate;
+                System.out.println("Node: " + node.getNr() + " Branch dist (clock rate * length): " + branchTime);
+            }
+
             // Get the new transition probability matrix and store it in beagle
             substitutionModel.getTransitionProbabilities(node, node.getParent().getHeight(), node.getHeight(), branchRate, probabilities);
             System.arraycopy(probabilities, 0, matrices,  0, matrixDimensions);
@@ -330,8 +357,11 @@ public class BeamBeagleTreeLikelihood extends GenericTreeLikelihood {
             beagle.setTransitionMatrix(matrixIndex, matrices, 1);
 
             if (transitionMatrixDebug) {
-                System.out.println("Node: " + node.getNr() + " Branch Rate: " + branchRate + " Branch Time: " + branchTime);
-                System.out.println("Node: " + node.getNr() + " Transition Matrix: " + Arrays.toString(probabilities));
+                System.out.println();
+                System.out.println("Node: " + node.getNr() + " transition matrix returned to likelihood:");
+                for (int i = 0; i < m_nStateCount; i++) {
+                    System.out.println(Arrays.toString(Arrays.copyOfRange(probabilities, i * m_nStateCount, (i + 1) * m_nStateCount)));
+                }
             }
 
             branchUpdateCount++;

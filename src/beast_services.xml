@@ -8,6 +8,7 @@
     <provider classname="beam.likelihood.BeamBeagleAncestralTissueLikelihood"/>
     <provider classname="beam.substitutionmodel.BeamMutationSubstitutionModel"/>
     <provider classname="beam.substitutionmodel.BeamGtiTissueSubstitutionModel"/>
+    <provider classname="beam.substitutionmodel.BeamGtrTissueSubstitutionModel"/>
     <provider classname="beam.substitutionmodel.BeamNoReseedingTissueSubstitutionModel"/>
     <provider classname="beam.substitutionmodel.BeamOneRateReseedingTissueSubstitutionModel"/>
     <provider classname="beam.substitutionmodel.BeamTissueSubstitutionModelLogger"/>
