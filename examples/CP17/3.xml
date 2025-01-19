@@ -61,9 +61,9 @@
             <parameter id="clockRate.c" spec="parameter.RealParameter" name="stateNode">0.0001</parameter>
             <!-- <parameter id="relativeGeoRates.s:tissue" spec="parameter.RealParameter" lower="0.0" dimension="12" name="stateNode">1.0</parameter> -->
             <parameter id="relativeGeoRates.s:tissue" spec="parameter.RealParameter" lower="0.0" dimension="6" name="stateNode">1.0</parameter>
-            <parameter id="traitClockRate.c:tissue" spec="parameter.RealParameter" name="stateNode">1.0</parameter>
+            <parameter id="traitClockRate.c:tissue" spec="parameter.RealParameter" name="stateNode">0.0001</parameter>
 
-            <parameter id="piPrimaryTissueFreq" spec="parameter.RealParameter" dimension="1" estimate="true" lower="0.0" upper="1.0" name="stateNode">0.5</parameter>
+            <parameter id="piPrimaryTissueFreq" spec="parameter.RealParameter" dimension="1" estimate="true" lower="0.0" upper="1.0" name="stateNode">0.90</parameter>
 
             <!-- birth rate corresponds to cell division rate -->
             <parameter id="birthRate" spec="parameter.RealParameter" dimension="1" lower="0.0" name="stateNode" upper="5">0.6</parameter>
@@ -213,7 +213,9 @@
         </logger>
 
         <logger id="treeWithTraitLogger" spec="Logger" fileName="chain_3.trees" logEvery="10000" mode="tree">
-                <log id="treeWithTraitLoggerItem" spec="beastclassic.evolution.tree.TreeWithTraitLogger" tree="@tree"/>
+                <log id="treeWithTraitLoggerItem" spec="beastclassic.evolution.tree.TreeWithTraitLogger" tree="@tree">
+                    <metadata idref="traitLikelihood"/>
+                </log>
         </logger>
 
     <operatorschedule id="OperatorSchedule" spec="OperatorSchedule"/>

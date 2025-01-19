@@ -121,8 +121,12 @@ public class BeamBeagleAncestralTissueLikelihood extends BeamBeagleTreeLikelihoo
     @Override
     public void restore() {
         super.restore();
+
         // Restore the reconstructed states
-        System.arraycopy(storedReconstructedStates, 0, reconstructedStates, 0, storedReconstructedStates.length);
+        int[][] temp = reconstructedStates;
+        reconstructedStates = storedReconstructedStates;
+        storedReconstructedStates = temp;
+
         // Flag to redraw the states
         areStatesRedrawn = storedAreStatesRedrawn;
     }
@@ -132,6 +136,7 @@ public class BeamBeagleAncestralTissueLikelihood extends BeamBeagleTreeLikelihoo
         if (tree != treeInput.get()) {
             throw new RuntimeException("Can only reconstruct states on treeModel given to constructor");
         }
+
         if (!areStatesRedrawn) {
             // redraw ancestral states for each node
             traverseSample(tree, tree.getRoot(), -1);
@@ -219,12 +224,6 @@ public class BeamBeagleAncestralTissueLikelihood extends BeamBeagleTreeLikelihoo
                 double[] partialLikelihood = new double[stateCount];
                 beagle.getPartials(partialBufferHelper.getOffsetIndex(node.getNr()), Beagle.NONE, partialLikelihood);
 
-                // // DEBUGGING
-                // if (parent == null) {
-                //     System.out.println("Ancestral state root partials: " + Arrays.toString(partialLikelihood));
-                //     System.out.println("Ancestral state root transition matrix: " + Arrays.toString(probabilities));
-                // }
-
                 // If this is the root then we need to sample the parent state at the origin since it is null
                 if (parent == null && useOrigin) {
 
@@ -238,9 +237,6 @@ public class BeamBeagleAncestralTissueLikelihood extends BeamBeagleTreeLikelihoo
                         oPs[i] *= rootFrequencies[i];
                     }
 
-                    // // DEBUGGING
-                    // System.out.println("Origin partials: " + Arrays.toString(oPs));
-
                     // Sample the parent state at the origin
                     parentState = Randomizer.randomChoicePDF(oPs);
 
@@ -252,16 +248,11 @@ public class BeamBeagleAncestralTissueLikelihood extends BeamBeagleTreeLikelihoo
 
                 // Calculate the conditional probabilities for the state based on the partials at the node and transition matrix from the parent to the node
                 int parentIndex = parentState * stateCount;
-                int childIndex = 0;
-                for (int i = 0; i < stateCount; i++) {
-                    conditionalProbabilities[i] = partialLikelihood[childIndex + i] * probabilities[parentIndex + i];
-                }
 
-                // // DEBUGGING
-                // if (parent == null) {
-                //     System.out.println("Ancestral state matrix: " + Arrays.toString(probabilities));
-                //     System.out.println("Ancestral state root conditionalProbs: " + Arrays.toString(conditionalProbabilities));
-                // }
+                for (int i = 0; i < stateCount; i++) {
+                    // conditional probabilities come from the prob of transitioning to the stte from the parent known state (one row of trasition prob matrix) * the partial likelihood of the state at the node determined from the tree below
+                    conditionalProbabilities[i] = partialLikelihood[i] * probabilities[parentIndex + i];
+                }
 
                 // Sample the node state
                 reconstructedStates[nodeNum][0] = Randomizer.randomChoicePDF(conditionalProbabilities);

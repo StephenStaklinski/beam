@@ -8,6 +8,7 @@ import beast.base.evolution.datatype.UserDataType;
 import beast.base.evolution.substitutionmodel.GeneralSubstitutionModel;
 
 import java.io.PrintStream;
+import java.util.Arrays;
 
 /**
  * @author Stephen Staklinski
@@ -86,6 +87,7 @@ public class BeamTissueSubstitutionModelLogger extends BEASTObject implements Lo
     public void log(long nSample, PrintStream out) {
 
         // Logging normalized rates directly from the rate matrix, not the input rate parameters used to setup the rate matrix.
+        model.setupRateMatrix();
         double[][] rateMatrix = model.getRateMatrix();
 
         for (int i=0; i<nrOfStates; i++) {

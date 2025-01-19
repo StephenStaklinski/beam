@@ -2,6 +2,7 @@ package beam.substitutionmodel;
 
 import java.io.PipedInputStream;
 import java.lang.reflect.InvocationTargetException;
+import java.util.Arrays;
 import java.util.HashMap; 
 
 import beast.base.core.Input;
@@ -56,7 +57,13 @@ public class BeamGtrTissueSubstitutionModel extends GeneralSubstitutionModel {
     @Override
     public void setupRateMatrix() {
 
-        // Sets up the rate matrix to be expected 1 substitution per unit time with respect to the stationary frequencies that are paramaterized
+        /*
+         * Sets up the rate matrix to be expected 1 substitution per unit time 
+         * with respect to the stationary frequencies that are paramaterized by
+         * pi specifying the primary tissue frequency and 1-pi for the remaining
+         * tissues in a uniform distribution.
+         */
+
         double pi = piInput.get().getValue();
         double[] piFreqs = new double[nrOfStates];
         piFreqs[0] = pi;
