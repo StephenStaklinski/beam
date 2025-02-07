@@ -242,6 +242,19 @@ public class BeamBeagleTreeLikelihood extends GenericTreeLikelihood {
 
             // Get the root frequencies for possible states
             double[] frequencies = rootFrequenciesInput.get() == null ? substitutionModel.getFrequencies() : rootFrequenciesInput.get().getFreqs();
+
+            // Beagle scaling
+            int cumulateScaleBufferIndex = Beagle.NONE;
+            if (useScaleFactors) {
+                if (recomputeScaleFactors) {
+                    scaleBufferHelper.flipOffset(internalNodeCount);
+                    cumulateScaleBufferIndex = scaleBufferHelper.getOffsetIndex(internalNodeCount);
+                    beagle.resetScaleFactors(cumulateScaleBufferIndex);
+                    beagle.accumulateScaleFactors(scaleBufferIndices, internalNodeCount, cumulateScaleBufferIndex);
+                } else {
+                    cumulateScaleBufferIndex = scaleBufferHelper.getOffsetIndex(internalNodeCount);
+                }
+            }
             
             // make sure the root frequencies are initialized properly and then updated if the frequencies change
             if (frequencies != currentFreqs) {
@@ -268,7 +281,7 @@ public class BeamBeagleTreeLikelihood extends GenericTreeLikelihood {
 
                 // get the beagle calculated root partials
                 double[] rootPartials = new double[patternCount * m_nStateCount];
-                beagle.getPartials(rootIndex, Beagle.NONE, rootPartials);
+                beagle.getPartials(rootIndex, Beagle.NONE, rootPartials); // DO NOT pass in cumulativeScaleBufferIndex here (it will un-scale the partials) and we need to retain the scaled partials to propagate to the origin
 
                 // get the root node transition matrix, normally ignored but computed based on the height from root to origin
                 int rootNodeNum = root.getNr();
@@ -306,13 +319,54 @@ public class BeamBeagleTreeLikelihood extends GenericTreeLikelihood {
                     System.out.println("Branch length: " + length);
                     System.out.println("Origin partials: " + Arrays.toString(originPartials));
                 }
+
+                // scale origin partials if scaling is on
+                double originScaleFactorsSum = 0.0;
+                if (useScaleFactors) {
+                    double[] originScaleFactors = new double[patternCount];
+                    int u = 0;
+                    for (int i = 0; i < patternCount; i++) {
+                        double scaleFactor = 0.0;
+                        int v = u;
+                        for (int j = 0; j < m_nStateCount; j++) {
+                            if (originPartials[v] > scaleFactor) {
+                                scaleFactor = originPartials[v];
+                            }
+                            v++;
+                        }
+                        v += (patternCount - 1) * m_nStateCount;
+
+                        if (scaleFactor < scalingThreshold) {
+                            v = u;
+                            for (int j = 0; j < m_nStateCount; j++) {
+                                originPartials[v] /= scaleFactor; // inplace modification of originPartials to results in scaled form only
+                                v++;
+                            }
+                            v += (patternCount - 1) * m_nStateCount;
+                            originScaleFactors[i] = Math.log(scaleFactor);
+                        } else {
+                            originScaleFactors[i] = 0.0;
+                        }
+                        u += m_nStateCount;
+                    }
+
+                    /*
+                     * The scale factors are summed across all sites at the origin and added to the 
+                     * log likelihood calculated by beagle, which already includes other scale factors.
+                     * Since all are in log space and just addition steps, this works out.
+                     */
+                    for (int i = 0; i < patternCount; i++) {
+                        originScaleFactorsSum += originScaleFactors[i];
+                    }
+                }
                 
-                // replace the root partials with the origin partials in beagle to allow for the final likelihood calculation in in beagle
+                // replace the root partials with the origin partials in beagle to allow for the final likelihood calculation in beagle
                 beagle.setPartials(partialBufferHelper.getOffsetIndex(rootNodeNum), originPartials);
 
                 // calculate the likelihood with the new partials
-                beagle.calculateRootLogLikelihoods(new int[]{rootIndex}, new int[]{0}, new int[]{0}, new int[]{Beagle.NONE}, 1, sumLogLikelihoods);
-                logL = sumLogLikelihoods[0];
+                beagle.calculateRootLogLikelihoods(new int[]{rootIndex}, new int[]{0}, new int[]{0}, new int[]{cumulateScaleBufferIndex}, 1, sumLogLikelihoods);
+                logL = sumLogLikelihoods[0] + originScaleFactorsSum;
+
 
                 if (partialsDebug) {
                     System.out.println("sumLogLikelihoods: " + Arrays.toString(sumLogLikelihoods));
@@ -324,7 +378,7 @@ public class BeamBeagleTreeLikelihood extends GenericTreeLikelihood {
             }
             else {
                 // For no origin input, the logL simply comes from the root partials and frequencies already set in beagle
-                beagle.calculateRootLogLikelihoods(new int[]{rootIndex}, new int[]{0}, new int[]{0}, new int[]{Beagle.NONE}, 1, sumLogLikelihoods);
+                beagle.calculateRootLogLikelihoods(new int[]{rootIndex}, new int[]{0}, new int[]{0}, new int[]{cumulateScaleBufferIndex}, 1, sumLogLikelihoods);
                 logL = sumLogLikelihoods[0];
             }
 
@@ -332,10 +386,6 @@ public class BeamBeagleTreeLikelihood extends GenericTreeLikelihood {
             if (Double.isNaN(logL) || Double.isInfinite(logL)) {
                 everUnderflowed = true;
                 logL = Double.NEGATIVE_INFINITY;
-
-                // TESTING (just let it fail if likelihood is unstable until the origin scale factor can be implemented)
-                everUnderflowed = false;
-                firstRescaleAttempt = false;
 
                 if (firstRescaleAttempt && (rescalingScheme == PartialsRescalingScheme.DYNAMIC || rescalingScheme == PartialsRescalingScheme.DELAYED)) {
                     // we have had a potential under/over flow so attempt a rescaling                	
@@ -1221,5 +1271,4 @@ public class BeamBeagleTreeLikelihood extends GenericTreeLikelihood {
     private boolean transitionMatrixDebug = false;
     private boolean partialsDebug = false;
     private boolean debugInputData = false;
-
 }
