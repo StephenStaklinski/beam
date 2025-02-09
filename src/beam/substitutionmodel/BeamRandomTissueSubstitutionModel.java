@@ -54,5 +54,10 @@ public class BeamRandomTissueSubstitutionModel extends GeneralSubstitutionModel 
          * used in the likelihood calculations.
          */
     }
+
+    @Override
+    public boolean canReturnComplexDiagonalization() {
+        return true;
+    }
 }
 
