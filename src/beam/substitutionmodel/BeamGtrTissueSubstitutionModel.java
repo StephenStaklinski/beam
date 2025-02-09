@@ -113,4 +113,10 @@ public class BeamGtrTissueSubstitutionModel extends GeneralSubstitutionModel {
         }
     }
 
+
+    @Override
+    public boolean canReturnComplexDiagonalization() {
+        return true;
+    }
+
 }

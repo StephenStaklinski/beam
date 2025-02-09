@@ -502,12 +502,12 @@ public class BeamBeagleTreeLikelihood extends GenericTreeLikelihood {
                         System.out.println(Arrays.toString(Arrays.copyOfRange(probabilities, i * m_nStateCount, (i + 1) * m_nStateCount)));
                     }
                 }
-
-                branchLengths[eigenIndex][updateCount] = branchTime;
-                branchUpdateCount[eigenIndex]++;
-
-                update |= Tree.IS_DIRTY;
             }
+
+            branchLengths[eigenIndex][updateCount] = branchTime;
+            branchUpdateCount[eigenIndex]++;
+
+            update |= Tree.IS_DIRTY;
         }
 
         // If the node is internal, update the partial likelihoods.
