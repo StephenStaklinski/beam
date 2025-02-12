@@ -10,8 +10,11 @@
     <provider classname="beam.substitutionmodel.BeamRandomTissueSubstitutionModel"/>
     <provider classname="beam.substitutionmodel.BeamGtiTissueSubstitutionModel"/>
     <provider classname="beam.substitutionmodel.BeamGtrTissueSubstitutionModel"/>
-    <provider classname="beam.substitutionmodel.BeamNoReseedingTissueSubstitutionModel"/>
-    <provider classname="beam.substitutionmodel.BeamOneRateReseedingTissueSubstitutionModel"/>
+
+    <provider classname="beam.substitutionmodel.BeamPrimaryOnlyTissueSubstitutionModel"/>
+    <provider classname="beam.substitutionmodel.BeamPrimaryMetOnlyTissueSubstitutionModel"/>
+    <provider classname="beam.substitutionmodel.BeamPrimaryMetReseedingAllTissueSubstitutionModel"/>
+    
     <provider classname="beam.substitutionmodel.BeamTissueSubstitutionModelLogger"/>
 
     <provider classname="tidetree.evolution.datatype.EditData"/>
