@@ -9,6 +9,7 @@ import beast.base.core.Function;
 import beast.base.inference.parameter.IntegerParameter;
 import beast.base.inference.parameter.BooleanParameter;
 import beast.base.inference.parameter.Parameter;
+import beast.base.inference.parameter.RealParameter;
 import beast.base.evolution.substitutionmodel.ComplexSubstitutionModel;
 
 /**
@@ -18,6 +19,8 @@ import beast.base.evolution.substitutionmodel.ComplexSubstitutionModel;
 @Description("Substitution model that fixes reseeding rates to zero.")
 
 public class BeamNoReseedingTissueSubstitutionModel extends ComplexSubstitutionModel {
+
+    public Input<RealParameter> piInput = new Input<>("pi", "Stationary frequency of the first state", Validate.REQUIRED);
 
 	@Override
     public void initAndValidate(){
@@ -41,9 +44,22 @@ public class BeamNoReseedingTissueSubstitutionModel extends ComplexSubstitutionM
     @Override
     public void setupRateMatrix() {
 
-        // ASSUMES EQUAL EQUILIBRIUM FREQUENCIES
+        /*
+         * Sets up the rate matrix to be expected 1 substitution per unit time 
+         * with respect to the stationary frequencies that are paramaterized by
+         * pi specifying the primary tissue frequency and 1-pi for the remaining
+         * tissues in a uniform distribution.
+         */
 
-        // set up rate matrix
+         double pi = piInput.get().getValue();
+         double[] piFreqs = new double[nrOfStates];
+         piFreqs[0] = pi;
+         double piUniformOthers = (1 - pi) / (nrOfStates - 1);
+         for (int i = 1; i < nrOfStates; i++) {
+             piFreqs[i] = piUniformOthers;
+         }
+
+        // setup off diagonal rates
         double[] rowSums = new double[nrOfStates];
         for (int i = 0; i < nrOfStates; i++) {
             for (int j = 0; j < nrOfStates; j++) {
@@ -58,16 +74,32 @@ public class BeamNoReseedingTissueSubstitutionModel extends ComplexSubstitutionM
             }
         }
 
-        // set up diagonal and normalize the rate matrix to one substitution per unit time
-        double total = 0.0;
+        // bring in frequencies
         for (int i = 0; i < nrOfStates; i++) {
-            rateMatrix[i][i] = -rowSums[i];
-            total += rowSums[i];
+            for (int j = i + 1; j < nrOfStates; j++) {
+                rateMatrix[i][j] *= piFreqs[j];
+                rateMatrix[j][i] *= piFreqs[i];
+            }
         }
+
+        // set up diagonal
+        for (int i = 0; i < nrOfStates; i++) {
+            double sum = 0.0;
+            for (int j = 0; j < nrOfStates; j++) {
+                if (i != j)
+                    sum += rateMatrix[i][j];
+            }
+            rateMatrix[i][i] = -sum;
+        }
+
+        // normalise rate matrix to one expected substitution per unit time
+        double subst = 0.0;
+        for (int i = 0; i < nrOfStates; i++)
+            subst += -rateMatrix[i][i] * piFreqs[i];
 
         for (int i = 0; i < nrOfStates; i++) {
             for (int j = 0; j < nrOfStates; j++) {
-                rateMatrix[i][j] /= total;
+                rateMatrix[i][j] = rateMatrix[i][j] / subst;
             }
         }
     }
