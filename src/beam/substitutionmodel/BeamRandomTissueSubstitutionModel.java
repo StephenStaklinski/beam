@@ -5,7 +5,10 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 
 import beast.base.core.Description;
+import beast.base.core.Input;
+import beast.base.core.Input.Validate;
 import beast.base.evolution.tree.Node;
+import beast.base.inference.parameter.RealParameter;
 import beast.base.evolution.datatype.DataType;
 import beast.base.evolution.substitutionmodel.EigenDecomposition;
 import beast.base.evolution.substitutionmodel.GeneralSubstitutionModel;
@@ -14,14 +17,17 @@ import beast.base.evolution.substitutionmodel.GeneralSubstitutionModel;
  * @author Stephen Staklinski
  **/
 
-@Description("Random substitution model implementation that simply returns uniform transition probabilities.")
+@Description("Random substitution model implementation that simply returns equillibrium distribution transition probabilities.")
 
 public class BeamRandomTissueSubstitutionModel extends GeneralSubstitutionModel {
 
+    public Input<RealParameter> piInput = new Input<>("pi", "Stationary frequency of the first state", Validate.REQUIRED);
+
     /*
-     * This class simply always returns uniform transition probabilities 
-     * for an ancestral state random sampling control model for model
-     * selection purposes between informative vs. uninformative data.
+     * This class always returns transition probabilities equal to the stationary
+     * distribution of the states. This is useful for testing an ancestral state
+     * random sampling control model for model selection purposes between
+     * informative vs. uninformative data.
      */
 
      @Override
@@ -39,10 +45,21 @@ public class BeamRandomTissueSubstitutionModel extends GeneralSubstitutionModel 
 
     @Override
     public void getTransitionProbabilities(Node node, double startTime, double endTime, double rate, double[] matrix) {
-        // always returns equal transition probabilities for random sampling
-        int nrOfStates = getStateCount();
-        double prob = 1.0 / nrOfStates;
-        Arrays.fill(matrix, prob);
+        // always returns stationary distribution probabilities for random sampling
+        // pi is the primary tissue frequency and the rest are uniform over the remaining tissues given 1-pi
+        double pi = piInput.get().getValue();
+        double[] piFreqs = new double[nrOfStates];
+        piFreqs[0] = pi;
+        double piUniformOthers = (1 - pi) / (nrOfStates - 1);
+        for (int i = 1; i < nrOfStates; i++) {
+            piFreqs[i] = piUniformOthers;
+        }
+
+        for (int i = 0; i < nrOfStates; i++) {
+            for (int j = 0; j < nrOfStates; j++) {
+                matrix[i * nrOfStates + j] = piFreqs[j];
+            }
+        }
     }
 
 
