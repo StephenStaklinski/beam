@@ -825,10 +825,12 @@ public class BeamBeagleTreeLikelihood extends GenericTreeLikelihood {
         for (i = 0; i < patternCount; i++) {
             int code = data.getPattern(taxon, i);
             int[] statesForCode = data.getDataType().getStatesForCode(code);
-            if (statesForCode.length==1)
-                states[i] = statesForCode[0];
-            else
-                states[i] = code; // Causes ambiguous states to be ignored.
+            if (statesForCode.length != 1) {
+                System.err.println("Error: Invalid state code for taxon " + taxon + " at pattern " + i + ".");
+                System.exit(1);
+            }
+            
+            states[i] = statesForCode[0];
         
             if (debugInputData) {
                 System.out.println("For pattern " + i + " the code is " + code + " and the stateForCode is " + Arrays.toString(statesForCode) + " so the state is " + states[i]);
@@ -1222,5 +1224,5 @@ public class BeamBeagleTreeLikelihood extends GenericTreeLikelihood {
     private boolean storeRestoreDebug = false;
     private boolean transitionMatrixDebug = false;
     private boolean partialsDebug = false;
-    private boolean debugInputData = false;
+    private boolean debugInputData = true;
 }
