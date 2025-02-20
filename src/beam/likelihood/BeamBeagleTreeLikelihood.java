@@ -68,6 +68,11 @@ public class BeamBeagleTreeLikelihood extends GenericTreeLikelihood {
         // get substitution model
         substitutionModel = (SubstitutionModel.Base) m_siteModel.substModelInput.get();
 
+        // make sure the substitution model can return transition probabilities, since not currently setup to do within beagle
+        if (!substitutionModel.canReturnComplexDiagonalization()) {
+            throw new IllegalArgumentException("Substitution model must be able to return transition probabilities.");
+        }
+
         // get the branch model with the default branch model as a strict clock if not specified in the input
         branchRateModel = branchRateModelInput.get();
         if (branchRateModel == null) {
@@ -126,9 +131,9 @@ public class BeamBeagleTreeLikelihood extends GenericTreeLikelihood {
         // Setup beagle with the defined specs of the models/data above
         setupBeagle();
 
-        updateSubstitutionModel = true;
-        // some subst models (e.g. WAG) never become dirty, so set up subst models right now
-        setUpSubstModel();
+        // updateSubstitutionModel = true;
+        // // some subst models (e.g. WAG) never become dirty, so set up subst models right now
+        // setUpSubstModel();
     }
     
 
@@ -211,23 +216,23 @@ public class BeamBeagleTreeLikelihood extends GenericTreeLikelihood {
         final Node root = treeInput.get().getRoot();
         traverse(root, true);
 
-        if (updateSubstitutionModel) {
-            setUpSubstModel();
-        }
+        // if (updateSubstitutionModel) {
+        //     setUpSubstModel();
+        // }
 
-        if (!substitutionModel.canReturnComplexDiagonalization()) {
-            for (int i = 0; i < eigenCount; i++) {
-                if (branchUpdateCount[i] > 0) {
-                    beagle.updateTransitionMatrices(
-                            eigenBufferHelper.getOffsetIndex(i),
-                            matrixUpdateIndices[i],
-                            null,
-                            null,
-                            branchLengths[i],
-                            branchUpdateCount[i]);
-                }
-            }
-        }
+        // if (!substitutionModel.canReturnComplexDiagonalization()) {
+        //     for (int i = 0; i < eigenCount; i++) {
+        //         if (branchUpdateCount[i] > 0) {
+        //             beagle.updateTransitionMatrices(
+        //                     eigenBufferHelper.getOffsetIndex(i),
+        //                     matrixUpdateIndices[i],
+        //                     null,
+        //                     null,
+        //                     branchLengths[i],
+        //                     branchUpdateCount[i]);
+        //         }
+        //     }
+        // }
 
         double logL;
         boolean done;
@@ -416,7 +421,7 @@ public class BeamBeagleTreeLikelihood extends GenericTreeLikelihood {
 
         } while (!done);
 
-        updateSubstitutionModel = false;
+        // updateSubstitutionModel = false;
         logP = logL;
 
         if (partialsDebug) {
@@ -488,21 +493,21 @@ public class BeamBeagleTreeLikelihood extends GenericTreeLikelihood {
                 System.out.println("Node: " + node.getNr() + " Branch dist (clock rate * length): " + branchTime);
             }
 
-            if (substitutionModel.canReturnComplexDiagonalization()) {
-                // Get the new transition probability matrix and store it in beagle
-                substitutionModel.getTransitionProbabilities(node, node.getParent().getHeight(), node.getHeight(), branchRate, probabilities);
-                System.arraycopy(probabilities, 0, matrices,  0, matrixDimensions);
-                int matrixIndex = matrixBufferHelper.getOffsetIndex(nodeNum);
-                beagle.setTransitionMatrix(matrixIndex, matrices, 1);
+            // if (substitutionModel.canReturnComplexDiagonalization()) {
+            // Get the new transition probability matrix and store it in beagle
+            substitutionModel.getTransitionProbabilities(node, node.getParent().getHeight(), node.getHeight(), branchRate, probabilities);
+            System.arraycopy(probabilities, 0, matrices,  0, matrixDimensions);
+            int matrixIndex = matrixBufferHelper.getOffsetIndex(nodeNum);
+            beagle.setTransitionMatrix(matrixIndex, matrices, 1);
 
-                if (transitionMatrixDebug) {
-                    System.out.println();
-                    System.out.println("Node: " + node.getNr() + " transition matrix returned to likelihood:");
-                    for (int i = 0; i < m_nStateCount; i++) {
-                        System.out.println(Arrays.toString(Arrays.copyOfRange(probabilities, i * m_nStateCount, (i + 1) * m_nStateCount)));
-                    }
+            if (transitionMatrixDebug) {
+                System.out.println();
+                System.out.println("Node: " + node.getNr() + " transition matrix returned to likelihood:");
+                for (int i = 0; i < m_nStateCount; i++) {
+                    System.out.println(Arrays.toString(Arrays.copyOfRange(probabilities, i * m_nStateCount, (i + 1) * m_nStateCount)));
                 }
             }
+            // }
 
             branchLengths[eigenIndex][updateCount] = branchTime;
             branchUpdateCount[eigenIndex]++;
@@ -823,24 +828,24 @@ public class BeamBeagleTreeLikelihood extends GenericTreeLikelihood {
         return patternCount;
     }
 
-    void setUpSubstModel() {
-        // we are currently assuming a no-category model...
-        // TODO More efficient to update only the substitution model that changed, instead of all
-    	if (!substitutionModel.canReturnComplexDiagonalization()) {
-	        for (int i = 0; i < eigenCount; i++) {
-	            //EigenDecomposition ed = m_substitutionModel.getEigenDecomposition(i, 0);
-	            EigenDecomposition ed = substitutionModel.getEigenDecomposition(null);
+    // void setUpSubstModel() {
+    //     // we are currently assuming a no-category model...
+    //     // TODO More efficient to update only the substitution model that changed, instead of all
+    // 	if (!substitutionModel.canReturnComplexDiagonalization()) {
+	//         for (int i = 0; i < eigenCount; i++) {
+	//             //EigenDecomposition ed = m_substitutionModel.getEigenDecomposition(i, 0);
+	//             EigenDecomposition ed = substitutionModel.getEigenDecomposition(null);
 	
-	            eigenBufferHelper.flipOffset(i);
+	//             eigenBufferHelper.flipOffset(i);
 	
-	            beagle.setEigenDecomposition(
-	                    eigenBufferHelper.getOffsetIndex(i),
-	                    ed.getEigenVectors(),
-	                    ed.getInverseEigenVectors(),
-	                    ed.getEigenValues());
-	        }
-    	}
-    }
+	//             beagle.setEigenDecomposition(
+	//                     eigenBufferHelper.getOffsetIndex(i),
+	//                     ed.getEigenVectors(),
+	//                     ed.getInverseEigenVectors(),
+	//                     ed.getEigenValues());
+	//         }
+    // 	}
+    // }
 
 
     /**
@@ -999,9 +1004,9 @@ public class BeamBeagleTreeLikelihood extends GenericTreeLikelihood {
                 preferenceFlags |= BeagleFlag.PROCESSOR_CPU.getMask();
         }
 
-        if (substitutionModel.canReturnComplexDiagonalization()) {
-            requirementFlags |= BeagleFlag.EIGEN_COMPLEX.getMask();
-        }
+        // if (substitutionModel.canReturnComplexDiagonalization()) {
+        requirementFlags |= BeagleFlag.EIGEN_COMPLEX.getMask();
+        // }
 
         instanceCount++;
 
