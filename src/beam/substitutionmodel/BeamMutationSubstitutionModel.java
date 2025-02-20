@@ -33,7 +33,6 @@ public class BeamMutationSubstitutionModel extends SubstitutionModel.Base {
 
         // one state for each edit type + unedited + lost
         nrOfStates = editRatesInput.get().get(0).getDimension() + 2;
-        rateMatrix = new double[nrOfStates][nrOfStates];
 
         editRate_ = editRatesInput.get().get(0);
         editRates = editRate_.getValues();
@@ -45,7 +44,6 @@ public class BeamMutationSubstitutionModel extends SubstitutionModel.Base {
             if (editRate < 0) {
                 throw new RuntimeException("All edit rates must be positive!");
             }
-            rateMatrix[0][i+1] = editRate;
             inputEditRateSum += editRate;
         }
         if (inputEditRateSum < 0) {
@@ -59,11 +57,8 @@ public class BeamMutationSubstitutionModel extends SubstitutionModel.Base {
         if (silencingRate < 0) {
             throw new RuntimeException("Loss rate must be positive!");
         }
-        for (int i = 0; i<nrOfStates-1; i++){
-            rateMatrix[i][nrOfStates-1] = silencingRate;
-        }
 
-        // center root frequency on unedited state
+        // center root frequency on the unedited first state, irregardless of input frequencies as this is a property of the barcodes
         frequencies = new double[nrOfStates];
         frequencies[0] = 1;
     }
@@ -154,13 +149,8 @@ public class BeamMutationSubstitutionModel extends SubstitutionModel.Base {
         return frequencies;
     }
 
-    public double[][] getRateMatrix(){
-        return rateMatrix;
-    }
-
 
     double[] frequencies;
-    double[][] rateMatrix;
     RealParameter editRate_;
     RealParameter silencingRate_;
     Double[] editRates;
