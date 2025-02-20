@@ -54,6 +54,7 @@ public class BeamMutationSubstitutionModel extends SubstitutionModel.Base {
 
         silencingRate_ = silencingRateInput.get();
         double silencingRate = silencingRate_.getValue();
+        storedSilencingRate = silencingRate;
 
         if (silencingRate < 0) {
             throw new RuntimeException("Loss rate must be positive!");
@@ -69,6 +70,8 @@ public class BeamMutationSubstitutionModel extends SubstitutionModel.Base {
 
     @Override
     public void getTransitionProbabilities(Node node, double startTime, double endTime, double rate, double[] matrix) {
+        // we only get here if either the silencing rate or the time has changed, so we need to recalculate the matrix
+        // edit rates must be fixed hyperparameters for this setup
 
         // silencing rate can change so get it each time
         double silencingRate = silencingRate_.getValue();
@@ -110,6 +113,28 @@ public class BeamMutationSubstitutionModel extends SubstitutionModel.Base {
         matrix[nrOfStates - 1] = 1 - expOfDeltaLoss;
     }
 
+    @Override
+    public void store() {
+        storedSilencingRate = silencingRate_.getValue();
+        super.store();
+    }
+
+
+    @Override
+    public void restore() {
+        super.restore();
+
+    }
+
+    @Override
+    protected boolean requiresRecalculation() {
+        // since edit rates are fixed hyperparemeters, the only thing that can change is the silencing rate
+        if (silencingRate_.getValue() != storedSilencingRate) {
+            return true;
+        }
+        return false;
+    }
+
     // return true for BEAGLE compatibility
     @Override
     public boolean canReturnComplexDiagonalization() {
@@ -140,5 +165,10 @@ public class BeamMutationSubstitutionModel extends SubstitutionModel.Base {
     RealParameter silencingRate_;
     Double[] editRates;
     Double inputEditRateSum;
+
+    protected boolean updateMatrix = true;
+    private boolean storedUpdateMatrix = true;
+
+    private double storedSilencingRate;
 }
 
