@@ -36,15 +36,20 @@ public class BeamMutationSubstitutionModel extends SubstitutionModel.Base {
         rateMatrix = new double[nrOfStates][nrOfStates];
 
         editRate_ = editRatesInput.get().get(0);
-        silencingRate_ = silencingRateInput.get();
+        editRates = editRate_.getValues();
 
         // add edit rates to rate matrix
+        inputEditRateSum = 0.0;
         for (int i=0; i<editRate_.getDimension(); i++){
             double editRate = editRate_.getValues()[i];
             if (editRate < 0) {
                 throw new RuntimeException("All edit rates must be positive!");
             }
             rateMatrix[0][i+1] = editRate;
+            inputEditRateSum += editRate;
+        }
+        if (inputEditRateSum < 0) {
+            throw new RuntimeException("Sum of edit rates must be positive!");
         }
 
         silencingRate_ = silencingRateInput.get();
@@ -65,46 +70,44 @@ public class BeamMutationSubstitutionModel extends SubstitutionModel.Base {
     @Override
     public void getTransitionProbabilities(Node node, double startTime, double endTime, double rate, double[] matrix) {
 
+        // silencing rate can change so get it each time
         double silencingRate = silencingRate_.getValue();
-        Double[] editRates = editRate_.getValues();
 
-        //multiply by joint branch rate from site model
-        silencingRate *= rate;
-        for (int i=0; i < editRates.length; i++){
-            editRates[i] *= rate;
-        }
+        // calculate the branch time and scale it by the joint site model rate and clock rate
+        double delta = (startTime - endTime) * rate;
 
-        double delta = startTime - endTime;
+        // calculate probability of no loss
         double expOfDeltaLoss = Math.exp(-delta * silencingRate);
 
         // calculate transition probabilities for loss process
         for (int i=0; i<nrOfStates; i++){
             for (int j=0; j<nrOfStates; j++){
                 if ( i==j ){
+                    // probability of staying in state
                     matrix[i*nrOfStates + j] = expOfDeltaLoss;
                 }else if(j == nrOfStates-1){
+                    // probability of loss
                     matrix[i*nrOfStates + j] = 1 - expOfDeltaLoss;
                 }else{
+                    // all other transitions are 0 probability
                     matrix[i*nrOfStates + j] = 0;
                 }
             }
         }
-        // set final diagonal element to 1
+        // set final diagonal element to 1 to ensure loss is an absorbing state, so once loss occurs it cannot be undone
         matrix[nrOfStates * nrOfStates - 1] = 1;
+        
+        // rate can change so scale the sum each time
+        Double editRateSum = inputEditRateSum;
+        editRateSum *= rate;
 
-        Stream<Double> editSum = Stream.of(editRates);
-        Double editRateSum = editSum.reduce(0.0, (subtotal, element) -> subtotal + element);
-
-        // for loss & edit, add the edit transition probabilities
-        if (editRateSum>0) {
-                // fill first row
-                matrix[0] = Math.exp(-delta * (silencingRate + editRateSum));
-                for (int i = 0; i < nrOfStates - 2; i++) {
-                    matrix[i + 1] = (editRates[i] * expOfDeltaLoss - editRates[i] *
-                            Math.exp(-delta * (silencingRate + editRateSum))) / editRateSum;
-                }
-                matrix[nrOfStates - 1] = 1 - expOfDeltaLoss;
+        // fill first row
+        matrix[0] = Math.exp(-delta * (silencingRate + editRateSum));
+        for (int i = 0; i < nrOfStates - 2; i++) {
+            matrix[i + 1] = (editRates[i] * expOfDeltaLoss - editRates[i] * Math.exp(-delta * (silencingRate + editRateSum))) / editRateSum;
         }
+
+        matrix[nrOfStates - 1] = 1 - expOfDeltaLoss;
     }
 
     // return true for BEAGLE compatibility
@@ -135,5 +138,7 @@ public class BeamMutationSubstitutionModel extends SubstitutionModel.Base {
     double[][] rateMatrix;
     RealParameter editRate_;
     RealParameter silencingRate_;
+    Double[] editRates;
+    Double inputEditRateSum;
 }
 
