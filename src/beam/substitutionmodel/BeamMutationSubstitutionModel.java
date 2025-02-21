@@ -38,16 +38,15 @@ public class BeamMutationSubstitutionModel extends SubstitutionModel.Base {
         editRates = editRate_.getValues();
 
         // add edit rates to rate matrix
-        inputEditRateSum = 0.0;
-        for (int i=0; i<editRate_.getDimension(); i++){
-            double editRate = editRate_.getValues()[i];
+        Double editRateSum = 0.0;
+        for (double editRate : editRates) {
             if (editRate < 0) {
-                throw new RuntimeException("All edit rates must be positive!");
+            throw new RuntimeException("All edit rates must be positive!");
             }
-            inputEditRateSum += editRate;
+            editRateSum += editRate;
         }
-        if (inputEditRateSum < 0) {
-            throw new RuntimeException("Sum of edit rates must be positive!");
+        if (Math.abs(editRateSum - 1.0) > 1e-5) {
+            throw new RuntimeException("Sum of edit rates must be 1.0!");
         }
 
         silencingRate_ = silencingRateInput.get();
@@ -77,35 +76,36 @@ public class BeamMutationSubstitutionModel extends SubstitutionModel.Base {
         // calculate probability of no loss
         double expOfDeltaLoss = Math.exp(-delta * silencingRate);
 
-        // calculate transition probabilities for loss process
+        // compute a constant across all edit states
+        double c = expOfDeltaLoss * (1 - Math.exp(-delta));
+
+        // fill the transition probability matrix
         for (int i=0; i<nrOfStates; i++){
             for (int j=0; j<nrOfStates; j++){
                 if ( i==j ){
-                    // probability of staying in state
-                    matrix[i*nrOfStates + j] = expOfDeltaLoss;
-                }else if(j == nrOfStates-1){
-                    // probability of loss
-                    matrix[i*nrOfStates + j] = 1 - expOfDeltaLoss;
+                    // setup the diagonal elements
+                    if (i == 0) {
+                        // top left corner
+                        matrix[i] = Math.exp(-delta * (1 + silencingRate)); // assumes the edit rates sum to 1, which is checked in initAndValidate
+                    } else if (i == nrOfStates - 1) {
+                        // bottom right corner
+                        matrix[i * nrOfStates + j] = 1; // absorbing loss state
+                    } else {
+                        // all other diagonal elements
+                        matrix[i * nrOfStates + j] = expOfDeltaLoss;
+                    }
+                }else if(j == nrOfStates - 1){
+                    // final column
+                    matrix[i * nrOfStates + j] = 1 - expOfDeltaLoss;    // probability of loss
+                }else if (i == 0){
+                    // first row (excluding top left corner and top right corner)
+                    matrix[j] = editRates[j - 1] * c;   // edit probabilities
                 }else{
-                    // all other transitions are 0 probability
+                    // all other elements
                     matrix[i*nrOfStates + j] = 0;
                 }
             }
         }
-        // set final diagonal element to 1 to ensure loss is an absorbing state, so once loss occurs it cannot be undone
-        matrix[nrOfStates * nrOfStates - 1] = 1;
-        
-        // rate can change so scale the sum each time
-        Double editRateSum = inputEditRateSum;
-        editRateSum *= rate;
-
-        // fill first row
-        matrix[0] = Math.exp(-delta * (silencingRate + editRateSum));
-        for (int i = 0; i < nrOfStates - 2; i++) {
-            matrix[i + 1] = (editRates[i] * expOfDeltaLoss - editRates[i] * Math.exp(-delta * (silencingRate + editRateSum))) / editRateSum;
-        }
-
-        matrix[nrOfStates - 1] = 1 - expOfDeltaLoss;
     }
 
     @Override
@@ -154,10 +154,6 @@ public class BeamMutationSubstitutionModel extends SubstitutionModel.Base {
     RealParameter editRate_;
     RealParameter silencingRate_;
     Double[] editRates;
-    Double inputEditRateSum;
-
-    protected boolean updateMatrix = true;
-    private boolean storedUpdateMatrix = true;
 
     private double storedSilencingRate;
 }
