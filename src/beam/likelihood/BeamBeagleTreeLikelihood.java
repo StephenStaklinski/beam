@@ -1224,5 +1224,5 @@ public class BeamBeagleTreeLikelihood extends GenericTreeLikelihood {
     private boolean storeRestoreDebug = false;
     private boolean transitionMatrixDebug = false;
     private boolean partialsDebug = false;
-    private boolean debugInputData = true;
+    private boolean debugInputData = false;
 }
