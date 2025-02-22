@@ -35,7 +35,10 @@ public class BeamMutationSubstitutionModel extends SubstitutionModel.Base {
         nrOfStates = editRatesInput.get().get(0).getDimension() + 2;
 
         editRate_ = editRatesInput.get().get(0);
-        editRates = editRate_.getValues();
+        editRates = new Double[editRate_.getDimension()];
+        for (int i = 0; i < editRate_.getDimension(); i++) {
+            editRates[i] = editRate_.getValue(i);
+        }
 
         // add edit rates to rate matrix
         Double editRateSum = 0.0;
