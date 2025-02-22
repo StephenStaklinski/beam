@@ -73,7 +73,7 @@ public class BeamBeagleTreeLikelihood extends GenericTreeLikelihood {
             throw new IllegalArgumentException("Substitution model must be able to return transition probabilities.");
         }
 
-        // get the branch model with the default branch model as a strict clock if not specified in the input
+        // get the branch model
         branchRateModel = branchRateModelInput.get();
         if (branchRateModel == null) {
         	throw new IllegalArgumentException("Branch rate model must be specified in the current implementation.");

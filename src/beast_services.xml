@@ -4,8 +4,13 @@
 
   <service type="beast.base.core.BEASTInterface">
     <provider classname="beam.tree.BeamStartingTreeFromNewick"/>
+
+    <provider classname="beam.likelihood.BeamIrreversibleTreeLikelihood"/>
+    <provider classname="beam.likelihood.IrreversibleLikelihoodCore"/>
+
     <provider classname="beam.likelihood.BeamBeagleTreeLikelihood"/>
     <provider classname="beam.likelihood.BeamBeagleAncestralTissueLikelihood"/>
+
     <provider classname="beam.substitutionmodel.BeamMutationSubstitutionModel"/>
     <provider classname="beam.substitutionmodel.BeamRandomTissueSubstitutionModel"/>
     <provider classname="beam.substitutionmodel.BeamGtiTissueSubstitutionModel"/>
