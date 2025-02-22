@@ -48,11 +48,12 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
         }
 
         int nodeCount = treeInput.get().getNodeCount();
-        if (originInput.get() != null){
-            origin = originInput.get();
-            useOrigin = true;
-            nodeCount = nodeCount + 1;
+        if (originInput.get() == null){
+            throw new IllegalArgumentException("The expriment origin time must be input.");
         }
+
+        origin = originInput.get();
+        nodeCount = nodeCount + 1;
 
         if (!(siteModelInput.get() instanceof SiteModel.Base)) {
             throw new IllegalArgumentException("siteModel input should be of type SiteModel.Base");
@@ -85,29 +86,21 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
 
     protected void initCore() {
 
-        int nodeCount = treeInput.get().getNodeCount();
-        if (useOrigin){
-            nodeCount = nodeCount + 1;
-        }
+        int nodeCount = treeInput.get().getNodeCount() + 1;
 
         likelihoodCore.initialize(
                 nodeCount,
                 dataInput.get().getPatternCount(),
-                m_siteModel.getCategoryCount(),
+                1,  // currently only one site category is supported
                 true, // current implementation does not allow for site model categories
                 false); // current implementation does not use ambiguities
 
         int extNodeCount;
         int intNodeCount;
         
-        if (useOrigin){
-            nodeCount = nodeCount -1;
-            extNodeCount = nodeCount / 2 + 1;
-            intNodeCount = nodeCount / 2 + 1;
-        }else{
-            extNodeCount = nodeCount / 2 + 1;
-            intNodeCount = nodeCount / 2;
-        }
+        nodeCount = nodeCount - 1;
+        extNodeCount = nodeCount / 2 + 1;
+        intNodeCount = nodeCount / 2 + 1;
 
         setStates(treeInput.get().getRoot(), dataInput.get().getPatternCount());
         
@@ -131,8 +124,8 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
         final double branchRate = branchRateModel.getRateForBranch(node);
         final double branchTime = node.getLength() * branchRate;
 
-        // First update the transition probability matrix(ices) for this branch
-        if ( (!node.isRoot() || (node.isRoot() && useOrigin)) &&  (update != Tree.IS_CLEAN || branchTime != m_branchLengths[nodeIndex]) ) {
+        // first update the transition probability matrix for this branch, for all nodes except the final root or origin
+        if (update != Tree.IS_CLEAN || branchTime != m_branchLengths[nodeIndex]) {
             m_branchLengths[nodeIndex] = branchTime;
             Node parent = node.getParent();
             if(node.isRoot()){
@@ -142,11 +135,10 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
 
             likelihoodCore.setNodeMatrixForUpdate(nodeIndex);
 
-            for (int i = 0; i < m_siteModel.getCategoryCount(); i++) {
-                final double jointBranchRate = m_siteModel.getRateForCategory(i, node) * branchRate;
-                substitutionModel.getTransitionProbabilities(node, parent.getHeight(), node.getHeight(), jointBranchRate, probabilities);
-                likelihoodCore.setNodeMatrix(nodeIndex, i, probabilities);
-            }
+            final double jointBranchRate = m_siteModel.getRateForCategory(0, node) * branchRate;
+            substitutionModel.getTransitionProbabilities(node, parent.getHeight(), node.getHeight(), jointBranchRate, probabilities);
+            likelihoodCore.setNodeMatrix(nodeIndex, 0, probabilities);
+
             update |= Tree.IS_DIRTY;
         }
 
@@ -162,9 +154,9 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
             final int update2 = traverse(child2);
             final double childHeight2 = child2.getHeight();
 
-            update1 = 2;
+            update1 = 2; // currently always recalculate for every node.
 
-            // If either child node was updated then update this node too
+            // if either child node was updated then update this node too by calculating its partial likelihoods
             if (update1 != Tree.IS_CLEAN || update2 != Tree.IS_CLEAN) {
 
                 final int childNum1 = child1.getNr();
@@ -172,42 +164,23 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
 
                 likelihoodCore.setNodePartialsForUpdate(nodeIndex);
                 update |= (update1 | update2);
-                if (update >= Tree.IS_FILTHY) {
-                    likelihoodCore.setNodeStatesForUpdate(nodeIndex);
-                }
 
                 likelihoodCore.calculatePartials(child1, child2, node);
 
 
                 if (node.isRoot()) {
 
-                    // frequencies are known at the root and fixed in the substitution model
-                    double[] rootFrequencies = substitutionModel.getFrequencies();
+                    Double originHeight = origin.getValue();
+                    originNode = new Node();
+                    originNode.setHeight(originHeight);
+                    originNode.setNr(node.getNr() + 1);
 
-                    if (useOrigin){
-                        Double originHeight = origin.getValue();
-                        originNode = new Node();
-                        originNode.setHeight(originHeight);
-                        originNode.setNr(node.getNr() + 1);
+                    likelihoodCore.calculatePartials(node, originNode);
 
-                        Double rootHeight = node.getHeight();
+                    likelihoodCore.getPartials(originNode.getNr(), m_fRootPartials);
 
-
-                        likelihoodCore.calculatePartials(node, originNode);
-
-                        final double[] proportions = m_siteModel.getCategoryProportions(originNode);
-                        likelihoodCore.integratePartials(originNode.getNr(), proportions, m_fRootPartials);
-
-                        likelihoodCore.calculateLogLikelihoods(m_fRootPartials, rootFrequencies, patternLogLikelihoods);
-
-                    }else{
-
-                        //  calculate the pattern likelihoods at the root
-                        final double[] proportions = m_siteModel.getCategoryProportions(node);
-                        likelihoodCore.integratePartials(node.getNr(), proportions, m_fRootPartials);
-
-                        likelihoodCore.calculateLogLikelihoods(m_fRootPartials, rootFrequencies, patternLogLikelihoods);
-                    }
+                    // get the logLikelihoods in an efficient way that assumes the origin frequencies are known as unedited
+                    likelihoodCore.calculateLogLikelihoods(m_fRootPartials, patternLogLikelihoods);
                 }
             }
 
@@ -258,11 +231,9 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
         final TreeInterface tree = treeInput.get();
 
         // return -infinity if the tree is larger than the experiment start time specified as the origin
-        if(useOrigin) {
-            Double originHeight = origin.getValue();
-            if (tree.getRoot().getHeight() >= originHeight) {
-                return Double.NEGATIVE_INFINITY;
-            }
+        Double originHeight = origin.getValue();
+        if (tree.getRoot().getHeight() >= originHeight) {
+            return Double.NEGATIVE_INFINITY;
         }
 
         // if the tree is not clean, the traverse call will update all pruning calculations
@@ -334,7 +305,6 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
     protected SiteModel.Base m_siteModel;
     protected BranchRateModel.Base branchRateModel;
     protected RealParameter origin;
-    protected boolean useOrigin = false;
     protected Node originNode;
     protected int nrOfMatrices;
     protected int nrOfPatterns;

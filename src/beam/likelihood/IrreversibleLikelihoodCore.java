@@ -1,5 +1,7 @@
 package beam.likelihood;
 
+import java.util.Arrays;
+
 import beast.base.core.Description;
 import beast.base.evolution.likelihood.BeerLikelihoodCore;
 import beast.base.evolution.sitemodel.SiteModelInterface;
@@ -55,70 +57,54 @@ public class IrreversibleLikelihoodCore extends BeerLikelihoodCore {
     }
 
     /*
-     * Calculates partial likelihoods at a node, specifically designed for nodes with one child like the origin in cell division.
+     * Calculates partial likelihoods at the cell division origin node with a single child.
+     * Since this is the start of the experiment, the origin is known to be in the unedited
+     * state, so we can only calculate the partials for that state and set the other to 0
+     * since they will not be used by the frequencies anyways.
      */
     public void calculatePartials(Node child1, Node node) {
 
         int nodeIndex1 = child1.getNr();
         int nodeIndex3 = node.getNr();
 
-        if (states[nodeIndex1] != null) {
-            calculateStatesPruning(states[nodeIndex1],matrices[currentMatrixIndex[nodeIndex1]][nodeIndex1],partials[currentPartialsIndex[nodeIndex3]][nodeIndex3]);
-        } else {
-            calculatePartialsPruning(partials[currentPartialsIndex[nodeIndex1]][nodeIndex1],
-            matrices[currentMatrixIndex[nodeIndex1]][nodeIndex1], partials[currentPartialsIndex[nodeIndex3]][nodeIndex3]);
-        }
+        calculatePartialsPruning(partials[currentPartialsIndex[nodeIndex1]][nodeIndex1],
+                                    matrices[currentMatrixIndex[nodeIndex1]][nodeIndex1], 
+                                    partials[currentPartialsIndex[nodeIndex3]][nodeIndex3]);
 
+        
         if (useScaling) {
             scalePartials(nodeIndex3);
         }
     }
 
-
-    protected double[] calculateStatesPruning(int[] stateIndex1, double[] matrices1, double[] partials3) {
-        int v = 0;
-        for (int l = 0; l < nrOfMatrices; l++) {
-            for (int k = 0; k < nrOfPatterns; k++) {
-                int state1 = stateIndex1[k];
-                int w = l * matrixSize;
-                if (state1 < nrOfStates) {
-                    for (int i = 0; i < nrOfStates; i++) {
-                        partials3[v] = matrices1[w + state1];
-                        v++;
-                        w += nrOfStates;
-                    }
-                } else {
-                    // single child has a gap or unknown state so set partials to 1
-                    for (int j = 0; j < nrOfStates; j++) {
-                        partials3[v] = 1.0;
-                        v++;
-                    }
-                }
-            }
-        }
-        return partials3;
-    }
-
-    // calculate partials for single child nodes
+    // calculate partials for the origin
     protected double[] calculatePartialsPruning(double[] partials1, double[] matrices1, double[] partials3) {
-        double sum1;
-        int u = 0;
-        int v = 0;
-        for (int l = 0; l < nrOfMatrices; l++) {
-            for (int k = 0; k < nrOfPatterns; k++) {
-                int w = l * matrixSize;
-                for (int i = 0; i < nrOfStates; i++) {
-                    sum1 = 0.0;
-                    for (int j = 0; j < nrOfStates; j++) {
-                        sum1 += matrices1[w] * partials1[v + j];
-                        w++;
-                    }
-                    partials3[u] = sum1;
-                    u++;
-                }
-                v += nrOfStates;
+        // Initialize all partials to 0
+        Arrays.fill(partials3, 0.0);
+
+        for (int k = 0, u = 0, v = 0; k < nrOfPatterns; k++, u += nrOfStates, v += nrOfStates) {
+            // Calculate the partial for the first unedited state only, which is known at the origin
+            double sum1 = 0.0;
+            for (int j = 0; j < nrOfStates; j++) {
+            sum1 += matrices1[j] * partials1[v + j];
             }
+            partials3[u] = sum1;
         }
+        
         return partials3;
     }
+
+
+    /**
+     * Calculates pattern log likelihoods at a node more efficiently by assuming the substitution model is irreversible
+     * and the origin is known to be the first state as unedited.
+     */
+	public void calculateLogLikelihoods(double[] partials, double[] outLogLikelihoods) {
+        int v = 0;
+        for (int k = 0; k < nrOfPatterns; k++) {
+            outLogLikelihoods[k] = Math.log(partials[v]) + getLogScalingFactor(k);
+            v += nrOfStates;
+        }
+    }
+
 }
