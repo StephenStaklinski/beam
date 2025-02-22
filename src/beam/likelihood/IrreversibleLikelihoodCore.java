@@ -99,10 +99,11 @@ public class IrreversibleLikelihoodCore extends BeerLikelihoodCore {
      * Calculates pattern log likelihoods at a node more efficiently by assuming the substitution model is irreversible
      * and the origin is known to be the first state as unedited.
      */
-	public void calculateLogLikelihoods(double[] partials, double[] outLogLikelihoods) {
+	public void calculateLogLikelihoods(int nodeIndex, double[] outLogLikelihoods) {
+        double[] partials1 = partials[currentPartialsIndex[nodeIndex]][nodeIndex];
         int v = 0;
         for (int k = 0; k < nrOfPatterns; k++) {
-            outLogLikelihoods[k] = Math.log(partials[v]) + getLogScalingFactor(k);
+            outLogLikelihoods[k] = Math.log(partials1[v]) + getLogScalingFactor(k);
             v += nrOfStates;
         }
     }

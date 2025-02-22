@@ -76,7 +76,6 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
         storedBranchLengths = new double[nodeCount];
         likelihoodCore = new IrreversibleLikelihoodCore(nrOfStates);
         patternLogLikelihoods = new double[nrOfPatterns];
-        m_fRootPartials = new double[nrOfPatterns * nrOfStates];
 
         probabilities = new double[(nrOfStates + 1) * (nrOfStates + 1)];
         Arrays.fill(probabilities, 1.0);
@@ -175,12 +174,11 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
                     originNode.setHeight(originHeight);
                     originNode.setNr(node.getNr() + 1);
 
+                    // calculates the origin partials
                     likelihoodCore.calculatePartials(node, originNode);
 
-                    likelihoodCore.getPartials(originNode.getNr(), m_fRootPartials);
-
-                    // get the logLikelihoods in an efficient way that assumes the origin frequencies are known as unedited
-                    likelihoodCore.calculateLogLikelihoods(m_fRootPartials, patternLogLikelihoods);
+                    // get the logLikelihoods in an efficient way that assumes the origin frequencies are known as the unedited state
+                    likelihoodCore.calculateLogLikelihoods(originNode.getNr(), patternLogLikelihoods);
                 }
             }
 
@@ -312,6 +310,5 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
     protected double[] m_branchLengths;
     protected double[] storedBranchLengths;
     protected double[] patternLogLikelihoods;
-    protected double[] m_fRootPartials;
     protected IrreversibleLikelihoodCore likelihoodCore;
 }
