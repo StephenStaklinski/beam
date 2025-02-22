@@ -33,7 +33,6 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
     public Input<RealParameter> originInput = new Input<>("origin", "Start of the cell division process, usually start of the experiment.",Input.Validate.OPTIONAL);
     
     final public Input<Frequencies> rootFrequenciesInput = new Input<>("rootFrequencies", "prior state frequencies at root, optional", Input.Validate.OPTIONAL);
-
     
     public LikelihoodCore getLikelihoodCore() {
         return likelihoodCore;
@@ -185,7 +184,6 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
                     // frequencies are known at the root and fixed in the substitution model
                     double[] rootFrequencies = substitutionModel.getFrequencies();
 
-                    // calculate the partials until the origin
                     if (useOrigin){
                         Double originHeight = origin.getValue();
                         originNode = new Node();
@@ -273,6 +271,24 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
             logP = 0.0;
             for (int i = 0; i < dataInput.get().getPatternCount(); i++) {
                 logP += patternLogLikelihoods[i] * dataInput.get().getPatternWeight(i);
+            }
+        }
+
+        if (logP == Double.NEGATIVE_INFINITY) {
+            Log.warning.println("Turning on scaling to prevent numeric instability.");
+            likelihoodCore.setUseScaling(1.01);
+            likelihoodCore.unstore();
+
+            traverse(tree.getRoot());
+
+            // calculate the log likelihoods at the root by summing across site patterns given the site log likelihood already calculated
+            logP = 0.0;
+            for (int i = 0; i < dataInput.get().getPatternCount(); i++) {
+                logP += patternLogLikelihoods[i] * dataInput.get().getPatternWeight(i);
+            }
+
+            if (logP == Double.NEGATIVE_INFINITY) {
+                throw new RuntimeException("Likelihood is negative infinity after turning on scaling.");
             }
         }
 
