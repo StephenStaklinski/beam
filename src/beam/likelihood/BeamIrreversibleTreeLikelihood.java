@@ -2,6 +2,7 @@ package beam.likelihood;
 
 import beast.base.core.Description;
 import beast.base.core.Input;
+import beast.base.inference.CalculationNode;
 import beast.base.inference.parameter.RealParameter;
 import beast.base.core.Log;
 import beast.base.evolution.alignment.Alignment;
@@ -99,7 +100,7 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
      */
     protected int traverse(Node node) {
 
-        int update = 1; //currently always recalculate transition matrices for every node.
+        int update = (node.isDirty() | hasDirt);
 
         final int nodeIndex = node.getNr();
         final double nodeHeight = node.getHeight();
@@ -107,7 +108,7 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
         final double branchTime = node.getLength() * branchRate;
 
         // first update the transition probability matrix for this branch, for all nodes except the final root or origin
-        if (update == 1 || branchTime != m_branchLengths[nodeIndex]) {
+        if (update != Tree.IS_CLEAN  || branchTime != m_branchLengths[nodeIndex]) {
             m_branchLengths[nodeIndex] = branchTime;
             Node parent = node.getParent();
             if(node.isRoot()){
@@ -119,6 +120,8 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
 
             substitutionModel.getTransitionProbabilities(node, parent.getHeight(), node.getHeight(), branchRate, probabilities);
             likelihoodCore.setNodeMatrix(nodeIndex, 0, probabilities);
+
+            update |= Tree.IS_DIRTY;
         }
 
         // If the node is internal, update the partial likelihoods.
@@ -133,7 +136,7 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
 
             // calculate the partials at this node given it's children.
             // currently always does the calculation since children will always be dirty.
-            if (update == 1) {
+            if (update1 != Tree.IS_CLEAN || update2 != Tree.IS_CLEAN) {
 
                 int childIndex1 = child1.getNr();
                 int childIndex2 = child2.getNr();
@@ -161,6 +164,8 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
                     // get the logLikelihoods in an efficient way that assumes the origin frequencies are known as the unedited state
                     likelihoodCore.calculateLogLikelihoods(originIndex, patternLogLikelihoods);
                 }
+
+                update |= (update1 | update2);
             }
         }
 
@@ -279,7 +284,28 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
 
     @Override
     protected boolean requiresRecalculation() {
-        return true;
+        hasDirt = Tree.IS_CLEAN;
+
+        if (substitutionModel instanceof CalculationNode) {
+            if (((CalculationNode) substitutionModel).isDirtyCalculation()) {
+                hasDirt = Tree.IS_DIRTY;
+                return true;
+            }
+        }
+        
+        if (dataInput.get().isDirtyCalculation()) {
+            hasDirt = Tree.IS_FILTHY;
+            return true;
+        }
+        if (m_siteModel.isDirtyCalculation()) {
+            hasDirt = Tree.IS_DIRTY;
+            return true;
+        }
+        if (branchRateModel.isDirtyCalculation()) {
+            hasDirt = Tree.IS_FILTHY;
+            return true;
+        }
+        return treeInput.get().somethingIsDirty();
     }
 
 
@@ -294,5 +320,14 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
     protected double[] storedBranchLengths;
     protected double[] patternLogLikelihoods;
     protected IrreversibleLikelihoodCore likelihoodCore;
+
+    /**
+     * flag to indicate the
+     * // when CLEAN=0, nothing needs to be recalculated for the node
+     * // when DIRTY=1 indicates a node partial needs to be recalculated
+     * // when FILTHY=2 indicates the indices for the node need to be recalculated
+     * // (often not necessary while node partial recalculation is required)
+     */
+    protected int hasDirt;
     
 }
