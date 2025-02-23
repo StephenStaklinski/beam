@@ -154,6 +154,8 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
             final Node child2 = node.getRight();
             final int[] update2 = traverse(child2);
 
+            update |= (update1[0] | update2[0]);
+
             // update unedited state status for each pattern based on children
             for (int i = 0; i < nrOfPatterns; i++) {
                 subtreeStatus[1 + i] = update1[1 + i] | update2[1 + i];
@@ -161,7 +163,7 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
 
             // calculate the partials at this node given it's children.
             // currently always does the calculation since children will always be dirty.
-            if (update1[0] != Tree.IS_CLEAN || update2[0] != Tree.IS_CLEAN) {
+            if (update != Tree.IS_CLEAN) {
 
                 int childIndex1 = child1.getNr();
                 int childIndex2 = child2.getNr();
