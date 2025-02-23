@@ -70,7 +70,6 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
 
         int nrOfStates = substitutionModel.getStateCount();
         nrOfPatterns = dataInput.get().getPatternCount();
-        nrOfMatrices = m_siteModel.getCategoryCount();
 
         m_branchLengths = new double[nodeCount];
         storedBranchLengths = new double[nodeCount];
@@ -80,17 +79,11 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
         probabilities = new double[(nrOfStates + 1) * (nrOfStates + 1)];
         Arrays.fill(probabilities, 1.0);
 
-        likelihoodCore.initialize(
-                nodeCount,
-                dataInput.get().getPatternCount(),
-                1,  // currently only one site category is supported
-                true, // current implementation does not allow for site model categories
-                false, // current implementation does not use ambiguities
-                nodeCountNoOrigin);
+        likelihoodCore.initialize(nodeCount, nrOfPatterns);
 
         int intNodeCount = nodeCountNoOrigin / 2 + 1;
 
-        setStates(treeInput.get().getRoot(), dataInput.get().getPatternCount());
+        setStates(treeInput.get().getRoot());
         
         for (int i = 0; i < intNodeCount; i++) {
             likelihoodCore.createNodePartials(intNodeCount + i);
@@ -126,8 +119,6 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
 
             substitutionModel.getTransitionProbabilities(node, parent.getHeight(), node.getHeight(), branchRate, probabilities);
             likelihoodCore.setNodeMatrix(nodeIndex, 0, probabilities);
-
-            update |= 1;
         }
 
         // If the node is internal, update the partial likelihoods.
@@ -135,15 +126,10 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
 
             // Traverse down the two child nodes
             final Node child1 = node.getLeft();
-            // final int[] update1 = traverse(child1);
             final int update1 = traverse(child1);
 
             final Node child2 = node.getRight();
-            // final int[] update2 = traverse(child2);
             final int update2 = traverse(child2);
-
-            // update |= (update1[0] | update2[0]);
-            update |= (update1 | update2);
 
             // calculate the partials at this node given it's children.
             // currently always does the calculation since children will always be dirty.
@@ -151,6 +137,8 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
 
                 int childIndex1 = child1.getNr();
                 int childIndex2 = child2.getNr();
+
+                likelihoodCore.setNodePartialsForUpdate(nodeIndex);
 
                 // update possible ancestral states at the nodes for more efficient pruning algorithm in traverse
                 likelihoodCore.setPossibleAncestralStates(childIndex1, childIndex2, nodeIndex);
@@ -183,7 +171,7 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
     /**
      * set the data at the tips in the likelihood core
      */
-    protected void setStates(Node node, int patternCount) {
+    protected void setStates(Node node) {
         if (node.isLeaf()) {
             String taxon = node.getID();
             Alignment data = dataInput.get();
@@ -193,9 +181,9 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
                 throw new RuntimeException("Could not find sequence " + taxon + " in the alignment");
             }
 
-            int[] states = new int[patternCount];
+            int[] states = new int[nrOfPatterns];
 
-            for (int i = 0; i < patternCount; i++) {
+            for (int i = 0; i < nrOfPatterns; i++) {
                 int code = data.getPattern(taxonIndex, i);
                 int[] statesForCode = data.getDataType().getStatesForCode(code);
                 states[i] = statesForCode[0];
@@ -208,10 +196,9 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
             // set the leaf sets of state for later calculation of ancestral states
             int missingDataState = substitutionModel.getMissingState();
             likelihoodCore.setLeafStatesSet(nodeIndex, states, missingDataState);
-
         } else {
-            setStates(node.getLeft(), patternCount);
-            setStates(node.getRight(), patternCount);
+            setStates(node.getLeft());
+            setStates(node.getRight());
         }
     }
 
@@ -301,7 +288,6 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
     protected BranchRateModel.Base branchRateModel;
     protected RealParameter origin;
     protected Node originNode;
-    protected int nrOfMatrices;
     protected int nrOfPatterns;
     protected double[] probabilities;
     protected double[] m_branchLengths;

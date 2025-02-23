@@ -22,17 +22,15 @@ public class IrreversibleLikelihoodCore extends BeerLikelihoodCore {
     }
 
 
-	public void initialize(int nodeCount, int patternCount, int matrixCount, boolean integrateCategories, boolean useAmbiguities, int numNodes) {
+	public void initialize(int nodeCount, int patternCount) {
         
-        super.initialize(nodeCount, patternCount, matrixCount, integrateCategories, useAmbiguities);
+        super.initialize(nodeCount,patternCount, 1, true, false);
 
-        numNodesNoOrigin = numNodes;
+        numNodesNoOrigin = nodeCount - 1;
 
         ancestralStates = new HashSet[numNodesNoOrigin * nrOfPatterns];
-        storedAncestralStates = new HashSet[numNodesNoOrigin * nrOfPatterns];
         for (int i = 0; i < numNodesNoOrigin * nrOfPatterns; i++) {
             ancestralStates[i] = new HashSet<>();
-            storedAncestralStates[i] = new HashSet<>();
         }
     }
 
@@ -59,34 +57,34 @@ public class IrreversibleLikelihoodCore extends BeerLikelihoodCore {
     public void setLeafStatesSet(int leafIndex, int[] states, int missingDataState) {
 
         for (int i = 0; i < nrOfPatterns; i++) {
-            int index = (i * nrOfPatterns) + leafIndex;
             if (states[i] != missingDataState) {
-                ancestralStates[index].add(states[i]);
+                ancestralStates[leafIndex * nrOfPatterns + i].add(states[i]);
             }
         }
+
     }
 
     public void setPossibleAncestralStates(int childIndex1, int childIndex2, int nodeIndex) {
         
         for (int i = 0; i < nrOfPatterns; i++) {
-            int patternStart = i * nrOfPatterns;
-            ancestralStates[patternStart + nodeIndex] = new HashSet<>();
+            ancestralStates[nodeIndex * nrOfPatterns + i] = new HashSet<>();
 
-            ancestralStates[patternStart + nodeIndex].addAll(ancestralStates[patternStart + childIndex1]);
-            ancestralStates[patternStart + nodeIndex].addAll(ancestralStates[patternStart + childIndex2]);
+            ancestralStates[nodeIndex * nrOfPatterns + i].addAll(ancestralStates[childIndex1 * nrOfPatterns + i]);
+            ancestralStates[nodeIndex * nrOfPatterns + i].addAll(ancestralStates[childIndex2 * nrOfPatterns + i]);
 
-            if (ancestralStates[patternStart + nodeIndex].size() >= 1) {
-                ancestralStates[patternStart + nodeIndex].clear();
-                ancestralStates[patternStart + nodeIndex].add(0);
-            }  
+            if (ancestralStates[nodeIndex * nrOfPatterns + i].size() > 1) {
+                ancestralStates[nodeIndex * nrOfPatterns + i].clear();
+                ancestralStates[nodeIndex * nrOfPatterns + i].add(0);
+            } 
         }
     }
 
 
     /**
      * Calculates partial likelihoods at a node while
-     * first checking if the node has to be unedited 
-     * to skip unnecessary calculations.
+     * first checking which partials need to be calculated
+     * to save on computations when 0 values should just
+     * be propagated.
      */
     public void calculatePartials(int childIndex1, int childIndex2, int parentIndex) {
         
@@ -101,23 +99,22 @@ public class IrreversibleLikelihoodCore extends BeerLikelihoodCore {
 
         // modified pruning algorithm
         double sum1, sum2;
-        int u = 0;
 
         for (int k = 0; k < nrOfPatterns; k++) {
-            Set<Integer> possibleStates = new HashSet<>(ancestralStates[(k * nrOfPatterns) + parentIndex]);
-            // Set<Integer> possibleStates = new HashSet<>();
+            Set<Integer> possibleStates = new HashSet<>(ancestralStates[parentIndex * nrOfPatterns + k]);
 
             // if the subtree only has missing data, then the ancestral state can be anything
             if (possibleStates.isEmpty()) {
-                for (int state = 0; state < nrOfStates; state++) {
+                for (int state = 1; state < nrOfStates; state++) {
                     possibleStates.add(state);
                 }
-            } else {
-                // always add the unedited state
-                possibleStates.add(0);
             }
 
+            // always add the unedited state
+            possibleStates.add(0);
+
             // Calculate partials for all states
+            int u = k * nrOfStates;
             for (int i : possibleStates) {
                 sum1 = 0.0;
                 sum2 = 0.0;
@@ -127,8 +124,6 @@ public class IrreversibleLikelihoodCore extends BeerLikelihoodCore {
                 }
                 partials3[u + i] = sum1 * sum2;
             }
-
-            u += nrOfStates;
         }
 
 
@@ -153,13 +148,13 @@ public class IrreversibleLikelihoodCore extends BeerLikelihoodCore {
         // Initialize all partials to 0
         Arrays.fill(partials3, 0.0);
 
-        for (int k = 0, u = 0, v = 0; k < nrOfPatterns; k++, u += nrOfStates, v += nrOfStates) {
+        for (int k = 0; k < nrOfPatterns; k++) {
             // Calculate the partial for the first unedited state only, which is known at the origin
             double sum1 = 0.0;
             for (int j = 0; j < nrOfStates; j++) {
-            sum1 += matrices1[j] * partials1[v + j];
+                sum1 += matrices1[j] * partials1[k * nrOfStates + j];
             }
-            partials3[u] = sum1;
+            partials3[k * nrOfStates] = sum1;
         }
         
         if (useScaling) {
@@ -174,10 +169,9 @@ public class IrreversibleLikelihoodCore extends BeerLikelihoodCore {
      */
     public void calculateLogLikelihoods(int originIndex, double[] outLogLikelihoods) {
         double[] partials1 = partials[currentPartialsIndex[originIndex]][originIndex];
-        int v = 0;
+
         for (int k = 0; k < nrOfPatterns; k++) {
-            outLogLikelihoods[k] = Math.log(partials1[v]) + getLogScalingFactor(k);
-            v += nrOfStates;
+            outLogLikelihoods[k] = Math.log(partials1[k * nrOfStates]) + getLogScalingFactor(k);
         }
     }
 
@@ -191,7 +185,8 @@ public class IrreversibleLikelihoodCore extends BeerLikelihoodCore {
         super.store();
 
         for (int i = 0; i < numNodesNoOrigin * nrOfPatterns; i++) {
-            storedAncestralStates[i] = new HashSet<>(ancestralStates[i]);
+            storedAncestralStates[i].clear();
+            storedAncestralStates[i].addAll(ancestralStates[i]);
         }
 
     }
@@ -204,12 +199,20 @@ public class IrreversibleLikelihoodCore extends BeerLikelihoodCore {
 
         super.restore();
 
-        for (int i = 0; i < numNodesNoOrigin * nrOfPatterns; i++) {
-            ancestralStates[i] = new HashSet<>(storedAncestralStates[i]);
+        if (storedAncestralStates == null) {
+            storedAncestralStates = new HashSet[numNodesNoOrigin * nrOfPatterns];
+            for (int i = 0; i < numNodesNoOrigin * nrOfPatterns; i++) {
+                storedAncestralStates[i] = new HashSet<>();
+                storedAncestralStates[i].addAll(ancestralStates[i]);
+            }
         }
 
+        for (int i = 0; i < numNodesNoOrigin * nrOfPatterns; i++) {
+            ancestralStates[i].clear();
+            ancestralStates[i].addAll(storedAncestralStates[i]);
+        }
+    
     }
-
 
     protected int numNodesNoOrigin;
 
