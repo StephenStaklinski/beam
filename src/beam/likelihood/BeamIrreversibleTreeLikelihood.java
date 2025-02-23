@@ -168,10 +168,8 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
                 int childIndex1 = child1.getNr();
                 int childIndex2 = child2.getNr();
 
-                // int[] uneditedPatternStatus = Arrays.copyOfRange(subtreeStatus, 1, subtreeStatus.length);
-                // likelihoodCore.calculatePartials(childIndex1, childIndex2, nodeIndex, uneditedPatternStatus);
-
-                likelihoodCore.calculatePartials(childIndex1, childIndex2, nodeIndex);
+                int[] uneditedPatternStatus = Arrays.copyOfRange(subtreeStatus, 1, subtreeStatus.length);
+                likelihoodCore.calculatePartials(childIndex1, childIndex2, nodeIndex, uneditedPatternStatus);
 
                 // if we are already back to the root in the post-order traversal, then propagate the partials to the origin
                 if (node.isRoot()) {
