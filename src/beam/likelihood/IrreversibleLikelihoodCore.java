@@ -19,42 +19,6 @@ public class IrreversibleLikelihoodCore extends BeerLikelihoodCore {
         super(nrOfStates);
     }
 
-    /**
-     * Calculates partial likelihoods at a node with two children, like a normal node in a bifurcating tree including the root.
-     */
-    public void calculatePartials(Node child1, Node child2, Node node) {
-
-        int nodeIndex1 = child1.getNr();
-        int nodeIndex2 = child2.getNr();
-        int nodeIndex3 = node.getNr();
-
-            if (states[nodeIndex1] != null) {
-                if (states[nodeIndex2] != null) {
-                    calculateStatesStatesPruning(
-                            states[nodeIndex1], matrices[currentMatrixIndex[nodeIndex1]][nodeIndex1],
-                            states[nodeIndex2], matrices[currentMatrixIndex[nodeIndex2]][nodeIndex2],
-                            partials[currentPartialsIndex[nodeIndex3]][nodeIndex3]);
-                } else {
-                    calculateStatesPartialsPruning(states[nodeIndex1], matrices[currentMatrixIndex[nodeIndex1]][nodeIndex1],
-                            partials[currentPartialsIndex[nodeIndex2]][nodeIndex2], matrices[currentMatrixIndex[nodeIndex2]][nodeIndex2],
-                            partials[currentPartialsIndex[nodeIndex3]][nodeIndex3]);
-                }
-            } else {
-                if (states[nodeIndex2] != null) {
-                    calculateStatesPartialsPruning(states[nodeIndex2], matrices[currentMatrixIndex[nodeIndex2]][nodeIndex2],
-                            partials[currentPartialsIndex[nodeIndex1]][nodeIndex1], matrices[currentMatrixIndex[nodeIndex1]][nodeIndex1],
-                            partials[currentPartialsIndex[nodeIndex3]][nodeIndex3]);
-                } else {
-                    calculatePartialsPartialsPruning(partials[currentPartialsIndex[nodeIndex1]][nodeIndex1], matrices[currentMatrixIndex[nodeIndex1]][nodeIndex1],
-                            partials[currentPartialsIndex[nodeIndex2]][nodeIndex2], matrices[currentMatrixIndex[nodeIndex2]][nodeIndex2],
-                            partials[currentPartialsIndex[nodeIndex3]][nodeIndex3]);
-                }
-            }
-
-        if (useScaling) {
-            scalePartials(nodeIndex3);
-        }
-    }
 
     /*
      * Calculates partial likelihoods at the cell division origin node with a single child.
@@ -62,14 +26,11 @@ public class IrreversibleLikelihoodCore extends BeerLikelihoodCore {
      * state, so we can only calculate the partials for that state and set the other to 0
      * since they will not be used by the frequencies anyways.
      */
-    public void calculatePartials(Node child1, Node node) {
+    public void calculatePartials(int rootIndex, int originIndex) {
 
-        int nodeIndex1 = child1.getNr();
-        int nodeIndex3 = node.getNr();
-
-        double[] partials1 = partials[currentPartialsIndex[nodeIndex1]][nodeIndex1];
-        double[] matrices1 = matrices[currentMatrixIndex[nodeIndex1]][nodeIndex1];
-        double[] partials3 = partials[currentPartialsIndex[nodeIndex3]][nodeIndex3];
+        double[] partials1 = partials[currentPartialsIndex[rootIndex]][rootIndex];
+        double[] matrices1 = matrices[currentMatrixIndex[rootIndex]][rootIndex];
+        double[] partials3 = partials[currentPartialsIndex[originIndex]][originIndex];
 
         // Initialize all partials to 0
         Arrays.fill(partials3, 0.0);
@@ -83,6 +44,34 @@ public class IrreversibleLikelihoodCore extends BeerLikelihoodCore {
             partials3[u] = sum1;
         }
         
+        if (useScaling) {
+            scalePartials(originIndex);
+        }
+    }
+
+
+
+
+
+
+    /**
+     * Calculates partial likelihoods at a node while
+     * first checking if the node has to be unedited 
+     * to skip unnecessary calculations.
+     */
+    public void calculatePartials(Node child1, Node child2, Node node, int[] uneditedStatus) {
+
+        int nodeIndex1 = child1.getNr();
+        int nodeIndex2 = child2.getNr();
+        int nodeIndex3 = node.getNr();
+        
+        double[] partials1 = partials[currentPartialsIndex[nodeIndex1]][nodeIndex1];
+        double[] matrices1 = matrices[currentMatrixIndex[nodeIndex1]][nodeIndex1];
+        double[] partials2 = partials[currentPartialsIndex[nodeIndex2]][nodeIndex2];
+        double[] matrices2 = matrices[currentMatrixIndex[nodeIndex2]][nodeIndex2];
+        double[] partials3 = partials[currentPartialsIndex[nodeIndex3]][nodeIndex3];
+
+
         if (useScaling) {
             scalePartials(nodeIndex3);
         }
@@ -101,30 +90,5 @@ public class IrreversibleLikelihoodCore extends BeerLikelihoodCore {
             v += nrOfStates;
         }
     }
-
-
-
-    // /**
-    //  * Calculates partial likelihoods at a node while
-    //  * first checking if the node has to be unedited 
-    //  * to skip unnecessary calculations.
-    //  */
-    // public void calculatePartials(Node child1, Node child2, Node node, int[] uneditedStatus) {
-
-    //     int nodeIndex1 = child1.getNr();
-    //     int nodeIndex2 = child2.getNr();
-    //     int nodeIndex3 = node.getNr();
-        
-    //     double[] partials1 = partials[currentPartialsIndex[nodeIndex1]][nodeIndex1];
-    //     double[] matrices1 = matrices[currentMatrixIndex[nodeIndex1]][nodeIndex1];
-    //     double[] partials2 = partials[currentPartialsIndex[nodeIndex2]][nodeIndex2];
-    //     double[] matrices2 = matrices[currentMatrixIndex[nodeIndex2]][nodeIndex2];
-    //     double[] partials3 = partials[currentPartialsIndex[nodeIndex3]][nodeIndex3];
-
-
-    //     if (useScaling) {
-    //         scalePartials(nodeIndex3);
-    //     }
-    // }
 
 }

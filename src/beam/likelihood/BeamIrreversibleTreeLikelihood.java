@@ -163,16 +163,15 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
             // currently always does the calculation since children will always be dirty.
             if (update1[0] != Tree.IS_CLEAN || update2[0] != Tree.IS_CLEAN) {
 
-                final int childNum1 = child1.getNr();
-                final int childNum2 = child2.getNr();
+                int childIndex1 = child1.getNr();
+                int childIndex2 = child2.getNr();
 
                 likelihoodCore.setNodePartialsForUpdate(nodeIndex);
 
                 // int[] uneditedPatternStatus = Arrays.copyOfRange(subtreeStatus, 1, subtreeStatus.length);
-                // likelihoodCore.calculatePartials(child1, child2, node, uneditedPatternStatus);
+                // likelihoodCore.calculatePartials(childIndex1, childIndex2, nodeIndex, uneditedPatternStatus);
 
-                likelihoodCore.calculatePartials(child1, child2, node);
-
+                likelihoodCore.calculatePartials(childIndex1, childIndex2, nodeIndex);
 
                 // if we are already back to the root in the post-order traversal, then propagate the partials to the origin
                 if (node.isRoot()) {
@@ -184,10 +183,12 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
                     originNode.setNr(node.getNr() + 1);
 
                     // calculates the origin partials
-                    likelihoodCore.calculatePartials(node, originNode);
+                    int rootIndex = node.getNr();
+                    int originIndex = originNode.getNr();
+                    likelihoodCore.calculatePartials(rootIndex, originIndex);
 
                     // get the logLikelihoods in an efficient way that assumes the origin frequencies are known as the unedited state
-                    likelihoodCore.calculateLogLikelihoods(originNode.getNr(), patternLogLikelihoods);
+                    likelihoodCore.calculateLogLikelihoods(originIndex, patternLogLikelihoods);
                 }
             }
         } else {
