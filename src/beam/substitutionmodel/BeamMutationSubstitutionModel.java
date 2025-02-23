@@ -60,6 +60,9 @@ public class BeamMutationSubstitutionModel extends SubstitutionModel.Base {
             throw new RuntimeException("Loss rate must be positive!");
         }
 
+        // missing data state is the last edit
+        missingDataState = nrOfStates - 1;
+
         // center root frequency on the unedited first state, irregardless of input frequencies as this is a property of the barcodes
         frequencies = new double[nrOfStates];
         frequencies[0] = 1;
@@ -152,11 +155,16 @@ public class BeamMutationSubstitutionModel extends SubstitutionModel.Base {
         return frequencies;
     }
 
+    public int getMissingState() {
+        return missingDataState;
+    }
+
 
     double[] frequencies;
     RealParameter editRate_;
     RealParameter silencingRate_;
     Double[] editRates;
+    int missingDataState;
 
     private double storedSilencingRate;
 }

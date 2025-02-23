@@ -47,13 +47,13 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
             throw new IllegalArgumentException("The number of nodes in the tree does not match the number of sequences");
         }
 
-        int nodeCount = treeInput.get().getNodeCount();
+        int nodeCountNoOrigin = treeInput.get().getNodeCount();
         if (originInput.get() == null){
             throw new IllegalArgumentException("The expriment origin time must be input.");
         }
 
         origin = originInput.get();
-        nodeCount = nodeCount + 1;
+        int nodeCount = nodeCountNoOrigin + 1;
 
         if (!(siteModelInput.get() instanceof SiteModel.Base)) {
             throw new IllegalArgumentException("siteModel input should be of type SiteModel.Base");
@@ -80,31 +80,20 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
         probabilities = new double[(nrOfStates + 1) * (nrOfStates + 1)];
         Arrays.fill(probabilities, 1.0);
 
-        initCore();
-    }
-
-    protected void initCore() {
-
-        int nodeCount = treeInput.get().getNodeCount() + 1;
-
         likelihoodCore.initialize(
                 nodeCount,
                 dataInput.get().getPatternCount(),
                 1,  // currently only one site category is supported
                 true, // current implementation does not allow for site model categories
-                false); // current implementation does not use ambiguities
+                false, // current implementation does not use ambiguities
+                nodeCountNoOrigin);
 
-        int extNodeCount;
-        int intNodeCount;
-        
-        nodeCount = nodeCount - 1;
-        extNodeCount = nodeCount / 2 + 1;
-        intNodeCount = nodeCount / 2 + 1;
+        int intNodeCount = nodeCountNoOrigin / 2 + 1;
 
         setStates(treeInput.get().getRoot(), dataInput.get().getPatternCount());
         
         for (int i = 0; i < intNodeCount; i++) {
-            likelihoodCore.createNodePartials(extNodeCount + i);
+            likelihoodCore.createNodePartials(intNodeCount + i);
         }
     }
 
@@ -115,17 +104,7 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
      * to reduce the number of ancestral states to propagate partial
      * likelihoods for.
      */
-    protected int[] traverse(Node node) {
-
-        /*
-         * initialize array for status where position 0 is the update status, 
-         * the next nrOfPatterns positions indicate if there is unedited state 
-         * at a tip in the subtree below the current node, and the final nrOfPatterns 
-         * positions indicate the edit state below the node for that side of the tree if it 
-         * only has one unique edit per pattern. This final position is irrelevant if the 
-         * unedited flag is already true for that pattern at the node.
-         */
-        int[] subtreeStatus = new int[1 + (nrOfPatterns * 2)];
+    protected int traverse(Node node) {
 
         int update = 1; //currently always recalculate transition matrices for every node.
 
@@ -156,29 +135,15 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
 
             // Traverse down the two child nodes
             final Node child1 = node.getLeft();
-            final int[] update1 = traverse(child1);
+            // final int[] update1 = traverse(child1);
+            final int update1 = traverse(child1);
 
             final Node child2 = node.getRight();
-            final int[] update2 = traverse(child2);
+            // final int[] update2 = traverse(child2);
+            final int update2 = traverse(child2);
 
-            update |= (update1[0] | update2[0]);
-
-            // update unedited state status for each pattern based on children
-            for (int i = 0; i < nrOfPatterns; i++) {
-                
-                // first check if either child already has an unedited state in the subtree below, forcing the current node to be only the unedited state
-                int patternUpdate = update1[1 + i] | update2[1 + i];
-                
-                // if the current node is not already forced to be unedited, check if more than one unique edit exits below the node which also forces the node to be unedited
-                if (patternUpdate == 0) {
-                    if (update1[1 + nrOfPatterns + i] != update1[1 + nrOfPatterns + i]) {
-                        patternUpdate = 1;
-                    } else {
-                        subtreeStatus[1 + nrOfPatterns + i] = update1[1 + nrOfPatterns + i];
-                    }
-                }
-                subtreeStatus[1 + i] = patternUpdate;
-            }
+            // update |= (update1[0] | update2[0]);
+            update |= (update1 | update2);
 
             // calculate the partials at this node given it's children.
             // currently always does the calculation since children will always be dirty.
@@ -187,8 +152,9 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
                 int childIndex1 = child1.getNr();
                 int childIndex2 = child2.getNr();
 
-                int[] uneditedPatternStatus = Arrays.copyOfRange(subtreeStatus, 1, nrOfPatterns + 1);
-                likelihoodCore.calculatePartials(childIndex1, childIndex2, nodeIndex, uneditedPatternStatus);
+                // update possible ancestral states at the nodes for more efficient pruning algorithm in traverse
+                likelihoodCore.setPossibleAncestralStates(childIndex1, childIndex2, nodeIndex);
+                likelihoodCore.calculatePartials(childIndex1, childIndex2, nodeIndex);
 
                 // if we are already back to the root in the post-order traversal, then propagate the partials to the origin
                 if (node.isRoot()) {
@@ -208,20 +174,9 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
                     likelihoodCore.calculateLogLikelihoods(originIndex, patternLogLikelihoods);
                 }
             }
-        } else {
-            // here we pass whether there is unedited state at each pattern in the leaf states
-            int[] states = new int[nrOfPatterns];
-            likelihoodCore.getNodeStates(node.getNr(), states);
-            for (int i = 0; i < nrOfPatterns; i++) {
-                subtreeStatus[1 + i] = (states[i] == 0) ? 1 : 0;
-                subtreeStatus[1 + nrOfPatterns + i] = states[i];
-            }
         }
 
-        // set the first element of subtreeStatus to the update value
-        subtreeStatus[0] = update;
-
-        return subtreeStatus;
+        return update;
     }
 
 
@@ -230,30 +185,30 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
      */
     protected void setStates(Node node, int patternCount) {
         if (node.isLeaf()) {
-            Alignment data = dataInput.get();
-            int i;
-            int[] states = new int[patternCount];
             String taxon = node.getID();
+            Alignment data = dataInput.get();
             int taxonIndex = data.getTaxonIndex(taxon);
+
             if (taxonIndex == -1) {
-                if (taxon.startsWith("'") || taxon.startsWith("\"")) {
-                    taxonIndex = data.getTaxonIndex(taxon.substring(1, taxon.length() - 1));
-                }
-                if (taxonIndex == -1) {
-                    throw new RuntimeException("Could not find sequence " + taxon + " in the alignment");
-                }
+                throw new RuntimeException("Could not find sequence " + taxon + " in the alignment");
             }
 
-            for (i = 0; i < patternCount; i++) {
+            int[] states = new int[patternCount];
+
+            for (int i = 0; i < patternCount; i++) {
                 int code = data.getPattern(taxonIndex, i);
                 int[] statesForCode = data.getDataType().getStatesForCode(code);
                 states[i] = statesForCode[0];
             }
             int nodeIndex = node.getNr();
-            likelihoodCore.setNodeStates(nodeIndex, states);
 
-            // set the partials for the node based on the known state to avoid repeat checks in likelihood core later on
+            // this just sets fixed state to partials array
             likelihoodCore.setNodePartials(nodeIndex, states);
+
+            // set the leaf sets of state for later calculation of ancestral states
+            int missingDataState = substitutionModel.getMissingState();
+            likelihoodCore.setLeafStatesSet(nodeIndex, states, missingDataState);
+
         } else {
             setStates(node.getLeft(), patternCount);
             setStates(node.getRight(), patternCount);
@@ -276,20 +231,20 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
             return Double.NEGATIVE_INFINITY;
         }
 
-        // if the tree is not clean, the traverse call will update all pruning calculations
-        if (traverse(tree.getRoot())[0] != 0) {
-            // calculate the log likelihoods at the root by summing across site patterns given the site log likelihood already calculated
-            logP = 0.0;
-            for (int i = 0; i < dataInput.get().getPatternCount(); i++) {
-                logP += patternLogLikelihoods[i] * dataInput.get().getPatternWeight(i);
-            }
+        // update partials up to the origin by modified pruning algorithm
+        traverse(tree.getRoot());
+
+        // calculate the log likelihoods at the root by summing across site patterns given the site log likelihood already calculated
+        logP = 0.0;
+        for (int i = 0; i < dataInput.get().getPatternCount(); i++) {
+            logP += patternLogLikelihoods[i] * dataInput.get().getPatternWeight(i);
         }
 
         // if there is numeric instability, turn on scaling and recalculate the likelihood
         if (logP == Double.NEGATIVE_INFINITY) {
             Log.warning.println("Turning on scaling to prevent numeric instability.");
             likelihoodCore.setUseScaling(1.01);
-            likelihoodCore.unstore();
+            likelihoodCore.restore();
 
             traverse(tree.getRoot());
 
@@ -353,4 +308,5 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
     protected double[] storedBranchLengths;
     protected double[] patternLogLikelihoods;
     protected IrreversibleLikelihoodCore likelihoodCore;
+    
 }
