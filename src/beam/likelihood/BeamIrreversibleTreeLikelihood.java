@@ -166,8 +166,6 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
                 int childIndex1 = child1.getNr();
                 int childIndex2 = child2.getNr();
 
-                likelihoodCore.setNodePartialsForUpdate(nodeIndex);
-
                 // int[] uneditedPatternStatus = Arrays.copyOfRange(subtreeStatus, 1, subtreeStatus.length);
                 // likelihoodCore.calculatePartials(childIndex1, childIndex2, nodeIndex, uneditedPatternStatus);
 
@@ -231,7 +229,11 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
                 int[] statesForCode = data.getDataType().getStatesForCode(code);
                 states[i] = statesForCode[0];
             }
-            likelihoodCore.setNodeStates(node.getNr(), states);
+            int nodeIndex = node.getNr();
+            likelihoodCore.setNodeStates(nodeIndex, states);
+
+            // set the partials for the node based on the known state to avoid repeat checks in likelihood core later on
+            likelihoodCore.setNodePartials(nodeIndex, states);
         } else {
             setStates(node.getLeft(), patternCount);
             setStates(node.getRight(), patternCount);
