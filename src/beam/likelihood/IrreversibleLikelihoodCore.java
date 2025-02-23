@@ -67,18 +67,10 @@ public class IrreversibleLikelihoodCore extends BeerLikelihoodCore {
         int nodeIndex1 = child1.getNr();
         int nodeIndex3 = node.getNr();
 
-        calculatePartialsPruning(partials[currentPartialsIndex[nodeIndex1]][nodeIndex1],
-                                    matrices[currentMatrixIndex[nodeIndex1]][nodeIndex1], 
-                                    partials[currentPartialsIndex[nodeIndex3]][nodeIndex3]);
+        double[] partials1 = partials[currentPartialsIndex[nodeIndex1]][nodeIndex1];
+        double[] matrices1 = matrices[currentMatrixIndex[nodeIndex1]][nodeIndex1];
+        double[] partials3 = partials[currentPartialsIndex[nodeIndex3]][nodeIndex3];
 
-        
-        if (useScaling) {
-            scalePartials(nodeIndex3);
-        }
-    }
-
-    // calculate partials for the origin
-    protected double[] calculatePartialsPruning(double[] partials1, double[] matrices1, double[] partials3) {
         // Initialize all partials to 0
         Arrays.fill(partials3, 0.0);
 
@@ -91,7 +83,9 @@ public class IrreversibleLikelihoodCore extends BeerLikelihoodCore {
             partials3[u] = sum1;
         }
         
-        return partials3;
+        if (useScaling) {
+            scalePartials(nodeIndex3);
+        }
     }
 
 
@@ -99,7 +93,7 @@ public class IrreversibleLikelihoodCore extends BeerLikelihoodCore {
      * Calculates pattern log likelihoods at a node more efficiently by assuming the substitution model is irreversible
      * and the origin is known to be the first state as unedited.
      */
-	public void calculateLogLikelihoods(int nodeIndex, double[] outLogLikelihoods) {
+    public void calculateLogLikelihoods(int nodeIndex, double[] outLogLikelihoods) {
         double[] partials1 = partials[currentPartialsIndex[nodeIndex]][nodeIndex];
         int v = 0;
         for (int k = 0; k < nrOfPatterns; k++) {
@@ -107,5 +101,30 @@ public class IrreversibleLikelihoodCore extends BeerLikelihoodCore {
             v += nrOfStates;
         }
     }
+
+
+
+    // /**
+    //  * Calculates partial likelihoods at a node while
+    //  * first checking if the node has to be unedited 
+    //  * to skip unnecessary calculations.
+    //  */
+    // public void calculatePartials(Node child1, Node child2, Node node, int[] uneditedStatus) {
+
+    //     int nodeIndex1 = child1.getNr();
+    //     int nodeIndex2 = child2.getNr();
+    //     int nodeIndex3 = node.getNr();
+        
+    //     double[] partials1 = partials[currentPartialsIndex[nodeIndex1]][nodeIndex1];
+    //     double[] matrices1 = matrices[currentMatrixIndex[nodeIndex1]][nodeIndex1];
+    //     double[] partials2 = partials[currentPartialsIndex[nodeIndex2]][nodeIndex2];
+    //     double[] matrices2 = matrices[currentMatrixIndex[nodeIndex2]][nodeIndex2];
+    //     double[] partials3 = partials[currentPartialsIndex[nodeIndex3]][nodeIndex3];
+
+
+    //     if (useScaling) {
+    //         scalePartials(nodeIndex3);
+    //     }
+    // }
 
 }

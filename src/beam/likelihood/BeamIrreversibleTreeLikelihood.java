@@ -109,14 +109,18 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
     }
 
     /**
-     * This method performs a recursion down the tree and computes the partial likelihood at each node
-     * and stores them in the likelihood core
-     * @param node
-     * @return integer indicating whether the likelihood for the parent node has to be recalculated
+     * Computed the transition pre-order, then does a post-order traversal
+     * calculating the partial likelihoods by a modified pruning algorithm
+     * taking advantage of the irreversibility of the substitution model
+     * to reduce the number of ancestral states to propagate partial
+     * likelihoods for.
      */
-    protected int traverse(Node node) {
+    protected int[] traverse(Node node) {
 
-        int update = 2; //currently always recalculate for every node.
+        // initialize array for status where position 0 is the update status and the rest are the subtree edit states
+        int[] subtreeStatus = new int[1 + nrOfPatterns];
+
+        int update = 2; //currently always recalculate transition matrices for every node.
 
         final int nodeIndex = node.getNr();
         final double nodeHeight = node.getHeight();
@@ -134,8 +138,7 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
 
             likelihoodCore.setNodeMatrixForUpdate(nodeIndex);
 
-            final double jointBranchRate = m_siteModel.getRateForCategory(0, node) * branchRate;
-            substitutionModel.getTransitionProbabilities(node, parent.getHeight(), node.getHeight(), jointBranchRate, probabilities);
+            substitutionModel.getTransitionProbabilities(node, parent.getHeight(), node.getHeight(), branchRate, probabilities);
             likelihoodCore.setNodeMatrix(nodeIndex, 0, probabilities);
 
             update |= Tree.IS_DIRTY;
@@ -145,30 +148,36 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
         if (!node.isLeaf()) {
 
             // Traverse down the two child nodes
-            final Node child1 = node.getLeft(); //Two children
-            int update1 = traverse(child1);
-            final double childHeight1 = child1.getHeight();
+            final Node child1 = node.getLeft();
+            final int[] update1 = traverse(child1);
 
             final Node child2 = node.getRight();
-            final int update2 = traverse(child2);
-            final double childHeight2 = child2.getHeight();
+            final int[] update2 = traverse(child2);
 
-            update1 = 2; // currently always recalculate for every node.
+            // update unedited state status for each pattern based on children
+            for (int i = 0; i < nrOfPatterns; i++) {
+                subtreeStatus[1 + i] = update1[1 + i] | update2[1 + i];
+            }
 
-            // if either child node was updated then update this node too by calculating its partial likelihoods
-            if (update1 != Tree.IS_CLEAN || update2 != Tree.IS_CLEAN) {
+            // calculate the partials at this node given it's children.
+            // currently always does the calculation since children will always be dirty.
+            if (update1[0] != Tree.IS_CLEAN || update2[0] != Tree.IS_CLEAN) {
 
                 final int childNum1 = child1.getNr();
                 final int childNum2 = child2.getNr();
 
                 likelihoodCore.setNodePartialsForUpdate(nodeIndex);
-                update |= (update1 | update2);
+
+                // int[] uneditedPatternStatus = Arrays.copyOfRange(subtreeStatus, 1, subtreeStatus.length);
+                // likelihoodCore.calculatePartials(child1, child2, node, uneditedPatternStatus);
 
                 likelihoodCore.calculatePartials(child1, child2, node);
 
 
+                // if we are already back to the root in the post-order traversal, then propagate the partials to the origin
                 if (node.isRoot()) {
 
+                    // create the origin node
                     Double originHeight = origin.getValue();
                     originNode = new Node();
                     originNode.setHeight(originHeight);
@@ -181,9 +190,19 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
                     likelihoodCore.calculateLogLikelihoods(originNode.getNr(), patternLogLikelihoods);
                 }
             }
-
+        } else {
+            // here we pass whether there is unedited state at each pattern in the leaf states
+            int[] states = new int[nrOfPatterns];
+            likelihoodCore.getNodeStates(node.getNr(), states);
+            for (int i = 0; i < nrOfPatterns; i++) {
+                subtreeStatus[1 + i] = (states[i] == 0) ? 1 : 0;
+            }
         }
-        return 2;
+
+        // set the first element of subtreeStatus to the update value
+        subtreeStatus[0] = update;
+
+        return subtreeStatus;
     }
 
 
@@ -235,7 +254,7 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
         }
 
         // if the tree is not clean, the traverse call will update all pruning calculations
-        if (traverse(tree.getRoot()) != Tree.IS_CLEAN) {
+        if (traverse(tree.getRoot())[0] != Tree.IS_CLEAN) {
             // calculate the log likelihoods at the root by summing across site patterns given the site log likelihood already calculated
             logP = 0.0;
             for (int i = 0; i < dataInput.get().getPatternCount(); i++) {
@@ -243,6 +262,7 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
             }
         }
 
+        // if there is numeric instability, turn on scaling and recalculate the likelihood
         if (logP == Double.NEGATIVE_INFINITY) {
             Log.warning.println("Turning on scaling to prevent numeric instability.");
             likelihoodCore.setUseScaling(1.01);
@@ -250,7 +270,6 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
 
             traverse(tree.getRoot());
 
-            // calculate the log likelihoods at the root by summing across site patterns given the site log likelihood already calculated
             logP = 0.0;
             for (int i = 0; i < dataInput.get().getPatternCount(); i++) {
                 logP += patternLogLikelihoods[i] * dataInput.get().getPatternWeight(i);
