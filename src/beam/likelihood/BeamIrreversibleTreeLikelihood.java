@@ -117,8 +117,15 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
      */
     protected int[] traverse(Node node) {
 
-        // initialize array for status where position 0 is the update status and the rest are the subtree edit states
-        int[] subtreeStatus = new int[1 + nrOfPatterns];
+        /*
+         * initialize array for status where position 0 is the update status, 
+         * the next nrOfPatterns positions indicate if there is unedited state 
+         * at a tip in the subtree below the current node, and the final nrOfPatterns 
+         * positions indicate the edit state below the node for that side of the tree if it 
+         * only has one unique edit per pattern. This final position is irrelevant if the 
+         * unedited flag is already true for that pattern at the node.
+         */
+        int[] subtreeStatus = new int[1 + (nrOfPatterns * 2)];
 
         int update = 1; //currently always recalculate transition matrices for every node.
 
@@ -158,7 +165,19 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
 
             // update unedited state status for each pattern based on children
             for (int i = 0; i < nrOfPatterns; i++) {
-                subtreeStatus[1 + i] = update1[1 + i] | update2[1 + i];
+                
+                // first check if either child already has an unedited state in the subtree below, forcing the current node to be only the unedited state
+                int patternUpdate = update1[1 + i] | update2[1 + i];
+                
+                // if the current node is not already forced to be unedited, check if more than one unique edit exits below the node which also forces the node to be unedited
+                if (patternUpdate == 0) {
+                    if (update1[1 + nrOfPatterns + i] != update1[1 + nrOfPatterns + i]) {
+                        patternUpdate = 1;
+                    } else {
+                        subtreeStatus[1 + nrOfPatterns + i] = update1[1 + nrOfPatterns + i];
+                    }
+                }
+                subtreeStatus[1 + i] = patternUpdate;
             }
 
             // calculate the partials at this node given it's children.
@@ -168,7 +187,7 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
                 int childIndex1 = child1.getNr();
                 int childIndex2 = child2.getNr();
 
-                int[] uneditedPatternStatus = Arrays.copyOfRange(subtreeStatus, 1, subtreeStatus.length);
+                int[] uneditedPatternStatus = Arrays.copyOfRange(subtreeStatus, 1, nrOfPatterns + 1);
                 likelihoodCore.calculatePartials(childIndex1, childIndex2, nodeIndex, uneditedPatternStatus);
 
                 // if we are already back to the root in the post-order traversal, then propagate the partials to the origin
@@ -195,6 +214,7 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
             likelihoodCore.getNodeStates(node.getNr(), states);
             for (int i = 0; i < nrOfPatterns; i++) {
                 subtreeStatus[1 + i] = (states[i] == 0) ? 1 : 0;
+                subtreeStatus[1 + nrOfPatterns + i] = states[i];
             }
         }
 
