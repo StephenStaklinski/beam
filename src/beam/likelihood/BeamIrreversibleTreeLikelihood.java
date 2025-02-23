@@ -120,7 +120,7 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
         // initialize array for status where position 0 is the update status and the rest are the subtree edit states
         int[] subtreeStatus = new int[1 + nrOfPatterns];
 
-        int update = 2; //currently always recalculate transition matrices for every node.
+        int update = 1; //currently always recalculate transition matrices for every node.
 
         final int nodeIndex = node.getNr();
         final double nodeHeight = node.getHeight();
@@ -128,7 +128,7 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
         final double branchTime = node.getLength() * branchRate;
 
         // first update the transition probability matrix for this branch, for all nodes except the final root or origin
-        if (update != Tree.IS_CLEAN || branchTime != m_branchLengths[nodeIndex]) {
+        if (update == 1 || branchTime != m_branchLengths[nodeIndex]) {
             m_branchLengths[nodeIndex] = branchTime;
             Node parent = node.getParent();
             if(node.isRoot()){
@@ -141,7 +141,7 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
             substitutionModel.getTransitionProbabilities(node, parent.getHeight(), node.getHeight(), branchRate, probabilities);
             likelihoodCore.setNodeMatrix(nodeIndex, 0, probabilities);
 
-            update |= Tree.IS_DIRTY;
+            update |= 1;
         }
 
         // If the node is internal, update the partial likelihoods.
@@ -163,7 +163,7 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
 
             // calculate the partials at this node given it's children.
             // currently always does the calculation since children will always be dirty.
-            if (update != Tree.IS_CLEAN) {
+            if (update == 1) {
 
                 int childIndex1 = child1.getNr();
                 int childIndex2 = child2.getNr();
@@ -257,7 +257,7 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
         }
 
         // if the tree is not clean, the traverse call will update all pruning calculations
-        if (traverse(tree.getRoot())[0] != Tree.IS_CLEAN) {
+        if (traverse(tree.getRoot())[0] != 0) {
             // calculate the log likelihoods at the root by summing across site patterns given the site log likelihood already calculated
             logP = 0.0;
             for (int i = 0; i < dataInput.get().getPatternCount(); i++) {
