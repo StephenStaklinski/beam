@@ -74,13 +74,13 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
 
         m_branchLengths = new double[nodeCount];
         storedBranchLengths = new double[nodeCount];
-        likelihoodCore = new IrreversibleLikelihoodCore(nrOfStates);
         patternLogLikelihoods = new double[nrOfPatterns];
 
         probabilities = new double[(nrOfStates + 1) * (nrOfStates + 1)];
         Arrays.fill(probabilities, 1.0);
 
-        likelihoodCore.initialize(nodeCount, nrOfPatterns);
+        likelihoodCore = new IrreversibleLikelihoodCore();
+        likelihoodCore.initialize(nodeCount, nrOfStates, nrOfPatterns);
 
         int intNodeCount = nodeCountNoOrigin / 2 + 1;
 
