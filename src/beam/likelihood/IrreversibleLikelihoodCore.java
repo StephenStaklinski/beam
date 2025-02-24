@@ -160,11 +160,10 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
                 }
                 partials3[u + i] = sum1 * sum2;
             }
-        }
 
-
-        if (useScaling) {
-            scalePartials(parentIndex);
+            if (useScaling) {
+                scalePartials(parentIndex, k, possibleStates);
+            }
         }
     }
 
@@ -191,10 +190,10 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
                 sum1 += matrices1[j] * partials1[k * nrOfStates + j];
             }
             partials3[k * nrOfStates] = sum1;
-        }
-        
-        if (useScaling) {
-            scalePartials(originIndex);
+
+            if (useScaling) {
+                scalePartials(originIndex, k, new HashSet<>(Arrays.asList(0)));
+            }
         }
     }
 
@@ -247,39 +246,26 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
      *
      * @param nodeIndex
      */
-    protected void scalePartials(int nodeIndex) {
-        int u = 0;
+    protected void scalePartials(int nodeIndex, int patternNum, Set<Integer> possibleStates) {
 
-        for (int i = 0; i < nrOfPatterns; i++) {
 
-            double scaleFactor = 0.0;
-            int v = u;
+        double scaleFactor = 0.0;
+        int v = nrOfStates * patternNum;
 
-                for (int j = 0; j < nrOfStates; j++) {
-                if (partials[currentPartialsIndex[nodeIndex]][nodeIndex][v] > scaleFactor) {
-                    scaleFactor = partials[currentPartialsIndex[nodeIndex]][nodeIndex][v];
-                }
-                v++;
+        // Find the maximum partial value for scaling
+        for (int j : possibleStates) {
+            scaleFactor = Math.max(scaleFactor, partials[currentPartialsIndex[nodeIndex]][nodeIndex][v++]);
+        }
+
+        // Scale partials if the scaleFactor is below the threshold
+        if (scaleFactor < scalingThreshold) {
+            v = nrOfStates * patternNum;
+            for (int j : possibleStates) {
+                partials[currentPartialsIndex[nodeIndex]][nodeIndex][v++] /= scaleFactor;
             }
-            v += (nrOfPatterns - 1) * nrOfStates;
-
-
-            if (scaleFactor < scalingThreshold) {
-
-                v = u;
-
-                for (int j = 0; j < nrOfStates; j++) {
-                    partials[currentPartialsIndex[nodeIndex]][nodeIndex][v] /= scaleFactor;
-                    v++;
-                }
-                v += (nrOfPatterns - 1) * nrOfStates;
-
-                scalingFactors[currentPartialsIndex[nodeIndex]][nodeIndex][i] = Math.log(scaleFactor);
-
+                scalingFactors[currentPartialsIndex[nodeIndex]][nodeIndex][patternNum] = Math.log(scaleFactor);
             } else {
-                scalingFactors[currentPartialsIndex[nodeIndex]][nodeIndex][i] = 0.0;
-            }
-            u += nrOfStates;
+                scalingFactors[currentPartialsIndex[nodeIndex]][nodeIndex][patternNum] = 0.0;
         }
     }
 
