@@ -168,13 +168,12 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
     }
 
 
-    /*
-     * Calculates partial likelihoods at the cell division origin node with a single child.
-     * Since this is the start of the experiment, the origin is known to be in the unedited
-     * state, so we can only calculate the partials for that state and set the other to 0
-     * since they will not be used by the frequencies anyways.
+    /**
+     * Calculates partial likelihoods and pattern log likelihoods at the cell division origin node with a single child.
+     * Since this is the start of the experiment, the origin is known to be in the unedited state, so we can only calculate
+     * the partials for that state and set the other to 0 since they will not be used by the frequencies anyways.
      */
-    public void calculatePartials(int rootIndex, int originIndex) {
+    public void calculateLogLikelihoods(int rootIndex, int originIndex, double[] outLogLikelihoods) {
 
         final double[] partials1 = partials[currentPartialsIndex[rootIndex]][rootIndex];
         final double[] matrices1 = matrices[currentMatrixIndex[rootIndex]][rootIndex];
@@ -194,19 +193,9 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
             if (useScaling) {
                 scalePartials(originIndex, k, new HashSet<>(Arrays.asList(0)));
             }
-        }
-    }
 
-
-    /**
-     * Calculates pattern log likelihoods at a node more efficiently by assuming the substitution model is irreversible
-     * and the origin is known to be the first state as unedited.
-     */
-    public void calculateLogLikelihoods(int originIndex, double[] outLogLikelihoods) {
-        double[] partials1 = partials[currentPartialsIndex[originIndex]][originIndex];
-
-        for (int k = 0; k < nrOfPatterns; k++) {
-            outLogLikelihoods[k] = Math.log(partials1[k * nrOfStates]) + getLogScalingFactor(k);
+            // Calculate log likelihoods
+            outLogLikelihoods[k] = Math.log(partials3[k * nrOfStates]) + getLogScalingFactor(k);
         }
     }
 

@@ -156,13 +156,10 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
                     originNode.setHeight(originHeight);
                     originNode.setNr(node.getNr() + 1);
 
-                    // calculates the origin partials
+                    // Calculate the origin partials and gets the logLikelihoods in an efficient way that assumes the origin frequencies are known as the unedited state
                     int rootIndex = node.getNr();
                     int originIndex = originNode.getNr();
-                    likelihoodCore.calculatePartials(rootIndex, originIndex);
-
-                    // get the logLikelihoods in an efficient way that assumes the origin frequencies are known as the unedited state
-                    likelihoodCore.calculateLogLikelihoods(originIndex, patternLogLikelihoods);
+                    likelihoodCore.calculateLogLikelihoods(rootIndex, originIndex, patternLogLikelihoods);
                 }
 
                 update |= (update1 | update2);
