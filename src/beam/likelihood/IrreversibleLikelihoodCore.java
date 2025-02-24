@@ -29,8 +29,10 @@ public class IrreversibleLikelihoodCore extends BeerLikelihoodCore {
         numNodesNoOrigin = nodeCount - 1;
 
         ancestralStates = new HashSet[numNodesNoOrigin * nrOfPatterns];
+        storedAncestralStates = new HashSet[numNodesNoOrigin * nrOfPatterns];
         for (int i = 0; i < numNodesNoOrigin * nrOfPatterns; i++) {
             ancestralStates[i] = new HashSet<>();
+            storedAncestralStates[i] = new HashSet<>();
         }
     }
 
@@ -199,6 +201,7 @@ public class IrreversibleLikelihoodCore extends BeerLikelihoodCore {
 
         super.restore();
 
+        // this is mainly for when scaling is turned on immediately, otherwise the storedAncestralStates will already be setup
         if (storedAncestralStates == null) {
             storedAncestralStates = new HashSet[numNodesNoOrigin * nrOfPatterns];
             for (int i = 0; i < numNodesNoOrigin * nrOfPatterns; i++) {
