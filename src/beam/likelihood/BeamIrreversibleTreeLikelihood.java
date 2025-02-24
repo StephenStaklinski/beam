@@ -175,12 +175,11 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
      */
     protected void setStates(Node node) {
         if (node.isLeaf()) {
-            String taxon = node.getID();
             Alignment data = dataInput.get();
-            int taxonIndex = data.getTaxonIndex(taxon);
+            int taxonIndex = data.getTaxonIndex(node.getID());
 
             if (taxonIndex == -1) {
-                throw new RuntimeException("Could not find sequence " + taxon + " in the alignment");
+                throw new RuntimeException("Could not find sequence " + node.getID() + " in the alignment");
             }
 
             int[] states = new int[nrOfPatterns];
@@ -190,14 +189,10 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
                 int[] statesForCode = data.getDataType().getStatesForCode(code);
                 states[i] = statesForCode[0];
             }
-            int nodeIndex = node.getNr();
 
-            // this just sets fixed state to partials array
-            likelihoodCore.setNodePartials(nodeIndex, states);
-
-            // set the leaf sets of state for later calculation of ancestral states
+            // this just sets the known state partials and initializes the possible ancestral states feeder sets for the leaf
             int missingDataState = substitutionModel.getMissingState();
-            likelihoodCore.setLeafStatesSet(nodeIndex, states, missingDataState);
+            likelihoodCore.setNodePartials(node.getNr(), states, missingDataState);
         } else {
             setStates(node.getLeft());
             setStates(node.getRight());
