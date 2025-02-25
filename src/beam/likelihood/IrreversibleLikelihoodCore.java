@@ -16,11 +16,7 @@ import java.util.Set;
 public class IrreversibleLikelihoodCore extends LikelihoodCore {
 
     
-    public IrreversibleLikelihoodCore() {}
-
-
-	public void initialize(int nodeCount, int nrOfStates, int patternCount) {
-
+    public IrreversibleLikelihoodCore(int nodeCount, int nrOfStates, int patternCount) {
         this.nrOfStates = nrOfStates;
         this.nrOfNodes = nodeCount;
         this.nrOfPatterns = patternCount;
@@ -55,7 +51,6 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
             storedAncestralStates[i] = new HashSet<>();
         }
     }
-
 
     /**
      * Initializes the partials at a node with the known states.
@@ -186,7 +181,11 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
             }
 
             // Calculate log likelihoods
-            logP += Math.log(partials3[k * nrOfStates]) + getLogScalingFactor(k);
+            if (useScaling) {
+                logP += Math.log(partials3[k * nrOfStates]) + getLogScalingFactor(k);
+            } else {
+                logP += Math.log(partials3[k * nrOfStates]);
+            }
         }
 
         return logP;
@@ -234,12 +233,12 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
      */
     @Override
     public double getLogScalingFactor(int patternIndex_) {    
+        
         double logScalingFactor = 0.0;
-        if (useScaling) {
-            for (int i = 0; i < nrOfNodes; i++) {
-                logScalingFactor += scalingFactors[currentPartialsIndex[i]][i][patternIndex_];
-            }
+        for (int i = 0; i < nrOfNodes; i++) {
+            logScalingFactor += scalingFactors[currentPartialsIndex[i]][i][patternIndex_];
         }
+
         return logScalingFactor;
     }
 
@@ -262,7 +261,6 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
             storedAncestralStates[i].clear();
             storedAncestralStates[i].addAll(ancestralStates[i]);
         }
-
     }
 
 
@@ -288,7 +286,6 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
             ancestralStates[i].clear();
             ancestralStates[i].addAll(storedAncestralStates[i]);
         }
-    
     }
 
 
