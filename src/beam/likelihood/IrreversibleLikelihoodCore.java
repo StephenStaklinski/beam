@@ -48,9 +48,11 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
 
         numNodesNoOrigin = nodeCount - 1;
 
+        possibleStates = new HashSet[numNodesNoOrigin * nrOfPatterns];
         ancestralStates = new HashSet[numNodesNoOrigin * nrOfPatterns];
         storedAncestralStates = new HashSet[numNodesNoOrigin * nrOfPatterns];
         for (int i = 0; i < numNodesNoOrigin * nrOfPatterns; i++) {
+            possibleStates[i] = new HashSet<>();
             ancestralStates[i] = new HashSet<>();
             storedAncestralStates[i] = new HashSet<>();
         }
@@ -69,26 +71,44 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
 
         // Set the partials as 1.0 for the known state
         for (int i = 0; i < nrOfPatterns; i++) {
+            int index = leafIndex * nrOfPatterns + i;
             int state = states[i];
             partials[currentPartialsIndex[leafIndex]][leafIndex][i * nrOfStates + state] = 1.0;
             if (state != missingDataState) {
-                ancestralStates[leafIndex * nrOfPatterns + i].add(states[i]);
+                ancestralStates[index].add(states[i]);
+                possibleStates[index].add(states[i]);
             }
+            possibleStates[index].add(states[i]);
         }
     }
 
 
     public void setPossibleAncestralStates(int childIndex1, int childIndex2, int parentIndex, int patternNum) {
 
-        ancestralStates[parentIndex * nrOfPatterns + patternNum] = new HashSet<>();
+        int index = parentIndex * nrOfPatterns + patternNum;
 
-        ancestralStates[parentIndex * nrOfPatterns + patternNum].addAll(ancestralStates[childIndex1 * nrOfPatterns + patternNum]);
-        ancestralStates[parentIndex * nrOfPatterns + patternNum].addAll(ancestralStates[childIndex2 * nrOfPatterns + patternNum]);
+        ancestralStates[index].clear();
 
-        if (ancestralStates[parentIndex * nrOfPatterns + patternNum].size() > 1) {
-            ancestralStates[parentIndex * nrOfPatterns + patternNum].clear();
-            ancestralStates[parentIndex * nrOfPatterns + patternNum].add(0);
+        ancestralStates[index].addAll(ancestralStates[childIndex1 * nrOfPatterns + patternNum]);
+        ancestralStates[index].addAll(ancestralStates[childIndex2 * nrOfPatterns + patternNum]);
+
+        if (ancestralStates[index].size() > 1) {
+            ancestralStates[index].clear();
+            ancestralStates[index].add(0);
         }
+
+        possibleStates[index].clear();
+        possibleStates[index].addAll(ancestralStates[index]);
+
+        // if the subtree only has missing data, then the ancestral state can be anything
+        if (possibleStates[index].isEmpty()) {
+            for (int state = 1; state < nrOfStates; state++) {
+                possibleStates[index].add(state);
+            }
+        }
+
+        // always add the unedited state
+        possibleStates[index].add(0);
     }
 
 
@@ -115,43 +135,24 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
 
             setPossibleAncestralStates(childIndex1, childIndex2, parentIndex, k);
 
-            Set<Integer> possibleStates = getPossibleStates(ancestralStates[parentIndex * nrOfPatterns + k]);
-
             // Calculate partials for all states
             int u = k * nrOfStates;
-            for (int i : possibleStates) {
+            for (int i : possibleStates[parentIndex * nrOfPatterns + k]) {
                 sum1 = 0.0;
                 sum2 = 0.0;
-                for (int j : getPossibleStates(ancestralStates[childIndex1 * nrOfPatterns + k])) {
+                for (int j : possibleStates[childIndex1 * nrOfPatterns + k]) {
                     sum1 += matrices1[i * nrOfStates + j] * partials1[u + j];
                 }
-                for (int j : getPossibleStates(ancestralStates[childIndex2 * nrOfPatterns + k])) {
+                for (int j : possibleStates[childIndex2 * nrOfPatterns + k]) {
                     sum2 += matrices2[i * nrOfStates + j] * partials2[u + j];
                 }
                 partials3[u + i] = sum1 * sum2;
             }
 
             if (useScaling) {
-                scalePartials(parentIndex, k, possibleStates);
+                scalePartials(parentIndex, k, possibleStates[parentIndex * nrOfPatterns + k]);
             }
         }
-    }
-
-    public Set<Integer> getPossibleStates(Set<Integer> ancestralStates) {
-
-        Set<Integer> possibleStates = new HashSet<>(ancestralStates);
-
-        // if the subtree only has missing data, then the ancestral state can be anything
-        if (possibleStates.isEmpty()) {
-            for (int state = 1; state < nrOfStates; state++) {
-                possibleStates.add(state);
-            }
-        }
-
-        // always add the unedited state
-        possibleStates.add(0);
-
-        return possibleStates;
     }
 
 
@@ -177,7 +178,10 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
             partials3[k * nrOfStates] = sum1;
 
             if (useScaling) {
-                scalePartials(originIndex, k, new HashSet<>(Arrays.asList(0)));
+                int index = originIndex * nrOfPatterns + k;
+                possibleStates[index].clear();
+                possibleStates[index].add(0);
+                scalePartials(originIndex, k, possibleStates[index]);
             }
 
             // Calculate log likelihoods
@@ -304,6 +308,9 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
         currentMatrixIndex = null;
         storedMatrixIndex = null;
         scalingFactors = null;
+        ancestralStates = null;
+        storedAncestralStates = null;
+        possibleStates = null;
     }
 
 
@@ -373,7 +380,8 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
     protected int[] currentPartialsIndex;
     protected int[] storedPartialsIndex;
 
-    protected Set<Integer>[] ancestralStates;
+    protected Set<Integer>[] possibleStates; // considers missing data and unedited possibilities
+    protected Set<Integer>[] ancestralStates; // strictly records what is below the node to be used to setup possible states
     protected Set<Integer>[] storedAncestralStates;
 
     protected boolean useScaling = false;
