@@ -74,7 +74,6 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
 
         m_branchLengths = new double[nodeCount];
         storedBranchLengths = new double[nodeCount];
-        patternLogLikelihoods = new double[nrOfPatterns];
 
         probabilities = new double[(nrOfStates + 1) * (nrOfStates + 1)];
         Arrays.fill(probabilities, 1.0);
@@ -140,6 +139,9 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
                 int childIndex2 = child2.getNr();
 
                 // update possible ancestral states at the nodes for more efficient pruning algorithm in traverse to get the partial likelihoods
+
+                likelihoodCore.setPossibleAncestralStates(childIndex1, childIndex2, nodeIndex);
+
                 likelihoodCore.calculatePartials(childIndex1, childIndex2, nodeIndex);
 
                 // if we are already back to the root in the post-order traversal, then propagate the partials to the origin
@@ -154,7 +156,7 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
                     // Calculate the origin partials and gets the logLikelihoods in an efficient way that assumes the origin frequencies are known as the unedited state
                     int rootIndex = node.getNr();
                     int originIndex = originNode.getNr();
-                    likelihoodCore.calculateLogLikelihoods(rootIndex, originIndex, patternLogLikelihoods);
+                    logP = likelihoodCore.calculateLogLikelihoods(rootIndex, originIndex);
                 }
 
                 update |= (update1 | update2);
@@ -213,12 +215,6 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
         // update partials up to the origin by modified pruning algorithm
         traverse(tree.getRoot());
 
-        // calculate the log likelihoods at the root by summing across site patterns given the site log likelihood already calculated
-        logP = 0.0;
-        for (int i = 0; i < dataInput.get().getPatternCount(); i++) {
-            logP += patternLogLikelihoods[i] * dataInput.get().getPatternWeight(i);
-        }
-
         // if there is numeric instability, turn on scaling and recalculate the likelihood
         if (logP == Double.NEGATIVE_INFINITY) {
             Log.warning.println("Turning on scaling to prevent numeric instability.");
@@ -226,11 +222,6 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
             likelihoodCore.restore();
 
             traverse(tree.getRoot());
-
-            logP = 0.0;
-            for (int i = 0; i < dataInput.get().getPatternCount(); i++) {
-                logP += patternLogLikelihoods[i] * dataInput.get().getPatternWeight(i);
-            }
 
             if (logP == Double.NEGATIVE_INFINITY) {
                 throw new RuntimeException("Likelihood is negative infinity after turning on scaling.");
@@ -292,6 +283,7 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
             hasDirt = Tree.IS_FILTHY;
             return true;
         }
+
         return treeInput.get().somethingIsDirty();
     }
 
@@ -305,7 +297,6 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
     protected double[] probabilities;
     protected double[] m_branchLengths;
     protected double[] storedBranchLengths;
-    protected double[] patternLogLikelihoods;
     protected IrreversibleLikelihoodCore likelihoodCore;
 
     /**

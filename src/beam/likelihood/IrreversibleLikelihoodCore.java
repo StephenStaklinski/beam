@@ -78,16 +78,18 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
     }
 
 
-    public void setPossibleAncestralStates(int childIndex1, int childIndex2, int parentIndex, int patternNum) {
+    public void setPossibleAncestralStates(int childIndex1, int childIndex2, int parentIndex) {
 
-        ancestralStates[parentIndex * nrOfPatterns + patternNum] = new HashSet<>();
+        for (int i = 0; i < nrOfPatterns; i++) {
+            ancestralStates[parentIndex * nrOfPatterns + i] = new HashSet<>();
 
-        ancestralStates[parentIndex * nrOfPatterns + patternNum].addAll(ancestralStates[childIndex1 * nrOfPatterns + patternNum]);
-        ancestralStates[parentIndex * nrOfPatterns + patternNum].addAll(ancestralStates[childIndex2 * nrOfPatterns + patternNum]);
+            ancestralStates[parentIndex * nrOfPatterns + i].addAll(ancestralStates[childIndex1 * nrOfPatterns + i]);
+            ancestralStates[parentIndex * nrOfPatterns + i].addAll(ancestralStates[childIndex2 * nrOfPatterns + i]);
 
-        if (ancestralStates[parentIndex * nrOfPatterns + patternNum].size() > 1) {
-            ancestralStates[parentIndex * nrOfPatterns + patternNum].clear();
-            ancestralStates[parentIndex * nrOfPatterns + patternNum].add(0);
+            if (ancestralStates[parentIndex * nrOfPatterns + i].size() > 1) {
+                ancestralStates[parentIndex * nrOfPatterns + i].clear();
+                ancestralStates[parentIndex * nrOfPatterns + i].add(0);
+            }
         }
     }
 
@@ -112,8 +114,6 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
         double sum1, sum2;
 
         for (int k = 0; k < nrOfPatterns; k++) {
-
-            setPossibleAncestralStates(childIndex1, childIndex2, parentIndex, k);
 
             Set<Integer> possibleStates = getPossibleStates(ancestralStates[parentIndex * nrOfPatterns + k]);
 
@@ -160,7 +160,9 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
      * Since this is the start of the experiment, the origin is known to be in the unedited state, so we can only calculate
      * the partials for that state and set the other to 0 since they will not be used by the frequencies anyways.
      */
-    public void calculateLogLikelihoods(int rootIndex, int originIndex, double[] outLogLikelihoods) {
+    public double calculateLogLikelihoods(int rootIndex, int originIndex) {
+
+        double logP = 0.0;
 
         currentPartialsIndex[originIndex] = 1 - currentPartialsIndex[originIndex];
 
@@ -171,7 +173,10 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
         for (int k = 0; k < nrOfPatterns; k++) {
             // Calculate the partial for the first unedited state only, which is known at the origin
             double sum1 = 0.0;
-            for (int j = 0; j < nrOfStates; j++) {
+
+            Set<Integer> possibleStates = getPossibleStates(ancestralStates[rootIndex * nrOfPatterns + k]);
+
+            for (int j : possibleStates) {
                 sum1 += matrices1[j] * partials1[k * nrOfStates + j];
             }
             partials3[k * nrOfStates] = sum1;
@@ -181,8 +186,10 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
             }
 
             // Calculate log likelihoods
-            outLogLikelihoods[k] = Math.log(partials3[k * nrOfStates]) + getLogScalingFactor(k);
+            logP += Math.log(partials3[k * nrOfStates]) + getLogScalingFactor(k);
         }
+
+        return logP;
     }
 
 
@@ -265,13 +272,8 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
     @Override
     public void restore() {
 
-        int[] tmp1 = currentMatrixIndex;
-        currentMatrixIndex = storedMatrixIndex;
-        storedMatrixIndex = tmp1;
-
-        int[] tmp2 = currentPartialsIndex;
-        currentPartialsIndex = storedPartialsIndex;
-        storedPartialsIndex = tmp2;
+        System.arraycopy(storedMatrixIndex, 0, currentMatrixIndex, 0, nrOfNodes);
+        System.arraycopy(storedPartialsIndex, 0, currentPartialsIndex, 0, nrOfNodes);
 
         // this is mainly for when scaling is turned on immediately, otherwise the storedAncestralStates will already be setup
         if (storedAncestralStates == null) {
@@ -290,31 +292,13 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
     }
 
 
-    /**
-     * cleans up and deallocates arrays.
-     */
-    @Override
-	public void finalize() throws java.lang.Throwable {
-        nrOfNodes = 0;
-        nrOfPatterns = 0;
-        partials = null;
-        currentPartialsIndex = null;
-        storedPartialsIndex = null;
-        matrices = null;
-        currentMatrixIndex = null;
-        storedMatrixIndex = null;
-        scalingFactors = null;
-    }
-
-
-
-
-
-
     // Bunch of things that need to be implemented but are not used in this class
 
     @Override
     public void initialize(int nodeCount, int patternCount, int matrixCount, boolean integrateCategories, boolean useAmbiguities) {}
+
+    @Override
+	public void finalize() {}
     
     @Override
 	public void createNodePartials(int nodeIndex) {}
