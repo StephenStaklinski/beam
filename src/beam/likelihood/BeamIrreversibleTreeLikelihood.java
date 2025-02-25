@@ -116,8 +116,6 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
                 parent.setHeight(origin.getValue());
             }
 
-            likelihoodCore.setNodeMatrixForUpdate(nodeIndex);
-
             substitutionModel.getTransitionProbabilities(node, parent.getHeight(), node.getHeight(), branchRate, probabilities);
             likelihoodCore.setNodeMatrix(nodeIndex, 0, probabilities);
 
@@ -141,10 +139,7 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
                 int childIndex1 = child1.getNr();
                 int childIndex2 = child2.getNr();
 
-                likelihoodCore.setNodePartialsForUpdate(nodeIndex);
-
-                // update possible ancestral states at the nodes for more efficient pruning algorithm in traverse
-                likelihoodCore.setPossibleAncestralStates(childIndex1, childIndex2, nodeIndex);
+                // update possible ancestral states at the nodes for more efficient pruning algorithm in traverse to get the partial likelihoods
                 likelihoodCore.calculatePartials(childIndex1, childIndex2, nodeIndex);
 
                 // if we are already back to the root in the post-order traversal, then propagate the partials to the origin
@@ -227,7 +222,7 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
         // if there is numeric instability, turn on scaling and recalculate the likelihood
         if (logP == Double.NEGATIVE_INFINITY) {
             Log.warning.println("Turning on scaling to prevent numeric instability.");
-            likelihoodCore.setUseScaling(1.01);
+            likelihoodCore.setUseScaling(true);
             likelihoodCore.restore();
 
             traverse(tree.getRoot());
