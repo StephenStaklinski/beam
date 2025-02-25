@@ -32,26 +32,15 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
     public void initAndValidate() {
         
         // basic input checks
-        if (dataInput.get().getTaxonCount() != treeInput.get().getLeafNodeCount()) {
-            throw new IllegalArgumentException("The number of nodes in the tree does not match the number of sequences");
-        }
-
-        if (originInput.get() == null){
-            throw new IllegalArgumentException("The expriment origin time must be input.");
-        }
-
-        if (!(siteModelInput.get() instanceof SiteModel.Base)) {
-            throw new IllegalArgumentException("siteModel input should be of type SiteModel.Base");
-        }
-
-        if (branchRateModelInput.get() == null) {
-        	throw new IllegalArgumentException("Branch rate model must be specified in the current implementation.");
+        if (dataInput.get().getTaxonCount() != treeInput.get().getLeafNodeCount() ||
+            originInput.get() == null ||
+            !(siteModelInput.get() instanceof SiteModel.Base) ||
+            branchRateModelInput.get() == null) {
+            throw new IllegalArgumentException("Invalid input: either the number of nodes in the tree does not match the number of sequences, the experiment origin time is not specified, the siteModel input is not of type SiteModel.Base, or the branch rate model is not specified.");
         }
 
         // initialize variables and the likelihood core
         substitutionModel = (BeamMutationSubstitutionModel) ((SiteModel.Base) siteModelInput.get()).substModelInput.get();
-        m_branchLengths = new double[treeInput.get().getNodeCount() + 1];
-        storedBranchLengths = new double[treeInput.get().getNodeCount() + 1];
         probabilities = new double[substitutionModel.getStateCount() * substitutionModel.getStateCount()];
         likelihoodCore = new IrreversibleLikelihoodCore(treeInput.get().getNodeCount() + 1, substitutionModel.getStateCount(), dataInput.get().getPatternCount());
         setStates(treeInput.get().getRoot());
@@ -123,12 +112,8 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
 
         int update = (node.isDirty() | hasDirt);
 
-        final double branchTime = node.getLength() * branchRateModelInput.get().getRateForBranch(node);
-
         // first update the transition probability matrix for this branch, for all nodes except the final root or origin
-        if (update != 0  || branchTime != m_branchLengths[node.getNr()]) {
-            
-            m_branchLengths[node.getNr()] = branchTime;
+        if (update != 0) {
 
             double parentHeight = node.isRoot() ? originInput.get().getValue() : node.getParent().getHeight();
             substitutionModel.getTransitionProbabilities(node, parentHeight, node.getHeight(), branchRateModelInput.get().getRateForBranch(node), probabilities);
@@ -171,7 +156,6 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
     @Override
     public void store() {
         storedLogP = logP;
-        System.arraycopy(m_branchLengths, 0, storedBranchLengths, 0, m_branchLengths.length);
         likelihoodCore.store();
     }
 
@@ -179,7 +163,6 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
     @Override
     public void restore() {
         logP = storedLogP;
-        System.arraycopy(storedBranchLengths, 0, m_branchLengths, 0, m_branchLengths.length);
         likelihoodCore.restore();
     }
 
@@ -204,8 +187,6 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
 
     protected BeamMutationSubstitutionModel substitutionModel;
     protected double[] probabilities;
-    protected double[] m_branchLengths;
-    protected double[] storedBranchLengths;
     protected IrreversibleLikelihoodCore likelihoodCore;
 
     protected int hasDirt;
