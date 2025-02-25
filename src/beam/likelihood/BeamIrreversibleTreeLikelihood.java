@@ -117,35 +117,28 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
 
             double parentHeight = node.isRoot() ? originInput.get().getValue() : node.getParent().getHeight();
             substitutionModel.getTransitionProbabilities(node, parentHeight, node.getHeight(), branchRateModelInput.get().getRateForBranch(node), probabilities);
-
             likelihoodCore.setNodeMatrix(node.getNr(), 0, probabilities);
-
-            update |= 1;
         }
 
         // If the node is internal, update the partial likelihoods.
         if (!node.isLeaf()) {
 
             // Traverse down the two child nodes
-            final int update1 = traverse(node.getLeft());
-            final int update2 = traverse(node.getRight());
+            update = Math.max(update, traverse(node.getLeft()));
+            update = Math.max(update, traverse(node.getRight()));
 
-            if (update1 != 0 || update2 != 0) {
+            if (update != 0) {
 
-                if (resetAncestralStates) {
+                if (update == 2) {
                     likelihoodCore.setPossibleAncestralStates(node.getLeft().getNr(), node.getRight().getNr(), node.getNr());
                 }
 
                 likelihoodCore.calculatePartials(node.getLeft().getNr(), node.getRight().getNr(), node.getNr());
 
-                // if we are already back to the root in the post-order traversal, then propagate the partials to the origin
+                // if we are already back to the root in the post-order traversal, then propagate the partials to the origin to get the logP
                 if (node.isRoot()) {
-
-                    // Calculate the origin partials and gets the logLikelihoods in an efficient way that assumes the origin frequencies are known as the unedited state
                     likelihoodCore.calculateLogLikelihoods(node.getNr(), node.getNr() + 1, logP);
                 }
-
-                update |= (update1 | update2);
             }
         }
 
@@ -155,14 +148,14 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
 
     @Override
     public void store() {
-        storedLogP = logP;
+        super.store();
         likelihoodCore.store();
     }
 
 
     @Override
     public void restore() {
-        logP = storedLogP;
+        super.store();
         likelihoodCore.restore();
     }
 
@@ -170,18 +163,16 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
     @Override
     protected boolean requiresRecalculation() {
         hasDirt = 0;
-        resetAncestralStates = false;
 
         if (treeInput.get().somethingIsDirty()) {
+            hasDirt = 2;
+            return true;
+        } else if (((CalculationNode) substitutionModel).isDirtyCalculation() || branchRateModelInput.get().isDirtyCalculation()) {
             hasDirt = 1;
-            resetAncestralStates = true;
+            return true;
         }
 
-        if (((CalculationNode) substitutionModel).isDirtyCalculation() || branchRateModelInput.get().isDirtyCalculation()) {
-            hasDirt = 1;
-        }
-
-        return hasDirt != 0;
+        return false;
     }
 
 
@@ -189,7 +180,11 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
     protected double[] probabilities;
     protected IrreversibleLikelihoodCore likelihoodCore;
 
+    /*
+     * 0 = nothing to recalculate
+     * 1 = recalculate transition probabilities and partials
+     * 2 = recalculate possible ancestral states sets
+     */
     protected int hasDirt;
-    protected boolean resetAncestralStates;
     
 }
