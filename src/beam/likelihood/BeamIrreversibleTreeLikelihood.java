@@ -49,17 +49,11 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
         }
 
         // initialize variables and the likelihood core
-        int nodeCount = treeInput.get().getNodeCount() + 1;
-        int nrOfStates = substitutionModel.getStateCount();
-        
         substitutionModel = (BeamMutationSubstitutionModel) ((SiteModel.Base) siteModelInput.get()).substModelInput.get();
-        m_branchLengths = new double[nodeCount];
-        storedBranchLengths = new double[nodeCount];
-
-        probabilities = new double[(nrOfStates) * (nrOfStates)];
-
-        likelihoodCore = new IrreversibleLikelihoodCore(nodeCount, nrOfStates, dataInput.get().getPatternCount());
-
+        m_branchLengths = new double[treeInput.get().getNodeCount() + 1];
+        storedBranchLengths = new double[treeInput.get().getNodeCount() + 1];
+        probabilities = new double[substitutionModel.getStateCount() * substitutionModel.getStateCount()];
+        likelihoodCore = new IrreversibleLikelihoodCore(treeInput.get().getNodeCount() + 1, substitutionModel.getStateCount(), dataInput.get().getPatternCount());
         setStates(treeInput.get().getRoot());
     }
 
@@ -95,15 +89,13 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
     @Override
     public double calculateLogP() {
 
-        final TreeInterface tree = treeInput.get();
-
         // return -infinity if the tree is larger than the experiment start time specified as the origin
-        if (tree.getRoot().getHeight() >= originInput.get().getValue()) {
+        if (treeInput.get().getRoot().getHeight() >= originInput.get().getValue()) {
             return Double.NEGATIVE_INFINITY;
         }
 
         // do the pruning algorithm
-        traverse(tree.getRoot());
+        traverse(treeInput.get().getRoot());
 
         // if there is numeric instability, turn on scaling and recalculate the likelihood
         if (logP == Double.NEGATIVE_INFINITY) {
@@ -113,7 +105,7 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
             likelihoodCore.setUseScaling(true);
 
             // do the pruning algorithm with scaling this time
-            traverse(tree.getRoot());
+            traverse(treeInput.get().getRoot());
 
             if (logP == Double.NEGATIVE_INFINITY) {
                 throw new RuntimeException("Likelihood is negative infinity after turning on scaling.");
@@ -125,12 +117,8 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
 
 
     /**
-     * Computed the transition pre-order, then does a post-order traversal
-     * calculating the partial likelihoods by a modified pruning algorithm
-     * taking advantage of the irreversibility of the substitution model
-     * to reduce the number of ancestral states to propagate partial
-     * likelihoods for.
-     */
+     * Tree traversal to calculate the likelihood after updating relevant components
+    **/
     protected int traverse(Node node) {
 
         int update = (node.isDirty() | hasDirt);
@@ -142,11 +130,9 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
             
             m_branchLengths[node.getNr()] = branchTime;
 
-            if(node.isRoot()){
-                substitutionModel.getTransitionProbabilities(node, originInput.get().getValue(), node.getHeight(), branchRateModelInput.get().getRateForBranch(node), probabilities);
-            } else {
-                substitutionModel.getTransitionProbabilities(node, node.getParent().getHeight(), node.getHeight(), branchRateModelInput.get().getRateForBranch(node), probabilities);
-            }
+            double parentHeight = node.isRoot() ? originInput.get().getValue() : node.getParent().getHeight();
+            substitutionModel.getTransitionProbabilities(node, parentHeight, node.getHeight(), branchRateModelInput.get().getRateForBranch(node), probabilities);
+
             likelihoodCore.setNodeMatrix(node.getNr(), 0, probabilities);
 
             update |= 1;
