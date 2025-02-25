@@ -147,6 +147,10 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
 
             if (update1 != 0 || update2 != 0) {
 
+                if (resetAncestralStates) {
+                    likelihoodCore.setPossibleAncestralStates(node.getLeft().getNr(), node.getRight().getNr(), node.getNr());
+                }
+
                 likelihoodCore.calculatePartials(node.getLeft().getNr(), node.getRight().getNr(), node.getNr());
 
                 // if we are already back to the root in the post-order traversal, then propagate the partials to the origin
@@ -183,13 +187,18 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
     @Override
     protected boolean requiresRecalculation() {
         hasDirt = 0;
+        resetAncestralStates = false;
 
-        if (treeInput.get().somethingIsDirty() || ((CalculationNode) substitutionModel).isDirtyCalculation() || branchRateModelInput.get().isDirtyCalculation()) {
+        if (treeInput.get().somethingIsDirty()) {
             hasDirt = 1;
-            return true;
+            resetAncestralStates = true;
         }
 
-        return false;
+        if (((CalculationNode) substitutionModel).isDirtyCalculation() || branchRateModelInput.get().isDirtyCalculation()) {
+            hasDirt = 1;
+        }
+
+        return hasDirt != 0;
     }
 
 
@@ -199,13 +208,7 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
     protected double[] storedBranchLengths;
     protected IrreversibleLikelihoodCore likelihoodCore;
 
-    /**
-     * flag to indicate the
-     * // when CLEAN=0, nothing needs to be recalculated for the node
-     * // when DIRTY=1 indicates a node partial needs to be recalculated
-     * // when FILTHY=2 indicates the indices for the node need to be recalculated
-     * // (often not necessary while node partial recalculation is required)
-     */
     protected int hasDirt;
+    protected boolean resetAncestralStates;
     
 }

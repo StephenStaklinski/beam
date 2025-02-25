@@ -64,30 +64,32 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
     }
 
 
-    public void setPossibleAncestralStates(int childIndex1, int childIndex2, int parentIndex, int patternNum) {
+    public void setPossibleAncestralStates(int childIndex1, int childIndex2, int parentIndex) {
 
-        int index = parentIndex * nrOfPatterns + patternNum;
+        for (int i = 0; i < nrOfPatterns; i++) {
+            int index = parentIndex * nrOfPatterns + i;
 
-        ancestralStates[index].clear();
-        ancestralStates[index].addAll(ancestralStates[childIndex1 * nrOfPatterns + patternNum]);
-        ancestralStates[index].addAll(ancestralStates[childIndex2 * nrOfPatterns + patternNum]);
-
-        if (ancestralStates[index].size() > 1) {
             ancestralStates[index].clear();
-            ancestralStates[index].add(0);
-        }
+            ancestralStates[index].addAll(ancestralStates[childIndex1 * nrOfPatterns + i]);
+            ancestralStates[index].addAll(ancestralStates[childIndex2 * nrOfPatterns + i]);
 
-        // if the subtree only has missing data, then the ancestral state can be anything
-        if (ancestralStates[index].isEmpty()) {
-            possibleStates[index].clear();
-            for (int state = 0; state < nrOfStates; state++) {
-                possibleStates[index].add(state);
+            if (ancestralStates[index].size() > 1) {
+                ancestralStates[index].clear();
+                ancestralStates[index].add(0);
             }
-        } else {
-            // always add the unedited state
-            possibleStates[index].clear();
-            possibleStates[index].addAll(ancestralStates[index]);
-            possibleStates[index].add(0);
+
+            // if the subtree only has missing data, then the ancestral state can be anything
+            if (ancestralStates[index].isEmpty()) {
+                possibleStates[index].clear();
+                for (int state = 0; state < nrOfStates; state++) {
+                    possibleStates[index].add(state);
+                }
+            } else {
+                // always add the unedited state
+                possibleStates[index].clear();
+                possibleStates[index].addAll(ancestralStates[index]);
+                possibleStates[index].add(0);
+            }
         }
     }
 
@@ -112,8 +114,6 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
         double sum1, sum2;
 
         for (int k = 0; k < nrOfPatterns; k++) {
-
-            setPossibleAncestralStates(childIndex1, childIndex2, parentIndex, k);
 
             Set<Integer> posStates = possibleStates[parentIndex * nrOfPatterns + k];
             Set<Integer> posStatesC1 = possibleStates[childIndex1 * nrOfPatterns + k];
