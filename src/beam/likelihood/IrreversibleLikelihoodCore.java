@@ -1,6 +1,5 @@
 package beam.likelihood;
 
-
 import java.util.HashSet;
 import java.util.Set;
 
@@ -83,16 +82,16 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
             ancestralStates[index].add(0);
         }
 
-        possibleStates[index].clear();
-        possibleStates[index].addAll(ancestralStates[index]);
-
         // if the subtree only has missing data, then the ancestral state can be anything
-        if (possibleStates[index].isEmpty()) {
+        if (ancestralStates[index].isEmpty()) {
+            possibleStates[index].clear();
             for (int state = 0; state < nrOfStates; state++) {
                 possibleStates[index].add(state);
             }
         } else {
             // always add the unedited state
+            possibleStates[index].clear();
+            possibleStates[index].addAll(ancestralStates[index]);
             possibleStates[index].add(0);
         }
     }
@@ -121,22 +120,27 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
 
             setPossibleAncestralStates(childIndex1, childIndex2, parentIndex, k);
 
+            Set<Integer> posStates = possibleStates[parentIndex * nrOfPatterns + k];
+            Set<Integer> posStatesC1 = possibleStates[childIndex1 * nrOfPatterns + k];
+            Set<Integer> posStatesC2 = possibleStates[childIndex2 * nrOfPatterns + k];
+
             // Calculate partials for all states
             int u = k * nrOfStates;
-            for (int i : possibleStates[parentIndex * nrOfPatterns + k]) {
+            for (int i : posStates) {
                 sum1 = 0.0;
                 sum2 = 0.0;
-                for (int j : possibleStates[childIndex1 * nrOfPatterns + k]) {
-                    sum1 += matrices1[i * nrOfStates + j] * partials1[u + j];
+                int matrixIndex = i * nrOfStates;
+                for (int j : posStatesC1) {
+                    sum1 += matrices1[matrixIndex + j] * partials1[u + j];
                 }
-                for (int j : possibleStates[childIndex2 * nrOfPatterns + k]) {
-                    sum2 += matrices2[i * nrOfStates + j] * partials2[u + j];
+                for (int j : posStatesC2) {
+                    sum2 += matrices2[matrixIndex + j] * partials2[u + j];
                 }
                 partials3[u + i] = sum1 * sum2;
             }
 
             if (useScaling) {
-                scalePartials(parentIndex, k, possibleStates[parentIndex * nrOfPatterns + k]);
+                scalePartials(parentIndex, k, posStates);
             }
         }
     }
@@ -241,13 +245,17 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
     @Override
     public void store() {
 
-        System.arraycopy(currentMatrixIndex, 0, storedMatrixIndex, 0, nrOfNodes);
-        System.arraycopy(currentPartialsIndex, 0, storedPartialsIndex, 0, nrOfNodes);
+        int[] tmp1 = storedMatrixIndex;
+        storedMatrixIndex = currentMatrixIndex;
+        currentMatrixIndex = tmp1;
 
-        for (int i = 0; i < numNodesNoOrigin * nrOfPatterns; i++) {
-            storedAncestralStates[i].clear();
-            storedAncestralStates[i].addAll(ancestralStates[i]);
-        }
+        int[] tmp2 = storedPartialsIndex;
+        storedPartialsIndex = currentPartialsIndex;
+        currentPartialsIndex = tmp2;
+
+        Set<Integer>[] tmp3 = storedAncestralStates;
+        storedAncestralStates = ancestralStates;
+        ancestralStates = tmp3;
 
     }
 
@@ -275,10 +283,9 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
             }
         }
 
-        for (int i = 0; i < numNodesNoOrigin * nrOfPatterns; i++) {
-            ancestralStates[i].clear();
-            ancestralStates[i].addAll(storedAncestralStates[i]);
-        }
+        Set<Integer>[] tmp3 = ancestralStates;
+        ancestralStates = storedAncestralStates;
+        storedAncestralStates = tmp3;
     
     }
 
@@ -337,8 +344,6 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
     protected int nrOfPatterns;
     protected int partialsSize;
     protected int matrixSize;
-
-    protected boolean integrateCategories;
 
     protected double[][][] partials;
     protected double[][][] matrices;
