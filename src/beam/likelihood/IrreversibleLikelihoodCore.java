@@ -14,11 +14,8 @@ import beast.base.evolution.likelihood.LikelihoodCore;
 public class IrreversibleLikelihoodCore extends LikelihoodCore {
 
     
-    public IrreversibleLikelihoodCore() {}
-
-
-	public void initialize(int nodeCount, int numStates, int patternCount) {
-
+    public IrreversibleLikelihoodCore(int nodeCount, int numStates, int patternCount) {
+        
         nrOfStates = numStates;
         nrOfNodes = nodeCount;
         numNodesNoOrigin = nodeCount - 1;
@@ -151,7 +148,7 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
      * Since this is the start of the experiment, the origin is known to be in the unedited state, so we can only calculate
      * the partials for that state and set the other to 0 since they will not be used by the frequencies anyways.
      */
-    public void calculateLogLikelihoods(int rootIndex, int originIndex, double[] outLogLikelihoods) {
+    public void calculateLogLikelihoods(int rootIndex, int originIndex, double logL) {
 
         currentPartialsIndex[originIndex] = 1 - currentPartialsIndex[originIndex];
 
@@ -159,6 +156,7 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
         final double[] matrices1 = matrices[currentMatrixIndex[rootIndex]][rootIndex];
         double[] partials3 = partials[currentPartialsIndex[originIndex]][originIndex];  // pointer to update partials at origin
 
+        logL = 0.0;
         for (int k = 0; k < nrOfPatterns; k++) {
             // Calculate the partial for the first unedited state only, which is known at the origin
             double sum1 = 0.0;
@@ -176,9 +174,9 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
 
             // Calculate log likelihoods
             if (useScaling) {
-                outLogLikelihoods[k] = Math.log(partials3[k * nrOfStates]) + getLogScalingFactor(k);
+                logL += Math.log(partials3[k * nrOfStates]) + getLogScalingFactor(k);
             } else {
-                outLogLikelihoods[k] = Math.log(partials3[k * nrOfStates]);
+                logL += Math.log(partials3[k * nrOfStates]);
             }
         }
     }
@@ -204,10 +202,16 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
             scaleFactor = Math.max(scaleFactor, partials[currentPartialsIndex[nodeIndex]][nodeIndex][v]);
         }
 
+        for (int j : possibleStates) {
+            if (partials[currentPartialsIndex[nodeIndex]][nodeIndex][patternNum * nrOfStates + j] > scaleFactor) {
+                scaleFactor = partials[currentPartialsIndex[nodeIndex]][nodeIndex][patternNum * nrOfStates + j];
+            }
+        }
+
         // Scale partials if the scaleFactor is below the threshold
         if (scaleFactor < scalingThreshold) {
             for (int j : possibleStates) {
-                partials[currentPartialsIndex[nodeIndex]][nodeIndex][v] /= scaleFactor;
+                partials[currentPartialsIndex[nodeIndex]][nodeIndex][patternNum * nrOfStates + j] /= scaleFactor;
             }
             scalingFactors[currentPartialsIndex[nodeIndex]][nodeIndex][patternNum] = Math.log(scaleFactor);
         } else {
@@ -245,13 +249,8 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
     @Override
     public void store() {
 
-        int[] tmp1 = storedMatrixIndex;
-        storedMatrixIndex = currentMatrixIndex;
-        currentMatrixIndex = tmp1;
-
-        int[] tmp2 = storedPartialsIndex;
-        storedPartialsIndex = currentPartialsIndex;
-        currentPartialsIndex = tmp2;
+        System.arraycopy(currentMatrixIndex, 0, storedMatrixIndex, 0, currentMatrixIndex.length);
+        System.arraycopy(currentPartialsIndex, 0, storedPartialsIndex, 0, currentPartialsIndex.length);
 
         Set<Integer>[] tmp3 = storedAncestralStates;
         storedAncestralStates = ancestralStates;
@@ -266,20 +265,14 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
     @Override
     public void restore() {
 
-        int[] tmp1 = currentMatrixIndex;
-        currentMatrixIndex = storedMatrixIndex;
-        storedMatrixIndex = tmp1;
-
-        int[] tmp2 = currentPartialsIndex;
-        currentPartialsIndex = storedPartialsIndex;
-        storedPartialsIndex = tmp2;
+        System.arraycopy(storedMatrixIndex, 0, currentMatrixIndex, 0, storedMatrixIndex.length);
+        System.arraycopy(storedPartialsIndex, 0, currentPartialsIndex, 0, storedPartialsIndex.length);
 
         // this is mainly for when scaling is turned on immediately, otherwise the storedAncestralStates will already be setup
         if (storedAncestralStates == null) {
             storedAncestralStates = new HashSet[numNodesNoOrigin * nrOfPatterns];
             for (int i = 0; i < numNodesNoOrigin * nrOfPatterns; i++) {
                 storedAncestralStates[i] = new HashSet<>();
-                storedAncestralStates[i].addAll(ancestralStates[i]);
             }
         }
 
@@ -357,7 +350,7 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
     protected Set<Integer>[] ancestralStates; // strictly records what is below the node to be used to setup possible states
     protected Set<Integer>[] storedAncestralStates;
 
-    protected boolean useScaling = false;
+    protected boolean useScaling = true;
     protected double[][][] scalingFactors;
     private double scalingThreshold = 1.0E-100;
 
