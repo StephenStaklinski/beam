@@ -51,90 +51,33 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
         // initialize variables and the likelihood core
         int nodeCount = treeInput.get().getNodeCount() + 1;
         int nrOfStates = substitutionModel.getStateCount();
-        data = dataInput.get();
         
-        SiteModel.Base m_siteModel = (SiteModel.Base) siteModelInput.get();
-        substitutionModel = (BeamMutationSubstitutionModel) m_siteModel.substModelInput.get();
-        branchRateModel = branchRateModelInput.get();
+        substitutionModel = (BeamMutationSubstitutionModel) ((SiteModel.Base) siteModelInput.get()).substModelInput.get();
         m_branchLengths = new double[nodeCount];
         storedBranchLengths = new double[nodeCount];
 
-        probabilities = new double[(nrOfStates + 1) * (nrOfStates + 1)];
-        Arrays.fill(probabilities, 1.0);
+        probabilities = new double[(nrOfStates) * (nrOfStates)];
 
-        likelihoodCore = new IrreversibleLikelihoodCore(nodeCount, nrOfStates, data.getPatternCount());
+        likelihoodCore = new IrreversibleLikelihoodCore(nodeCount, nrOfStates, dataInput.get().getPatternCount());
 
         setStates(treeInput.get().getRoot());
     }
 
-    /**
-     * Computed the transition pre-order, then does a post-order traversal
-     * calculating the partial likelihoods by a modified pruning algorithm
-     * taking advantage of the irreversibility of the substitution model
-     * to reduce the number of ancestral states to propagate partial
-     * likelihoods for.
-     */
-    protected int traverse(Node node) {
-
-        int update = (node.isDirty() | hasDirt);
-
-        final double branchTime = node.getLength() * branchRateModel.getRateForBranch(node);
-
-        // first update the transition probability matrix for this branch, for all nodes except the final root or origin
-        if (update != 0  || branchTime != m_branchLengths[node.getNr()]) {
-            
-            m_branchLengths[node.getNr()] = branchTime;
-
-            if(node.isRoot()){
-                substitutionModel.getTransitionProbabilities(node, originInput.get().getValue(), node.getHeight(), branchRateModel.getRateForBranch(node), probabilities);
-            } else {
-                substitutionModel.getTransitionProbabilities(node, node.getParent().getHeight(), node.getHeight(), branchRateModel.getRateForBranch(node), probabilities);
-            }
-            likelihoodCore.setNodeMatrix(node.getNr(), 0, probabilities);
-
-            update |= 1;
-        }
-
-        // If the node is internal, update the partial likelihoods.
-        if (!node.isLeaf()) {
-
-            // Traverse down the two child nodes
-            final int update1 = traverse(node.getLeft());
-            final int update2 = traverse(node.getRight());
-
-            if (update1 != 0 || update2 != 0) {
-
-                likelihoodCore.calculatePartials(node.getLeft().getNr(), node.getRight().getNr(), node.getNr());
-
-                // if we are already back to the root in the post-order traversal, then propagate the partials to the origin
-                if (node.isRoot()) {
-
-                    // Calculate the origin partials and gets the logLikelihoods in an efficient way that assumes the origin frequencies are known as the unedited state
-                    likelihoodCore.calculateLogLikelihoods(node.getNr(), node.getNr() + 1, logP);
-                }
-
-                update |= (update1 | update2);
-            }
-        }
-
-        return update;
-    }
-
-
+    
     /**
      * set the data at the tips in the likelihood core
      */
     protected void setStates(Node node) {
         if (node.isLeaf()) {
 
-            if (data.getTaxonIndex(node.getID()) == -1) {
+            if (dataInput.get().getTaxonIndex(node.getID()) == -1) {
                 throw new RuntimeException("Could not find sequence " + node.getID() + " in the alignment");
             }
 
-            for (int i = 0; i < data.getPatternCount(); i++) {
+            for (int i = 0; i < dataInput.get().getPatternCount(); i++) {
                 likelihoodCore.setNodePartials(node.getNr(), 
                                                 i, 
-                                                data.getDataType().getStatesForCode(data.getPattern(data.getTaxonIndex(node.getID()), i))[0], 
+                                                dataInput.get().getDataType().getStatesForCode(dataInput.get().getPattern(dataInput.get().getTaxonIndex(node.getID()), i))[0], 
                                                 substitutionModel.getMissingState());
             }
         } else {
@@ -142,6 +85,7 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
             setStates(node.getRight());
         }
     }
+
 
     /**
      * Calculate the log likelihood of the current state.
@@ -180,6 +124,60 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
     }
 
 
+    /**
+     * Computed the transition pre-order, then does a post-order traversal
+     * calculating the partial likelihoods by a modified pruning algorithm
+     * taking advantage of the irreversibility of the substitution model
+     * to reduce the number of ancestral states to propagate partial
+     * likelihoods for.
+     */
+    protected int traverse(Node node) {
+
+        int update = (node.isDirty() | hasDirt);
+
+        final double branchTime = node.getLength() * branchRateModelInput.get().getRateForBranch(node);
+
+        // first update the transition probability matrix for this branch, for all nodes except the final root or origin
+        if (update != 0  || branchTime != m_branchLengths[node.getNr()]) {
+            
+            m_branchLengths[node.getNr()] = branchTime;
+
+            if(node.isRoot()){
+                substitutionModel.getTransitionProbabilities(node, originInput.get().getValue(), node.getHeight(), branchRateModelInput.get().getRateForBranch(node), probabilities);
+            } else {
+                substitutionModel.getTransitionProbabilities(node, node.getParent().getHeight(), node.getHeight(), branchRateModelInput.get().getRateForBranch(node), probabilities);
+            }
+            likelihoodCore.setNodeMatrix(node.getNr(), 0, probabilities);
+
+            update |= 1;
+        }
+
+        // If the node is internal, update the partial likelihoods.
+        if (!node.isLeaf()) {
+
+            // Traverse down the two child nodes
+            final int update1 = traverse(node.getLeft());
+            final int update2 = traverse(node.getRight());
+
+            if (update1 != 0 || update2 != 0) {
+
+                likelihoodCore.calculatePartials(node.getLeft().getNr(), node.getRight().getNr(), node.getNr());
+
+                // if we are already back to the root in the post-order traversal, then propagate the partials to the origin
+                if (node.isRoot()) {
+
+                    // Calculate the origin partials and gets the logLikelihoods in an efficient way that assumes the origin frequencies are known as the unedited state
+                    likelihoodCore.calculateLogLikelihoods(node.getNr(), node.getNr() + 1, logP);
+                }
+
+                update |= (update1 | update2);
+            }
+        }
+
+        return update;
+    }
+
+
     @Override
     public void store() {
         storedLogP = logP;
@@ -200,7 +198,7 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
     protected boolean requiresRecalculation() {
         hasDirt = 0;
 
-        if (treeInput.get().somethingIsDirty() || ((CalculationNode) substitutionModel).isDirtyCalculation() || branchRateModel.isDirtyCalculation()) {
+        if (treeInput.get().somethingIsDirty() || ((CalculationNode) substitutionModel).isDirtyCalculation() || branchRateModelInput.get().isDirtyCalculation()) {
             hasDirt = 1;
             return true;
         }
@@ -209,9 +207,7 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
     }
 
 
-    protected Alignment data;
     protected BeamMutationSubstitutionModel substitutionModel;
-    protected BranchRateModel.Base branchRateModel;
     protected double[] probabilities;
     protected double[] m_branchLengths;
     protected double[] storedBranchLengths;
