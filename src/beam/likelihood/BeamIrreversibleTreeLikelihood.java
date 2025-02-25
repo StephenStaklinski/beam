@@ -88,7 +88,6 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
 
         // if there is numeric instability, turn on scaling and recalculate the likelihood
         if (logP == Double.NEGATIVE_INFINITY) {
-            System.out.println("Turning on scaling to prevent numeric instability.");
             
             likelihoodCore.restore();
             likelihoodCore.setUseScaling(true);
@@ -114,7 +113,6 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
 
         // first update the transition probability matrix for this branch, for all nodes except the final root or origin
         if (update != 0) {
-
             double parentHeight = node.isRoot() ? originInput.get().getValue() : node.getParent().getHeight();
             substitutionModel.getTransitionProbabilities(node, parentHeight, node.getHeight(), branchRateModelInput.get().getRateForBranch(node), probabilities);
             likelihoodCore.setNodeMatrix(node.getNr(), 0, probabilities);
@@ -130,6 +128,7 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
             if (update != 0) {
 
                 if (update == 2) {
+
                     likelihoodCore.setPossibleAncestralStates(node.getLeft().getNr(), node.getRight().getNr(), node.getNr());
                 }
 
@@ -137,7 +136,8 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
 
                 // if we are already back to the root in the post-order traversal, then propagate the partials to the origin to get the logP
                 if (node.isRoot()) {
-                    likelihoodCore.calculateLogLikelihoods(node.getNr(), node.getNr() + 1, logP);
+
+                    logP = likelihoodCore.calculateLogLikelihoods(node.getNr(), node.getNr() + 1);
                 }
             }
         }
@@ -185,6 +185,6 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
      * 1 = recalculate transition probabilities and partials
      * 2 = recalculate possible ancestral states sets
      */
-    protected int hasDirt;
+    protected int hasDirt = 2;
     
 }

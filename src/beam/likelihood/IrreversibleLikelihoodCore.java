@@ -131,7 +131,7 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
                 for (int j : posStatesC2) {
                     sum2 += matrices2[matrixIndex + j] * partials2[u + j];
                 }
-                partials3[u + i] = sum1 * sum2;
+                partials3[u + i] = sum1 * sum2;  
             }
 
             if (useScaling) {
@@ -146,7 +146,7 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
      * Since this is the start of the experiment, the origin is known to be in the unedited state, so we can only calculate
      * the partials for that state and set the other to 0 since they will not be used by the frequencies anyways.
      */
-    public void calculateLogLikelihoods(int rootIndex, int originIndex, double logL) {
+    public double calculateLogLikelihoods(int rootIndex, int originIndex) {
 
         currentPartialsIndex[originIndex] = 1 - currentPartialsIndex[originIndex];
 
@@ -154,11 +154,14 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
         final double[] matrices1 = matrices[currentMatrixIndex[rootIndex]][rootIndex];
         double[] partials3 = partials[currentPartialsIndex[originIndex]][originIndex];  // pointer to update partials at origin
 
-        logL = 0.0;
+        double logL = 0.0;
         for (int k = 0; k < nrOfPatterns; k++) {
+
+            Set<Integer> posStatesC1 = possibleStates[rootIndex * nrOfPatterns + k];
+
             // Calculate the partial for the first unedited state only, which is known at the origin
             double sum1 = 0.0;
-            for (int j = 0; j < nrOfStates; j++) {
+            for (int j : posStatesC1) {
                 sum1 += matrices1[j] * partials1[k * nrOfStates + j];
             }
             partials3[k * nrOfStates] = sum1;
@@ -169,7 +172,7 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
                 possibleStates[index].add(0);
                 scalePartials(originIndex, k, possibleStates[index]);
             }
-
+            
             // Calculate log likelihoods
             if (useScaling) {
                 logL += Math.log(partials3[k * nrOfStates]) + getLogScalingFactor(k);
@@ -177,6 +180,8 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
                 logL += Math.log(partials3[k * nrOfStates]);
             }
         }
+
+        return logL;
     }
 
 
