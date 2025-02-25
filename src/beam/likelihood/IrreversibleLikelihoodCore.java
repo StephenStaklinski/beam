@@ -47,22 +47,20 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
 
 
     /**
-     * Initializes the partials at a node with the known states.
+     * Initializes the partials at a node with the known state for that pattern
      */
-    public void setNodePartials(int leafIndex, int[] states, int missingDataState) {
+    public void setNodePartials(int leafIndex, int patternNum, int state, int missingDataState) {
         
-        for (int i = 0; i < nrOfPatterns; i++) {
-            // Set the partials as 1.0 for the known state
-            int state = states[i];
-            partials[currentPartialsIndex[leafIndex]][leafIndex][i * nrOfStates + state] = 1.0;
+        // Set the partials as 1.0 for the known state
+        partials[currentPartialsIndex[leafIndex]][leafIndex][patternNum * nrOfStates + state] = 1.0;
 
-            // Add the known state to the ancestral states
-            int index = leafIndex * nrOfPatterns + i;
-            if (state != missingDataState) {
-                ancestralStates[index].add(states[i]);
-            }
-            possibleStates[index].add(states[i]);
+        // Add the known state to the ancestral states
+        int index = leafIndex * nrOfPatterns + patternNum;
+        if (state != missingDataState) {
+            ancestralStates[index].add(state);
         }
+        possibleStates[index].add(state);
+
     }
 
 
@@ -256,6 +254,8 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
         storedAncestralStates = ancestralStates;
         ancestralStates = tmp3;
 
+        storeUseScaling = useScaling;
+
     }
 
 
@@ -279,6 +279,8 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
         Set<Integer>[] tmp3 = ancestralStates;
         ancestralStates = storedAncestralStates;
         storedAncestralStates = tmp3;
+
+        useScaling = storeUseScaling;
     
     }
 
@@ -350,7 +352,8 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
     protected Set<Integer>[] ancestralStates; // strictly records what is below the node to be used to setup possible states
     protected Set<Integer>[] storedAncestralStates;
 
-    protected boolean useScaling = true;
+    protected boolean useScaling = false;
+    protected boolean storeUseScaling = false;
     protected double[][][] scalingFactors;
     private double scalingThreshold = 1.0E-100;
 
