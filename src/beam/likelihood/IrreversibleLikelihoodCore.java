@@ -289,13 +289,30 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
     }
 
 
+    /**
+     * cleans up and deallocates arrays.
+     */
+    @Override
+	public void finalize() throws java.lang.Throwable {
+        nrOfNodes = 0;
+        nrOfPatterns = 0;
+        partials = null;
+        currentPartialsIndex = null;
+        storedPartialsIndex = null;
+        matrices = null;
+        currentMatrixIndex = null;
+        storedMatrixIndex = null;
+        scalingFactors = null;
+        ancestralStates = null;
+        storedAncestralStates = null;
+    }
+
+
     // Bunch of things that need to be implemented but are not used in this class
 
     @Override
     public void initialize(int nodeCount, int patternCount, int matrixCount, boolean integrateCategories, boolean useAmbiguities) {}
 
-    @Override
-	public void finalize() {}
     
     @Override
 	public void createNodePartials(int nodeIndex) {}
