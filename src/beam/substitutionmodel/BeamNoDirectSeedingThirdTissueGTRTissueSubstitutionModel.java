@@ -18,9 +18,9 @@ import beast.base.evolution.substitutionmodel.GeneralSubstitutionModel;
  * @author Stephen Staklinski
  **/
 
-@Description("General GTR substitution model implementation.")
+@Description("GTR substitution model implementation with the rate between the first and third tissue transition fixed to 0.")
 
-public class BeamGtrTissueSubstitutionModel extends GeneralSubstitutionModel {
+public class BeamNoDirectSeedingThirdTissueGTRTissueSubstitutionModel extends GeneralSubstitutionModel {
 
     public Input<RealParameter> piInput = new Input<>("pi", "Stationary frequency of the first state", Validate.REQUIRED);
 
@@ -33,10 +33,10 @@ public class BeamGtrTissueSubstitutionModel extends GeneralSubstitutionModel {
 
         // Verify the number of input rates is correct
         int nrInputRates = ratesInput.get().getDimension();
-        if (nrInputRates != ((nrOfStates * nrOfStates) - nrOfStates) / 2) {
+        if (nrInputRates != ((((nrOfStates * nrOfStates) - nrOfStates) / 2) - 1)) {
             throw new IllegalArgumentException(
-                "The number of input rates must be equal to ((nrOfStates * nrOfStates) - nrOfStates) / 2 for "
-                + "all off diagonal rates on one side of the matrix, but it is " 
+                "The number of input rates must be equal to ((((nrOfStates * nrOfStates) - nrOfStates) / 2) - 1) for "
+                + "all off diagonal rates on one side of the matrix except for the rate between the first and third tissue which is fixed to 0, but it is " 
                 + nrInputRates 
                 + ". Check the dimension of the input rate parameters."
             );
@@ -77,6 +77,14 @@ public class BeamGtrTissueSubstitutionModel extends GeneralSubstitutionModel {
         for (int i = 0; i < nrOfStates; i++) {
             rateMatrix[i][i] = 0;
             for (int j = i + 1; j < nrOfStates; j++) {
+
+                // set off diagonal rates to 0 for transitions between the first (primary) and third (second met) tissues
+                if ((i == 0 && j == 2) || (i == 2 && j == 0)) {
+                    rateMatrix[i][j] = 0;
+                    rateMatrix[j][i] = 0;
+                    continue;
+                }
+
                 rateMatrix[i][j] = relativeRates[count];
                 rateMatrix[j][i] = relativeRates[count];
                 count++;
