@@ -18,9 +18,9 @@ import beast.base.evolution.substitutionmodel.GeneralSubstitutionModel;
  * @author Stephen Staklinski
  **/
 
-@Description("GTR substitution model implementation with the rate between the first and third tissue transition fixed to 0.")
+@Description("GTR substitution model implementation with the rate between the first and fourth tissue transition fixed to 0.")
 
-public class BeamNoDirectSeedingThirdTissueGTRTissueSubstitutionModel extends GeneralSubstitutionModel {
+public class BeamNoDirectSeedingFourthTissueGTRTissueSubstitutionModel extends GeneralSubstitutionModel {
 
     public Input<RealParameter> piInput = new Input<>("pi", "Stationary frequency of the first state", Validate.REQUIRED);
 
@@ -79,7 +79,7 @@ public class BeamNoDirectSeedingThirdTissueGTRTissueSubstitutionModel extends Ge
             for (int j = i + 1; j < nrOfStates; j++) {
 
                 // set off diagonal rates to 0 for transitions between the first (primary) and third (second met) tissues
-                if ((i == 0 && j == 2) || (i == 2 && j == 0)) {
+                if ((i == 0 && j == 3) || (i == 3 && j == 0)) {
                     rateMatrix[i][j] = 0;
                     rateMatrix[j][i] = 0;
                     continue;
