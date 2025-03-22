@@ -22,24 +22,10 @@ java -Djava.library.path=$BEAGLE_LIB_PATH -jar beam.jar \
 
 ## Development
 
-An initial install will obtain dependencies for developing on the code base by running the following with the path to Java FX specified:
+An initial install will obtain dependencies for developing on the code base by running the following:
 ```
-# make the working directory
-mkdir beam_dev
-cd beam_dev
-
-# handle feast external to ant
-# specify path to Java FX (or OpenJDK) and compile feast
-gh repo clone tgvaughan/feast
-cd feast
-JAVA_FX_HOME="/Users/staklins/bin/zulu17.46.19-ca-fx-jdk17.0.9-macosx_aarch64/lib" ant
-
-# compile BEAM code and related dependencies
-cd ../beam
 ant
 ```
-
-Then, any further changes in the code base can be reflected by running `ant` in the `beam_dev/beam` directory.
 
 
 

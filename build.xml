@@ -3,105 +3,125 @@
 
     <property environment="env"/>
     <property name="dir.buildfile" value="."/>
-    <property name="dir.workspace" value="${dir.buildfile}/.."/>
+    <property name="dir.lib" value="${dir.buildfile}/lib"/>
+    <property name="dir.temp" value="${dir.buildfile}/temp"/>
 
-    <target name="check-dependencies">
-        <exec executable="sh">
-            <arg value="-c"/>
-            <arg value="if [ ! -d '${dir.workspace}/beast2' ]; then gh repo clone CompEvol/beast2 ${dir.workspace}/beast2; fi"/>
-        </exec>
-        <exec executable="sh">
-            <arg value="-c"/>
-            <arg value="if [ ! -d '${dir.workspace}/beast-classic' ]; then gh repo clone BEAST2-Dev/beast-classic ${dir.workspace}/beast-classic; fi"/>
-        </exec>
-        <exec executable="sh">
-            <arg value="-c"/>
-            <arg value="if [ ! -d '${dir.workspace}/BeastFX' ]; then gh repo clone CompEvol/BeastFX ${dir.workspace}/BeastFX; fi"/>
-        </exec>
-        <exec executable="sh">
-            <arg value="-c"/>
-            <arg value="if [ ! -d '${dir.workspace}/BEASTLabs' ]; then gh repo clone BEAST2-Dev/BEASTLabs ${dir.workspace}/BEASTLabs; fi"/>
-        </exec>
-        <exec executable="sh">
-            <arg value="-c"/>
-            <arg value="if [ ! -d '${dir.workspace}/tidetree' ]; then gh repo clone seidels/tidetree ${dir.workspace}/tidetree; fi"/>
-        </exec>
+    <!-- Create lib directory if it doesn't exist -->
+    <target name="init">
+        <mkdir dir="${dir.lib}"/>
+        <mkdir dir="${dir.temp}"/>
     </target>
 
-    <target name="compile-beast2" depends="check-dependencies">
-        <mkdir dir="${dir.workspace}/beast2/build"/>
-        <javac srcdir="${dir.workspace}/beast2/src" destdir="${dir.workspace}/beast2/build" includeantruntime="false">
-            <classpath>
-                <fileset dir="${dir.workspace}/beast2/lib" includes="*.jar"/>
-                <fileset dir="${dir.workspace}/beast2/lib/junit" includes="*.jar"/>
-                <fileset dir="${dir.workspace}/BeastFX/locallib" includes="*.jar"/>
-            </classpath>
-        </javac>
+    <!-- Download dependencies if they don't exist -->
+    <target name="download-deps" depends="init">
+        <!-- Download BEAST2 dependencies -->
+        <get src="https://github.com/CompEvol/beast2/releases/download/v2.7.7/BEAST.v2.7.7.Linux.x86.tgz" 
+             dest="${dir.lib}/beast2.tgz" 
+             usetimestamp="true"/>
+        <untar src="${dir.lib}/beast2.tgz" dest="${dir.lib}" compression="gzip" overwrite="false"/>
+        <delete file="${dir.lib}/beast2.tgz"/>
+        
+        <!-- Download BEAST-Classic -->
+        <get src="https://github.com/BEAST2-Dev/beast-classic/releases/download/v1.6.0/BEAST_CLASSIC.addon.v1.6.0.zip"
+             dest="${dir.lib}/beast-classic.zip"
+             usetimestamp="true"/>
+        <unzip src="${dir.lib}/beast-classic.zip" dest="${dir.lib}/beast-classic" overwrite="false"/>
+        <delete file="${dir.lib}/beast-classic.zip"/>
+        
+        <!-- Download BEASTLabs -->
+        <get src="https://github.com/BEAST2-Dev/BEASTLabs/releases/download/v2.0.0/BEASTlabs.addon.v2.0.0.zip"
+             dest="${dir.lib}/beastlabs.zip"
+             usetimestamp="true"/>
+        <unzip src="${dir.lib}/beastlabs.zip" dest="${dir.lib}/beastlabs" overwrite="false"/>
+        <delete file="${dir.lib}/beastlabs.zip"/>
+        
+        <!-- Download Tidetree -->
+        <get src="https://github.com/seidels/tidetree/releases/download/v1.0.1/tidetree.v1.0.1.zip"
+             dest="${dir.lib}/tidetree.zip"
+             usetimestamp="true"/>
+        <unzip src="${dir.lib}/tidetree.zip" dest="${dir.lib}/tidetree" overwrite="false"/>
+        <delete file="${dir.lib}/tidetree.zip"/>
+        
+        <!-- Download Feast -->
+        <get src="https://github.com/tgvaughan/feast/releases/download/v10.4.0/feast.v10.4.0.zip"
+             dest="${dir.lib}/feast.zip"
+             usetimestamp="true"/>
+        <unzip src="${dir.lib}/feast.zip" dest="${dir.lib}/feast" overwrite="false"/>
+        <delete file="${dir.lib}/feast.zip"/>
     </target>
 
-    <target name="compile-beastfx" depends="check-dependencies">
-        <mkdir dir="${dir.workspace}/BeastFX/build"/>
-        <javac srcdir="${dir.workspace}/BeastFX/src" destdir="${dir.workspace}/BeastFX/build" includeantruntime="false">
-            <classpath>
-                <fileset dir="${dir.workspace}/beast2/lib" includes="*.jar"/>
-                <fileset dir="${dir.workspace}/beast2/lib/junit" includes="*.jar"/>
-                <fileset dir="${dir.workspace}/BeastFX/locallib" includes="*.jar"/>
-                <pathelement location="${dir.workspace}/beast2/build"/>
-            </classpath>
-        </javac>
-    </target>
-
-    <target name="compile-beastclassic" depends="check-dependencies">
-        <ant dir="${dir.workspace}/beast-classic" target="build_jar_all_BEAST_CLASSIC_NoJUnitTest"/>
-    </target>
-
-    <target name="compile-beastlabs" depends="check-dependencies">
-        <mkdir dir="${dir.workspace}/BEASTLabs/build"/>
-        <javac srcdir="${dir.workspace}/BEASTLabs/src" destdir="${dir.workspace}/BEASTLabs/build" includeantruntime="false">
-            <classpath>
-                <fileset dir="${dir.workspace}/BEASTLabs/lib" includes="*.jar"/>
-                <fileset dir="${dir.workspace}/beast2/lib" includes="*.jar"/>
-                <fileset dir="${dir.workspace}/beast2/lib/junit" includes="*.jar"/>
-                <pathelement location="${dir.workspace}/beast2/build"/>
-                <pathelement location="${dir.workspace}/BeastFX/build"/>
-            </classpath>
-        </javac>
-    </target>
-
-    <target name="compile-tidetree" depends="check-dependencies">
-        <mkdir dir="${dir.workspace}/tidetree/build"/>
-        <javac srcdir="${dir.workspace}/tidetree/src" destdir="${dir.workspace}/tidetree/build" includeantruntime="false" debug="true">
-            <classpath>
-                <fileset dir="${dir.workspace}/beast2/lib" includes="*.jar"/>
-                <fileset dir="${dir.workspace}/beast2/lib/junit" includes="*.jar"/>
-                <fileset dir="${dir.workspace}/beast-classic/lib" includes="*.jar"/>
-                <fileset dir="${dir.workspace}/BeastFX/locallib" includes="*.jar"/>
-                <pathelement path="${dir.workspace}/BeastFX/build"/>
-                <pathelement path="${dir.workspace}/feast/build"/>
-                <pathelement location="${dir.workspace}/beast2/build"/>
-            </classpath>
-        </javac>
-    </target>
-
-    <target name="compile" depends="check-dependencies,compile-beast2,compile-beastfx,compile-beastclassic,compile-beastlabs,compile-tidetree">
+    <!-- Compile the main project -->
+    <target name="compile" depends="download-deps">
         <mkdir dir="${dir.buildfile}/build"/>
-        <javac srcdir="${dir.buildfile}/src" destdir="${dir.buildfile}/build" includeantruntime="false" debug="true">
+        <javac srcdir="${dir.buildfile}/src" 
+               destdir="${dir.buildfile}/build" 
+               includeantruntime="false" 
+               debug="true">
             <classpath>
-                <fileset dir="${dir.workspace}/beast2/lib" includes="*.jar"/>
-                <fileset dir="${dir.workspace}/beast2/lib/junit" includes="*.jar"/>
-                <fileset dir="${dir.workspace}/beast-classic/lib" includes="*.jar"/>
-                <fileset dir="${dir.workspace}/BeastFX/locallib" includes="*.jar"/>
-                <fileset dir="${dir.workspace}/tidetree/build" includes="*.jar"/>
-                <pathelement path="${dir.workspace}/BeastFX/build"/>
-                <pathelement path="${dir.workspace}/feast/build"/>
-                <pathelement location="${dir.workspace}/beast-classic/build"/>
-                <pathelement location="${dir.workspace}/beast2/build"/>
-                <pathelement location="${dir.workspace}/tidetree/build"/>
+                <!-- BEAST2 dependencies -->
+                <fileset dir="${dir.lib}/beast/lib" includes="*.jar"/>
+                <fileset dir="${dir.lib}/beast/lib/packages" includes="*.jar"/>
+                
+                <!-- BEAST-Classic dependencies -->
+                <fileset dir="${dir.lib}/beast-classic/lib" includes="*.jar"/>
+                
+                <!-- BEASTLabs dependencies -->
+                <fileset dir="${dir.lib}/beastlabs/lib" includes="*.jar"/>
+                
+                <!-- Tidetree dependencies -->
+                <fileset dir="${dir.lib}/tidetree/lib" includes="*.jar"/>
+                
+                <!-- Feast dependencies -->
+                <fileset dir="${dir.lib}/feast/lib" includes="*.jar"/>
             </classpath>
         </javac>
     </target>
 
-    <target name="jar" depends="compile">
+    <!-- Extract dependencies -->
+    <target name="extract-deps" depends="compile">
+        <!-- Extract all BEAST2 dependencies -->
+        <unzip dest="${dir.temp}/beast" overwrite="true">
+            <fileset dir="${dir.lib}/beast/lib">
+                <include name="**/*.jar"/>
+                <exclude name="**/*.src.jar"/>
+            </fileset>
+        </unzip>
+        
+        <!-- Extract all BEAST-Classic dependencies -->
+        <unzip dest="${dir.temp}/beast-classic" overwrite="true">
+            <fileset dir="${dir.lib}/beast-classic/lib">
+                <include name="**/*.jar"/>
+                <exclude name="**/*.src.jar"/>
+            </fileset>
+        </unzip>
+        
+        <!-- Extract all BEASTLabs dependencies -->
+        <unzip dest="${dir.temp}/beastlabs" overwrite="true">
+            <fileset dir="${dir.lib}/beastlabs/lib">
+                <include name="**/*.jar"/>
+                <exclude name="**/*.src.jar"/>
+            </fileset>
+        </unzip>
+        
+        <!-- Extract all Tidetree dependencies -->
+        <unzip dest="${dir.temp}/tidetree" overwrite="true">
+            <fileset dir="${dir.lib}/tidetree/lib">
+                <include name="**/*.jar"/>
+                <exclude name="**/*.src.jar"/>
+            </fileset>
+        </unzip>
+        
+        <!-- Extract all Feast dependencies -->
+        <unzip dest="${dir.temp}/feast" overwrite="true">
+            <fileset dir="${dir.lib}/feast/lib">
+                <include name="**/*.jar"/>
+                <exclude name="**/*.src.jar"/>
+            </fileset>
+        </unzip>
+    </target>
+
+    <!-- Create the final JAR -->
+    <target name="jar" depends="extract-deps">
         <jar destfile="${dir.buildfile}/beam.jar" filesetmanifest="mergewithoutmain">
             <manifest>
                 <attribute name="Main-Class" value="feast.app.FeastMain"/>
@@ -109,32 +129,17 @@
             </manifest>
             <fileset dir="${dir.buildfile}/src" includes="beast_services.xml"/>
             <fileset dir="${dir.buildfile}/build"/>
-            <zipfileset excludes="META-INF/*.SF" src="${dir.workspace}/beast2/lib/junit/junit-platform-console-standalone-1.8.2.jar"/>
-            <zipfileset excludes="META-INF/*.SF" src="${dir.workspace}/beast2/lib/antlr-runtime-4.10.1.jar"/>
-            <zipfileset excludes="META-INF/*.SF" src="${dir.workspace}/beast2/lib/beagle.jar"/>
-            <zipfileset excludes="META-INF/*.SF" src="${dir.workspace}/beast2/lib/colt.jar"/>
-            <zipfileset excludes="META-INF/*.SF" src="${dir.workspace}/beast2/lib/commons-math3-3.6.1.jar"/>
-            <zipfileset excludes="META-INF/*.SF" src="${dir.workspace}/beast-classic/lib/mtj.jar"/>
-            <zipfileset excludes="META-INF/*.SF" src="${dir.workspace}/BeastFX/locallib/assertj-core-3.20.2.jar"/>
-            <zipfileset excludes="META-INF/*.SF" src="${dir.workspace}/BeastFX/locallib/jam.jar"/>
-            <zipfileset excludes="META-INF/*.SF" src="${dir.workspace}/BeastFX/locallib/testfx.jar"/>
-            <fileset dir="${dir.workspace}/tidetree/build"/>
-            <fileset dir="${dir.workspace}/beast2/build"/>
-            <fileset dir="${dir.workspace}/beast-classic/build"/>
-            <zipfileset excludes="META-INF/*.SF" src="${dir.workspace}/beast2/build/dist/BEAST.base.jar"/>
-            <zipfileset excludes="META-INF/*.SF" src="${dir.workspace}/beast2/build/dist/BEAST.base.src.jar"/>
-            <zipfileset excludes="META-INF/*.SF" src="${dir.workspace}/beast2/build/dist/beast.test.src.jar"/>
-            <zipfileset excludes="META-INF/*.SF" src="${dir.workspace}/beast2/build/dist/launcher.jar"/>
-            <zipfileset excludes="META-INF/*.SF" src="${dir.workspace}/beast2/build/dist/launcher.src.jar"/>
-            <zipfileset excludes="META-INF/*.SF" src="${dir.workspace}/beast2/build/dist/test.beast.jar"/>
-            <zipfileset excludes="META-INF/*.SF" src="${dir.workspace}/beast2/lib/bundler/jarbundler-core-3.3.0.jar"/>
-            <zipfileset excludes="META-INF/*.SF" src="${dir.workspace}/beast2/lib/bundler/jsign-3.1.jar"/>
-            <zipfileset excludes="META-INF/*.SF" src="${dir.workspace}/beast2/release/common/tools/DensiTree.jar"/>
-            <fileset dir="${dir.workspace}/BeastFX/build"/>
-            <fileset dir="${dir.workspace}/feast/build"/>
-            <fileset dir="${dir.workspace}/BEASTLabs/build"/>
-            <zipfileset excludes="META-INF/*.SF" src="${dir.workspace}/BEASTLabs/lib/junit-4.8.2.jar"/>
-            <zipfileset excludes="META-INF/*.SF" src="${dir.workspace}/BEASTLabs/lib/nashorn-core-15.3.jar"/>
+            
+            <!-- Include extracted dependencies -->
+            <fileset dir="${dir.temp}/beast" includes="**/*.class,**/*.xml"/>
+            <fileset dir="${dir.temp}/beast-classic" includes="**/*.class,**/*.xml"/>
+            <fileset dir="${dir.temp}/beastlabs" includes="**/*.class,**/*.xml"/>
+            <fileset dir="${dir.temp}/tidetree" includes="**/*.class,**/*.xml"/>
+            <fileset dir="${dir.temp}/feast" includes="**/*.class,**/*.xml"/>
         </jar>
+        
+        <!-- Clean up temp directory -->
+        <delete dir="${dir.temp}"/>
     </target>
+
 </project>
