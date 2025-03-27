@@ -44,11 +44,11 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
 
         numNodesNoOrigin = nodeCount - 1;
 
-        ancestralStates = new HashSet[numNodesNoOrigin * nrOfPatterns];
-        storedAncestralStates = new HashSet[numNodesNoOrigin * nrOfPatterns];
+        ancestralStates = new int[numNodesNoOrigin * nrOfPatterns][nrOfStates];
+        storedAncestralStates = new int[numNodesNoOrigin * nrOfPatterns][nrOfStates];
         for (int i = 0; i < numNodesNoOrigin * nrOfPatterns; i++) {
-            ancestralStates[i] = new HashSet<>();
-            storedAncestralStates[i] = new HashSet<>();
+            Arrays.fill(ancestralStates[i], -1);
+            Arrays.fill(storedAncestralStates[i], -1);
         }
     }
 
@@ -67,23 +67,44 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
             int state = states[i];
             partials[currentPartialsIndex[leafIndex]][leafIndex][i * nrOfStates + state] = 1.0;
             if (state != missingDataState) {
-                ancestralStates[leafIndex * nrOfPatterns + i].add(states[i]);
+                ancestralStates[leafIndex * nrOfPatterns + i][0] = states[i];
             }
         }
     }
 
 
     public void setPossibleAncestralStates(int childIndex1, int childIndex2, int parentIndex) {
-
         for (int i = 0; i < nrOfPatterns; i++) {
-            ancestralStates[parentIndex * nrOfPatterns + i] = new HashSet<>();
+            final int parentIndexOffset = parentIndex * nrOfPatterns + i;
+            final int[] parentStates = ancestralStates[parentIndexOffset];
+            final int[] child1States = ancestralStates[childIndex1 * nrOfPatterns + i];
+            final int[] child2States = ancestralStates[childIndex2 * nrOfPatterns + i];
+            
+            // Clear parent states
+            Arrays.fill(parentStates, -1);
+            
+            // Add states from both children
+            int count = 0;
+            for (int j = 0; j < nrOfStates && child1States[j] != -1; j++) {
+                parentStates[count++] = child1States[j];
+            }
+            for (int j = 0; j < nrOfStates && child2States[j] != -1; j++) {
+                boolean found = false;
+                for (int k = 0; k < count; k++) {
+                    if (parentStates[k] == child2States[j]) {
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    parentStates[count++] = child2States[j];
+                }
+            }
 
-            ancestralStates[parentIndex * nrOfPatterns + i].addAll(ancestralStates[childIndex1 * nrOfPatterns + i]);
-            ancestralStates[parentIndex * nrOfPatterns + i].addAll(ancestralStates[childIndex2 * nrOfPatterns + i]);
-
-            if (ancestralStates[parentIndex * nrOfPatterns + i].size() > 1) {
-                ancestralStates[parentIndex * nrOfPatterns + i].clear();
-                ancestralStates[parentIndex * nrOfPatterns + i].add(0);
+            // If more than one state is possible, only allow unedited state (0)
+            if (count > 1) {
+                Arrays.fill(parentStates, -1);
+                parentStates[0] = 0;
             }
         }
     }
@@ -96,32 +117,40 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
      * be propagated.
      */
     public void calculatePartials(int childIndex1, int childIndex2, int parentIndex) {
-
         currentPartialsIndex[parentIndex] = 1 - currentPartialsIndex[parentIndex];
         
         final double[] partials1 = partials[currentPartialsIndex[childIndex1]][childIndex1];
         final double[] matrices1 = matrices[currentMatrixIndex[childIndex1]][childIndex1];
         final double[] partials2 = partials[currentPartialsIndex[childIndex2]][childIndex2];
         final double[] matrices2 = matrices[currentMatrixIndex[childIndex2]][childIndex2];
-        double[] partials3 = partials[currentPartialsIndex[parentIndex]][parentIndex]; // pointer to update partials at parent node
+        final double[] partials3 = partials[currentPartialsIndex[parentIndex]][parentIndex];
 
-        // modified pruning algorithm
-        double sum1, sum2;
+        // Pre-calculate array indices to avoid repeated multiplication
+        final int[] stateIndices = new int[nrOfStates];
+        for (int i = 0; i < nrOfStates; i++) {
+            stateIndices[i] = i * nrOfStates;
+        }
 
         for (int k = 0; k < nrOfPatterns; k++) {
-
-            Set<Integer> possibleStates = getPossibleStates(ancestralStates[parentIndex * nrOfPatterns + k]);
+            final int u = k * nrOfStates;
+            final int[] possibleStates = getPossibleStates(ancestralStates[parentIndex * nrOfPatterns + k]);
+            final int[] child1States = getPossibleStates(ancestralStates[childIndex1 * nrOfPatterns + k]);
+            final int[] child2States = getPossibleStates(ancestralStates[childIndex2 * nrOfPatterns + k]);
 
             // Calculate partials for all states
-            int u = k * nrOfStates;
             for (int i : possibleStates) {
-                sum1 = 0.0;
-                sum2 = 0.0;
-                for (int j : getPossibleStates(ancestralStates[childIndex1 * nrOfPatterns + k])) {
-                    sum1 += matrices1[i * nrOfStates + j] * partials1[u + j];
+                if (i == -1) continue;
+                double sum1 = 0.0;
+                double sum2 = 0.0;
+                final int iOffset = stateIndices[i];
+                
+                for (int j : child1States) {
+                    if (j == -1) continue;
+                    sum1 += matrices1[iOffset + j] * partials1[u + j];
                 }
-                for (int j : getPossibleStates(ancestralStates[childIndex2 * nrOfPatterns + k])) {
-                    sum2 += matrices2[i * nrOfStates + j] * partials2[u + j];
+                for (int j : child2States) {
+                    if (j == -1) continue;
+                    sum2 += matrices2[iOffset + j] * partials2[u + j];
                 }
                 partials3[u + i] = sum1 * sum2;
             }
@@ -132,19 +161,38 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
         }
     }
 
-    public Set<Integer> getPossibleStates(Set<Integer> ancestralStates) {
+    public int[] getPossibleStates(int[] ancestralStates) {
+        int[] possibleStates = new int[nrOfStates];
+        int count = 0;
 
-        Set<Integer> possibleStates = new HashSet<>(ancestralStates);
+        // Copy non-negative states from ancestralStates
+        for (int i = 0; i < nrOfStates && ancestralStates[i] != -1; i++) {
+            possibleStates[count++] = ancestralStates[i];
+        }
 
-        // if the subtree only has missing data, then the ancestral state can be anything
-        if (possibleStates.isEmpty()) {
+        // If no states are set, add all states except 0
+        if (count == 0) {
             for (int state = 1; state < nrOfStates; state++) {
-                possibleStates.add(state);
+                possibleStates[count++] = state;
             }
         }
 
-        // always add the unedited state
-        possibleStates.add(0);
+        // Always add the unedited state if not already present
+        boolean hasZero = false;
+        for (int i = 0; i < count; i++) {
+            if (possibleStates[i] == 0) {
+                hasZero = true;
+                break;
+            }
+        }
+        if (!hasZero) {
+            possibleStates[count++] = 0;
+        }
+
+        // Fill remaining slots with -1
+        for (int i = count; i < nrOfStates; i++) {
+            possibleStates[i] = -1;
+        }
 
         return possibleStates;
     }
@@ -163,24 +211,22 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
 
         final double[] partials1 = partials[currentPartialsIndex[rootIndex]][rootIndex];
         final double[] matrices1 = matrices[currentMatrixIndex[rootIndex]][rootIndex];
-        double[] partials3 = partials[currentPartialsIndex[originIndex]][originIndex];  // pointer to update partials at origin
+        final double[] partials3 = partials[currentPartialsIndex[originIndex]][originIndex];
 
         for (int k = 0; k < nrOfPatterns; k++) {
-            // Calculate the partial for the first unedited state only, which is known at the origin
             double sum1 = 0.0;
-
-            Set<Integer> possibleStates = getPossibleStates(ancestralStates[rootIndex * nrOfPatterns + k]);
+            final int[] possibleStates = getPossibleStates(ancestralStates[rootIndex * nrOfPatterns + k]);
 
             for (int j : possibleStates) {
+                if (j == -1) continue;
                 sum1 += matrices1[j] * partials1[k * nrOfStates + j];
             }
             partials3[k * nrOfStates] = sum1;
 
             if (useScaling) {
-                scalePartials(originIndex, k, new HashSet<>(Arrays.asList(0)));
+                scalePartials(originIndex, k, new int[]{0, -1});
             }
 
-            // Calculate log likelihoods
             if (useScaling) {
                 logP += Math.log(partials3[k * nrOfStates]) + getLogScalingFactor(k);
             } else {
@@ -202,21 +248,25 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
     }
 
 
-    protected void scalePartials(int nodeIndex, int patternNum, Set<Integer> possibleStates) {
+    protected void scalePartials(int nodeIndex, int patternNum, int[] possibleStates) {
+        final int v = nrOfStates * patternNum;
+        final double[] nodePartials = partials[currentPartialsIndex[nodeIndex]][nodeIndex];
         
-        double scaleFactor = 0.0;
-        int v = nrOfStates * patternNum;
-
         // Find the maximum partial value for scaling
+        double scaleFactor = 0.0;
         for (int j : possibleStates) {
-            scaleFactor = Math.max(scaleFactor, partials[currentPartialsIndex[nodeIndex]][nodeIndex][v++]);
+            if (j == -1) continue;
+            final double partial = nodePartials[v + j];
+            if (partial > scaleFactor) {
+                scaleFactor = partial;
+            }
         }
 
         // Scale partials if the scaleFactor is below the threshold
         if (scaleFactor < scalingThreshold) {
-            v = nrOfStates * patternNum;
             for (int j : possibleStates) {
-                partials[currentPartialsIndex[nodeIndex]][nodeIndex][v++] /= scaleFactor;
+                if (j == -1) continue;
+                nodePartials[v + j] /= scaleFactor;
             }
             scalingFactors[currentPartialsIndex[nodeIndex]][nodeIndex][patternNum] = Math.log(scaleFactor);
         } else {
@@ -253,13 +303,11 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
      */
     @Override
     public void store() {
-
         System.arraycopy(currentMatrixIndex, 0, storedMatrixIndex, 0, nrOfNodes);
         System.arraycopy(currentPartialsIndex, 0, storedPartialsIndex, 0, nrOfNodes);
 
         for (int i = 0; i < numNodesNoOrigin * nrOfPatterns; i++) {
-            storedAncestralStates[i].clear();
-            storedAncestralStates[i].addAll(ancestralStates[i]);
+            System.arraycopy(ancestralStates[i], 0, storedAncestralStates[i], 0, nrOfStates);
         }
     }
 
@@ -269,22 +317,18 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
      */
     @Override
     public void restore() {
-
         System.arraycopy(storedMatrixIndex, 0, currentMatrixIndex, 0, nrOfNodes);
         System.arraycopy(storedPartialsIndex, 0, currentPartialsIndex, 0, nrOfNodes);
 
-        // this is mainly for when scaling is turned on immediately, otherwise the storedAncestralStates will already be setup
         if (storedAncestralStates == null) {
-            storedAncestralStates = new HashSet[numNodesNoOrigin * nrOfPatterns];
+            storedAncestralStates = new int[numNodesNoOrigin * nrOfPatterns][nrOfStates];
             for (int i = 0; i < numNodesNoOrigin * nrOfPatterns; i++) {
-                storedAncestralStates[i] = new HashSet<>();
-                storedAncestralStates[i].addAll(ancestralStates[i]);
+                System.arraycopy(ancestralStates[i], 0, storedAncestralStates[i], 0, nrOfStates);
             }
         }
 
         for (int i = 0; i < numNodesNoOrigin * nrOfPatterns; i++) {
-            ancestralStates[i].clear();
-            ancestralStates[i].addAll(storedAncestralStates[i]);
+            System.arraycopy(storedAncestralStates[i], 0, ancestralStates[i], 0, nrOfStates);
         }
     }
 
@@ -371,8 +415,8 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
     protected int[] currentPartialsIndex;
     protected int[] storedPartialsIndex;
 
-    protected Set<Integer>[] ancestralStates;
-    protected Set<Integer>[] storedAncestralStates;
+    protected int[][] ancestralStates;
+    protected int[][] storedAncestralStates;
 
     protected boolean useScaling = false;
     protected double[][][] scalingFactors;
