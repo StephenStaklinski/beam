@@ -50,14 +50,6 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
             ancestralStates[i] = new HashSet<>();
             storedAncestralStates[i] = new HashSet<>();
         }
-
-        // Initialize state tracking arrays
-        mustBeUnedited = new boolean[nodeCount][patternCount];
-        singleState = new int[nodeCount][patternCount];
-        // Initialize all states to -1 (all states possible)
-        for (int i = 0; i < nodeCount; i++) {
-            Arrays.fill(singleState[i], -1);
-        }
     }
 
     /**
@@ -104,135 +96,38 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
      * be propagated.
      */
     public void calculatePartials(int childIndex1, int childIndex2, int parentIndex) {
+
         currentPartialsIndex[parentIndex] = 1 - currentPartialsIndex[parentIndex];
         
         final double[] partials1 = partials[currentPartialsIndex[childIndex1]][childIndex1];
         final double[] matrices1 = matrices[currentMatrixIndex[childIndex1]][childIndex1];
         final double[] partials2 = partials[currentPartialsIndex[childIndex2]][childIndex2];
         final double[] matrices2 = matrices[currentMatrixIndex[childIndex2]][childIndex2];
-        final double[] partials3 = partials[currentPartialsIndex[parentIndex]][parentIndex];
+        double[] partials3 = partials[currentPartialsIndex[parentIndex]][parentIndex]; // pointer to update partials at parent node
 
-        Arrays.fill(partials3, 0.0);
+        // modified pruning algorithm
+        double sum1, sum2;
 
         for (int k = 0; k < nrOfPatterns; k++) {
-            final int patternOffset = k * nrOfStates;
-            
-            // Parent states
-            if (mustBeUnedited[parentIndex][k]) {
-                // Only calculate for unedited state
-                final int matrixOffset = 0;  // i = 0
-                double sum1 = 0.0;
-                double sum2 = 0.0;
 
-                // Child 1 states
-                if (mustBeUnedited[childIndex1][k]) {
-                    sum1 = matrices1[matrixOffset] * partials1[patternOffset];
-                } else if (singleState[childIndex1][k] == -1) {
-                    for (int j = 0; j < nrOfStates; j++) {
-                        sum1 += matrices1[matrixOffset + j] * partials1[patternOffset + j];
-                    }
-                } else {
-                    sum1 = matrices1[matrixOffset] * partials1[patternOffset] + 
-                          matrices1[matrixOffset + singleState[childIndex1][k]] * partials1[patternOffset + singleState[childIndex1][k]];
+            Set<Integer> possibleStates = getPossibleStates(ancestralStates[parentIndex * nrOfPatterns + k]);
+
+            // Calculate partials for all states
+            int u = k * nrOfStates;
+            for (int i : possibleStates) {
+                sum1 = 0.0;
+                sum2 = 0.0;
+                for (int j : getPossibleStates(ancestralStates[childIndex1 * nrOfPatterns + k])) {
+                    sum1 += matrices1[i * nrOfStates + j] * partials1[u + j];
                 }
-
-                // Child 2 states
-                if (mustBeUnedited[childIndex2][k]) {
-                    sum2 = matrices2[matrixOffset] * partials2[patternOffset];
-                } else if (singleState[childIndex2][k] == -1) {
-                    for (int j = 0; j < nrOfStates; j++) {
-                        sum2 += matrices2[matrixOffset + j] * partials2[patternOffset + j];
-                    }
-                } else {
-                    sum2 = matrices2[matrixOffset] * partials2[patternOffset] + 
-                          matrices2[matrixOffset + singleState[childIndex2][k]] * partials2[patternOffset + singleState[childIndex2][k]];
+                for (int j : getPossibleStates(ancestralStates[childIndex2 * nrOfPatterns + k])) {
+                    sum2 += matrices2[i * nrOfStates + j] * partials2[u + j];
                 }
-
-                partials3[patternOffset] = sum1 * sum2;
-            } else if (singleState[parentIndex][k] == -1) {
-                // Calculate for all states
-                for (int i = 0; i < nrOfStates; i++) {
-                    final int matrixOffset = i * nrOfStates;
-                    double sum1 = 0.0;
-                    double sum2 = 0.0;
-
-                    // Child 1 states
-                    if (mustBeUnedited[childIndex1][k]) {
-                        sum1 = matrices1[matrixOffset] * partials1[patternOffset];
-                    } else if (singleState[childIndex1][k] == -1) {
-                        for (int j = 0; j < nrOfStates; j++) {
-                            sum1 += matrices1[matrixOffset + j] * partials1[patternOffset + j];
-                        }
-                    } else {
-                        sum1 = matrices1[matrixOffset] * partials1[patternOffset] + 
-                              matrices1[matrixOffset + singleState[childIndex1][k]] * partials1[patternOffset + singleState[childIndex1][k]];
-                    }
-
-                    // Child 2 states
-                    if (mustBeUnedited[childIndex2][k]) {
-                        sum2 = matrices2[matrixOffset] * partials2[patternOffset];
-                    } else if (singleState[childIndex2][k] == -1) {
-                        for (int j = 0; j < nrOfStates; j++) {
-                            sum2 += matrices2[matrixOffset + j] * partials2[patternOffset + j];
-                        }
-                    } else {
-                        sum2 = matrices2[matrixOffset] * partials2[patternOffset] + 
-                              matrices2[matrixOffset + singleState[childIndex2][k]] * partials2[patternOffset + singleState[childIndex2][k]];
-                    }
-
-                    partials3[patternOffset + i] = sum1 * sum2;
-                }
-            } else {
-                // Calculate for unedited and single state
-                for (int i : new int[]{0, singleState[parentIndex][k]}) {
-                    final int matrixOffset = i * nrOfStates;
-                    double sum1 = 0.0;
-                    double sum2 = 0.0;
-
-                    // Child 1 states
-                    if (mustBeUnedited[childIndex1][k]) {
-                        sum1 = matrices1[matrixOffset] * partials1[patternOffset];
-                    } else if (singleState[childIndex1][k] == -1) {
-                        for (int j = 0; j < nrOfStates; j++) {
-                            sum1 += matrices1[matrixOffset + j] * partials1[patternOffset + j];
-                        }
-                    } else {
-                        sum1 = matrices1[matrixOffset] * partials1[patternOffset] + 
-                              matrices1[matrixOffset + singleState[childIndex1][k]] * partials1[patternOffset + singleState[childIndex1][k]];
-                    }
-
-                    // Child 2 states
-                    if (mustBeUnedited[childIndex2][k]) {
-                        sum2 = matrices2[matrixOffset] * partials2[patternOffset];
-                    } else if (singleState[childIndex2][k] == -1) {
-                        for (int j = 0; j < nrOfStates; j++) {
-                            sum2 += matrices2[matrixOffset + j] * partials2[patternOffset + j];
-                        }
-                    } else {
-                        sum2 = matrices2[matrixOffset] * partials2[patternOffset] + 
-                              matrices2[matrixOffset + singleState[childIndex2][k]] * partials2[patternOffset + singleState[childIndex2][k]];
-                    }
-
-                    partials3[patternOffset + i] = sum1 * sum2;
-                }
+                partials3[u + i] = sum1 * sum2;
             }
 
             if (useScaling) {
-                // Only scale the states that were actually calculated
-                if (mustBeUnedited[parentIndex][k]) {
-                    boolean[] states = new boolean[nrOfStates];
-                    states[0] = true;
-                    scalePartials(parentIndex, k, states);
-                } else if (singleState[parentIndex][k] == -1) {
-                    boolean[] states = new boolean[nrOfStates];
-                    Arrays.fill(states, true);
-                    scalePartials(parentIndex, k, states);
-                } else {
-                    boolean[] states = new boolean[nrOfStates];
-                    states[0] = true;
-                    states[singleState[parentIndex][k]] = true;
-                    scalePartials(parentIndex, k, states);
-                }
+                scalePartials(parentIndex, k, possibleStates);
             }
         }
     }
@@ -261,6 +156,7 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
      * the partials for that state and set the other to 0 since they will not be used by the frequencies anyways.
      */
     public double calculateLogLikelihoods(int rootIndex, int originIndex) {
+
         double logP = 0.0;
 
         currentPartialsIndex[originIndex] = 1 - currentPartialsIndex[originIndex];
@@ -273,37 +169,15 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
             // Calculate the partial for the first unedited state only, which is known at the origin
             double sum1 = 0.0;
 
-            // Check root node states
-            if (mustBeUnedited[rootIndex][k]) {
-                sum1 = matrices1[0] * partials1[k * nrOfStates];
-            } else if (singleState[rootIndex][k] == -1) {
-                // All states possible
-                for (int j = 0; j < nrOfStates; j++) {
-                    sum1 += matrices1[j] * partials1[k * nrOfStates + j];
-                }
-            } else {
-                // Unedited state and single state
-                sum1 = matrices1[0] * partials1[k * nrOfStates] + 
-                      matrices1[singleState[rootIndex][k]] * partials1[k * nrOfStates + singleState[rootIndex][k]];
+            Set<Integer> possibleStates = getPossibleStates(ancestralStates[rootIndex * nrOfPatterns + k]);
+
+            for (int j : possibleStates) {
+                sum1 += matrices1[j] * partials1[k * nrOfStates + j];
             }
             partials3[k * nrOfStates] = sum1;
 
             if (useScaling) {
-                // Only scale the states that were actually calculated
-                if (mustBeUnedited[rootIndex][k]) {
-                    boolean[] states = new boolean[nrOfStates];
-                    states[0] = true;
-                    scalePartials(originIndex, k, states);
-                } else if (singleState[rootIndex][k] == -1) {
-                    boolean[] states = new boolean[nrOfStates];
-                    Arrays.fill(states, true);
-                    scalePartials(originIndex, k, states);
-                } else {
-                    boolean[] states = new boolean[nrOfStates];
-                    states[0] = true;
-                    states[singleState[rootIndex][k]] = true;
-                    scalePartials(originIndex, k, states);
-                }
+                scalePartials(originIndex, k, new HashSet<>(Arrays.asList(0)));
             }
 
             // Calculate log likelihoods
@@ -328,24 +202,21 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
     }
 
 
-    protected void scalePartials(int nodeIndex, int patternNum, boolean[] possibleStates) {
+    protected void scalePartials(int nodeIndex, int patternNum, Set<Integer> possibleStates) {
+        
         double scaleFactor = 0.0;
         int v = nrOfStates * patternNum;
 
         // Find the maximum partial value for scaling
-        for (int j = 0; j < nrOfStates; j++) {
-            if (possibleStates[j]) {
-                scaleFactor = Math.max(scaleFactor, partials[currentPartialsIndex[nodeIndex]][nodeIndex][v + j]);
-            }
+        for (int j : possibleStates) {
+            scaleFactor = Math.max(scaleFactor, partials[currentPartialsIndex[nodeIndex]][nodeIndex][v++]);
         }
 
         // Scale partials if the scaleFactor is below the threshold
         if (scaleFactor < scalingThreshold) {
             v = nrOfStates * patternNum;
-            for (int j = 0; j < nrOfStates; j++) {
-                if (possibleStates[j]) {
-                    partials[currentPartialsIndex[nodeIndex]][nodeIndex][v + j] /= scaleFactor;
-                }
+            for (int j : possibleStates) {
+                partials[currentPartialsIndex[nodeIndex]][nodeIndex][v++] /= scaleFactor;
             }
             scalingFactors[currentPartialsIndex[nodeIndex]][nodeIndex][patternNum] = Math.log(scaleFactor);
         } else {
@@ -507,6 +378,4 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
     protected double[][][] scalingFactors;
     private double scalingThreshold = 1.0E-100;
 
-    protected boolean[][] mustBeUnedited;
-    protected int[][] singleState;
 }
