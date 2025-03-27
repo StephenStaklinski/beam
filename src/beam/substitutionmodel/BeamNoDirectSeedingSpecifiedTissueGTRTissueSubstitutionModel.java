@@ -18,14 +18,18 @@ import beast.base.evolution.substitutionmodel.GeneralSubstitutionModel;
  * @author Stephen Staklinski
  **/
 
-@Description("GTR substitution model implementation with the rate between the first and fourth tissue transition fixed to 0.")
+@Description("GTR substitution model implementation with the rate between the first and a specified tissue index transition fixed to 0.")
 
-public class BeamNoDirectSeedingFourthTissueGTRTissueSubstitutionModel extends GeneralSubstitutionModel {
+public class BeamNoDirectSeedingSpecifiedTissueGTRTissueSubstitutionModel extends GeneralSubstitutionModel {
 
     public Input<RealParameter> piInput = new Input<>("pi", "Stationary frequency of the first state", Validate.REQUIRED);
-
-	@Override
+    public Input<Integer> specifiedTissueIndexInput = new Input<>("specifiedTissueIndex", "0-based index of the tissue to which the rate is fixed to 0", Validate.REQUIRED);
+	
+    @Override
     public void initAndValidate(){
+
+        specifiedTissueIndex = specifiedTissueIndexInput.get();
+
         updateMatrix = true;
         frequencies = frequenciesInput.get();
         nrOfStates = frequencies.getFreqs().length;
@@ -36,12 +40,11 @@ public class BeamNoDirectSeedingFourthTissueGTRTissueSubstitutionModel extends G
         if (nrInputRates != ((((nrOfStates * nrOfStates) - nrOfStates) / 2) - 1)) {
             throw new IllegalArgumentException(
                 "The number of input rates must be equal to ((((nrOfStates * nrOfStates) - nrOfStates) / 2) - 1) for "
-                + "all off diagonal rates on one side of the matrix except for the rate between the first and third tissue which is fixed to 0, but it is " 
+                + "all off diagonal rates on one side of the matrix except for the rate between the first and a specified tissue index which is fixed to 0, but it is " 
                 + nrInputRates 
                 + ". Check the dimension of the input rate parameters."
             );
         }
-
         try {
 			eigenSystem = createEigenSystem();
 		} catch (SecurityException | ClassNotFoundException | InstantiationException | IllegalAccessException | IllegalArgumentException
@@ -78,8 +81,8 @@ public class BeamNoDirectSeedingFourthTissueGTRTissueSubstitutionModel extends G
             rateMatrix[i][i] = 0;
             for (int j = i + 1; j < nrOfStates; j++) {
 
-                // set off diagonal rates to 0 for transitions between the first (primary) and third (second met) tissues
-                if ((i == 0 && j == 3) || (i == 3 && j == 0)) {
+                // set off diagonal rates to 0 for transitions between the first tissue (primary) and the specified tissue index
+                if ((i == 0 && j == specifiedTissueIndex) || (i == specifiedTissueIndex && j == 0)) {
                     rateMatrix[i][j] = 0;
                     rateMatrix[j][i] = 0;
                     continue;
@@ -126,5 +129,7 @@ public class BeamNoDirectSeedingFourthTissueGTRTissueSubstitutionModel extends G
     public boolean canReturnComplexDiagonalization() {
         return true;
     }
+
+    private int specifiedTissueIndex;
 
 }
