@@ -13,7 +13,7 @@
 
     <provider classname="beam.substitutionmodel.BeamMutationSubstitutionModel"/>
     <provider classname="beam.substitutionmodel.BeamRandomTissueSubstitutionModel"/>
-    <provider classname="beam.substitutionmodel.BeamNoDirectSeedingFourthTissueGTRTissueSubstitutionModel"/>
+    <provider classname="beam.substitutionmodel.BeamNoDirectSeedingSpecifiedTissueGTRTissueSubstitutionModel"/>
     <provider classname="beam.substitutionmodel.BeamGtiTissueSubstitutionModel"/>
     <provider classname="beam.substitutionmodel.BeamGtrTissueSubstitutionModel"/>
 
