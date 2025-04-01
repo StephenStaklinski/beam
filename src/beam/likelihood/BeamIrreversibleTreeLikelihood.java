@@ -46,7 +46,7 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
         nrOfPatterns = dataInput.get().getPatternCount();
         probabilities = new double[(nrOfStates) * (nrOfStates)];
 
-        likelihoodCore = new IrreversibleLikelihoodCore(treeInput.get().getNodeCount() + 1, nrOfStates, nrOfPatterns);
+        likelihoodCore = new IrreversibleLikelihoodCore(treeInput.get().getNodeCount() + 1, nrOfStates, nrOfPatterns, missingDataState);
 
         setStates(treeInput.get().getRoot());
     }
@@ -71,7 +71,7 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
             }
 
             // this just sets the known state partials and initializes the possible ancestral states feeder sets for the leaf
-            likelihoodCore.setNodePartials(node.getNr(), states, missingDataState);
+            likelihoodCore.setNodePartials(node.getNr(), states);
         } else {
             setStates(node.getLeft());
             setStates(node.getRight());
