@@ -21,27 +21,30 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
         this.nrOfNodes = nodeCount;
         this.nrOfPatterns = patternCount;
         this.missingDataState = missingData;
+        this.matrixSize = nrOfStates * nrOfStates;
+        this.partialsSize = patternCount * nrOfStates;
+        this.numNodesNoOrigin = nodeCount - 1;
 
-        // Initialize allStates array
+        // Initialize arrays
         allStates = new int[nrOfStates];
-        for (int i = 0; i < nrOfStates; i++) {
-            allStates[i] = i;
-        }
+        for (int i = 0; i < nrOfStates; i++) allStates[i] = i;
 
-        scalingFactors = new double[2][nrOfNodes][nrOfPatterns];
-
-        partialsSize = patternCount * nrOfStates;
-
-        partials = new double[2][nodeCount][];
-
+        partials = new double[2][nodeCount][partialsSize];
+        matrices = new double[2][nodeCount][matrixSize];
+        scalingFactors = new double[2][nodeCount][patternCount];
+        
+        // Initialize all arrays to 0
         for (int i = 0; i < nodeCount; i++) {
-            this.partials[0][i] = new double[partialsSize];
-            this.partials[1][i] = new double[partialsSize];
+            Arrays.fill(partials[0][i], 0.0);
+            Arrays.fill(partials[1][i], 0.0);
+            Arrays.fill(matrices[0][i], 0.0);
+            Arrays.fill(matrices[1][i], 0.0);
+            Arrays.fill(scalingFactors[0][i], 0.0);
+            Arrays.fill(scalingFactors[1][i], 0.0);
         }
 
         currentMatrixIndex = new int[nodeCount];
         storedMatrixIndex = new int[nodeCount];
-
         currentPartialsIndex = new int[nodeCount];
         storedPartialsIndex = new int[nodeCount];
 
@@ -63,23 +66,12 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
      * Initializes the partials at a node with the known states.
      */
     public void setNodePartials(int leafIndex, int[] states) {
-        
-        // Initialize unedited partials to 0
         for (int i = 0; i < nrOfPatterns; i++) {
-            partials[currentPartialsIndex[leafIndex]][leafIndex][i * nrOfStates] = 0.0;
-        }
-
-        // Set the partials as 1.0 for the known state at tips
-        for (int i = 0; i < nrOfPatterns; i++) {
-            int state = states[i];
-            partials[currentPartialsIndex[leafIndex]][leafIndex][i * nrOfStates + state] = 1.0;
+            // Set the known state to 1.0 for tips
+            partials[currentPartialsIndex[leafIndex]][leafIndex][i * nrOfStates + states[i]] = 1.0;
 
             // Set the ancestral state for tips
-            if (state != missingDataState) {
-                ancestralStates[leafIndex * nrOfPatterns + i] = states[i];
-            } else {
-                ancestralStates[leafIndex * nrOfPatterns + i] = -2;
-            }
+            ancestralStates[leafIndex * nrOfPatterns + i] = (states[i] != missingDataState) ? states[i] : -2;
         }
     }
 
@@ -87,21 +79,17 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
     public void setPossibleAncestralStates(int childIndex1, int childIndex2, int parentIndex) {
         for (int i = 0; i < nrOfPatterns; i++) {
             final int parentIndexOffset = parentIndex * nrOfPatterns + i;
-            final int child1Offset = childIndex1 * nrOfPatterns + i;
-            final int child2Offset = childIndex2 * nrOfPatterns + i;
+            final int child1State = ancestralStates[childIndex1 * nrOfPatterns + i];
+            final int child2State = ancestralStates[childIndex2 * nrOfPatterns + i];
 
-            // If either child is 0, parent is 0
-            if (ancestralStates[child1Offset] == 0 || ancestralStates[child2Offset] == 0) {
+            if (child1State == 0 || child2State == 0 || (child1State > 0 && child2State > 0 && child1State != child2State)) {
                 ancestralStates[parentIndexOffset] = 0;
                 continue;
-            } else if (ancestralStates[child1Offset] < 0 && ancestralStates[child2Offset] < 0) {
+            } else if (child1State < 0 && child2State < 0) {
                 ancestralStates[parentIndexOffset] = -1;
                 continue;
-            } else if (ancestralStates[child1Offset] != ancestralStates[child2Offset]) {
-                ancestralStates[parentIndexOffset] = 0;
-                continue;
             } else {
-                ancestralStates[parentIndexOffset] = ancestralStates[child1Offset];
+                ancestralStates[parentIndexOffset] = child1State >= 0 ? child1State : child2State;
             }
         }
     }
@@ -128,6 +116,25 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
             final int[] child1States = getPossibleStates(ancestralStates[childIndex1 * nrOfPatterns + k]);
             final int[] child2States = getPossibleStates(ancestralStates[childIndex2 * nrOfPatterns + k]);
 
+            // // Debug check for state 0
+            // boolean child1OnlyState0 = child1States.length == 1 && child1States[0] == 0;
+            // if (child1OnlyState0) {
+            //     for (int j = 1; j < nrOfStates; j++) {
+            //         if (partials1[u + j] != 0.0) {
+            //             System.out.println("Pattern " + k + ": Child1 has non-zero partial " + partials1[u + j] + " in state " + j);
+            //         }
+            //     }
+            // }
+            // boolean child2OnlyState0 = child2States.length == 1 && child2States[0] == 0;
+            // if (child2OnlyState0) {
+            //     for (int j = 1; j < nrOfStates; j++) {
+            //         if (partials2[u + j] != 0.0) {
+            //             System.out.println("Pattern " + k + ": Child2 has non-zero partial " + partials2[u + j] + " in state " + j);
+            //         }
+            //     }
+            // }
+
+
             // Calculate partials for all states
             for (int i : possibleStates) {
                 double sum1 = 0.0;
@@ -153,10 +160,6 @@ public class IrreversibleLikelihoodCore extends LikelihoodCore {
         // if (state == 0) {
         //     return uneditedState;
         // } else if (state > 0) {
-        //     return new int[]{0, state};
-        // } else {
-        //     return allStates;
-        // }
 
         if (state > 0) {
             return new int[]{0, state};
