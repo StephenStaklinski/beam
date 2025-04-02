@@ -1,7 +1,5 @@
 package beam.likelihood;
 
-
-
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -27,82 +25,148 @@ import beastclassic.evolution.tree.TreeTrait;
 import beastclassic.evolution.tree.TreeTraitProvider;
 import beastclassic.evolution.likelihood.LeafTrait;
 
-import beam.likelihood.BeamBeagleTreeLikelihood;
-
 /**
+ * Ancestral State Tree Likelihood that extends the custom Beagle likelihood with origin input
+ * for the branch above the root.
+ *
  * @author Stephen Staklinski
  */
 @Description("Ancestral State Tree Likelihood that extends the custom Beagle likelihood with origin input" +
         " for the branch above the root.")
 public class BeamBeagleAncestralTissueLikelihood extends BeamBeagleTreeLikelihood implements TreeTraitProvider {
 
-    public Input<String> tagInput = new Input<String>("tag","label used to report trait in the output tree posterior samples", Validate.REQUIRED);
-	public Input<List<LeafTrait>> leafTraitsInput = new Input<List<LeafTrait>>("leaftrait", "list of leaf traits", new ArrayList<LeafTrait>());
-    
+    /** Key for states trait */
+    public static final String STATES_KEY = "states";
+
+    /** Input for tag label used in output tree posterior samples */
+    public Input<String> tagInput = new Input<>("tag",
+            "label used to report trait in the output tree posterior samples",
+            Validate.REQUIRED);
+
+    /** Input for leaf traits */
+    public Input<List<LeafTrait>> leafTraitsInput = new Input<>("leaftrait",
+            "list of leaf traits",
+            new ArrayList<>());
+
+    /** Data type for the alignment */
+    protected DataType dataType;
+
+    /** Reconstructed states for each node */
+    private int[][] reconstructedStates;
+
+    /** Stored reconstructed states for store/restore operations */
+    private int[][] storedReconstructedStates;
+
+    /** Tag label for trait reporting */
+    private String tag;
+
+    /** Flag indicating if states have been redrawn */
+    private boolean areStatesRedrawn = false;
+
+    /** Stored flag for states redrawn status */
+    private boolean storedAreStatesRedrawn = false;
+
+    /** Number of possible states */
+    private int stateCount;
+
+    /** Current state */
+    private int state;
+
+    /** States at tip nodes */
+    private int[][] tipStates;
+
+    /** Helper for tree traits */
+    protected TreeTraitProvider.Helper treeTraits = new Helper();
 
     @Override
     public void initAndValidate() {
+        validateInputData();
+        super.initAndValidate();
+        validateSiteModel();
+        initializeDataStructures();
+        setupTreeTraits();
+    }
 
-        // Verify that there is only one site in the input data
+    private void validateInputData() {
         if (dataInput.get().getPatternCount() != 1) {
             throw new RuntimeException("More than one site in the input data not implemented.");
         }
+    }
 
-        // Initialize the superclass
-        super.initAndValidate();
-
-        // Validate only one category rate for sites
+    private void validateSiteModel() {
         if (m_siteModel.getCategoryCount() > 1) {
             throw new RuntimeException("Multiple site rate categories not implemented.");
         }
+    }
 
-        // Retrieve and store the tag input for the posterior tree sample outputs
-        this.tag = tagInput.get();
-
-        // Initialize data type
+    private void initializeDataStructures() {
+        tag = tagInput.get();
         Alignment data = dataInput.get();
         dataType = data.getDataType();
-
-        // Initialize state count
         stateCount = dataType.getStateCount();
 
-        // Initialize tree model and node count
         TreeInterface treeModel = treeInput.get();
         int nodeCount = treeModel.getNodeCount();
 
-        // Set up the tip tissue states based on the input data mapping tissue labels to each cell
+        initializeTipStates(treeModel, data);
+        initializeReconstructedStates(nodeCount);
+    }
+
+    private void initializeTipStates(TreeInterface treeModel, Alignment data) {
         tipStates = new int[treeModel.getLeafNodeCount()][1];
         for (Node node : treeModel.getExternalNodes()) {
             String taxon = node.getID();
-            int taxonIndex = data.getTaxonIndex(taxon);
-            if (taxonIndex == -1) {
-                if (taxon.startsWith("'") || taxon.startsWith("\"")) {
-                    taxonIndex = data.getTaxonIndex(taxon.substring(1, taxon.length() - 1));
-                }
-                if (taxonIndex == -1) {
-                    throw new RuntimeException("Could not find sequence " + taxon + " in the alignment");
-                }
-            }
+            int taxonIndex = findTaxonIndex(taxon, data);
             int[] states = tipStates[node.getNr()];
             int code = data.getPattern(taxonIndex, 0);
             states[0] = data.getDataType().getStatesForCode(code)[0];
         }
+    }
 
-        // Initialize reconstructed states arrays for store/restore
+    /**
+     * Finds the taxon index in the alignment data.
+     *
+     * @param taxon The taxon name to find
+     * @param data The alignment data
+     * @return The index of the taxon in the alignment
+     * @throws RuntimeException if the taxon is not found
+     */
+    private int findTaxonIndex(String taxon, Alignment data) {
+        int taxonIndex = data.getTaxonIndex(taxon);
+        if (taxonIndex == -1) {
+            if (taxon.startsWith("'") || taxon.startsWith("\"")) {
+                taxonIndex = data.getTaxonIndex(taxon.substring(1, taxon.length() - 1));
+            }
+            if (taxonIndex == -1) {
+                throw new RuntimeException("Could not find sequence " + taxon + " in the alignment");
+            }
+        }
+        return taxonIndex;
+    }
+
+    private void initializeReconstructedStates(int nodeCount) {
         reconstructedStates = new int[nodeCount][1];
         storedReconstructedStates = new int[nodeCount][1];
+    }
 
-        // Add tree trait for states
+    private void setupTreeTraits() {
         treeTraits.addTrait(STATES_KEY, new TreeTrait.IA() {
+            @Override
             public String getTraitName() {
                 return tag;
             }
+
+            @Override
             public Intent getIntent() {
                 return Intent.NODE;
             }
+
+            @Override
             public int[] getTrait(TreeInterface tree, Node node) {
                 return getStatesForNode(tree, node);
             }
+
+            @Override
             public String getTraitString(TreeInterface tree, Node node) {
                 return formattedState(getStatesForNode(tree, node), dataType);
             }
@@ -112,66 +176,74 @@ public class BeamBeagleAncestralTissueLikelihood extends BeamBeagleTreeLikelihoo
     @Override
     public void store() {
         super.store();
-        // Store the reconstructed states
+        storeReconstructedStates();
+    }
+
+    private void storeReconstructedStates() {
         System.arraycopy(reconstructedStates, 0, storedReconstructedStates, 0, reconstructedStates.length);
-        // Flag to redraw the states
         storedAreStatesRedrawn = areStatesRedrawn;
     }
 
     @Override
     public void restore() {
         super.restore();
+        restoreReconstructedStates();
+    }
 
-        // Restore the reconstructed states
+    private void restoreReconstructedStates() {
         int[][] temp = reconstructedStates;
         reconstructedStates = storedReconstructedStates;
         storedReconstructedStates = temp;
-
-        // Flag to redraw the states
         areStatesRedrawn = storedAreStatesRedrawn;
     }
-    
 
+    /**
+     * Gets the states for a given node in the tree.
+     *
+     * @param tree The tree to get states from
+     * @param node The node to get states for
+     * @return The states for the node
+     */
     public int[] getStatesForNode(TreeInterface tree, Node node) {
         if (tree != treeInput.get()) {
             throw new RuntimeException("Can only reconstruct states on treeModel given to constructor");
         }
 
         if (!areStatesRedrawn) {
-            // redraw ancestral states for each node
             traverseSample(tree, tree.getRoot(), -1);
             areStatesRedrawn = true;
         }
         return reconstructedStates[node.getNr()];
     }
 
-    
     @Override
     public double calculateLogP() {
-
-        // Calculate the likelihood
         super.calculateLogP();
-
-        // Reset the states redrawn flag for new calculation
         areStatesRedrawn = false;
-    
         return logP;
     }
 
-    protected TreeTraitProvider.Helper treeTraits = new Helper();
-
+    @Override
     public TreeTrait[] getTreeTraits() {
         return treeTraits.getTreeTraits();
     }
 
+    @Override
     public TreeTrait getTreeTrait(String key) {
         return treeTraits.getTreeTrait(key);
     }
 
-
+    /**
+     * Formats a state array into a string representation.
+     *
+     * @param state The state array to format
+     * @param dataType The data type for state interpretation
+     * @return Formatted string representation of the state
+     */
     private static String formattedState(int[] state, DataType dataType) {
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         sb.append("\"");
+        
         if (dataType instanceof UserDataType) {
             boolean first = true;
             for (int i : state) {
@@ -187,98 +259,104 @@ public class BeamBeagleAncestralTissueLikelihood extends BeamBeagleTreeLikelihoo
                 sb.append(dataType.getChar(i));
             }
         }
+        
         sb.append("\"");
         return sb.toString();
     }
-    
+
     /**
-     * Traverse (pre-order) the tree sampling the internal node states, assuming all partial likelihoods are already calculated.
+     * Traverses the tree in pre-order to sample internal node states.
      *
-     * @param tree        - TreeModel on which to perform sampling
-     * @param node        - current node
-     * @param parentState - character state of the parent node to 'node'
+     * @param tree The tree to traverse
+     * @param node The current node
+     * @param parentState The state of the parent node
      */
     public void traverseSample(TreeInterface tree, Node node, int parentState) {
-
         int nodeNum = node.getNr();
         Node parent = node.getParent();
         double[] conditionalProbabilities = new double[stateCount];
 
         if (!node.isLeaf()) {
-            // only use root frequencies before sampling if the root is truly the start (no origin being used)
-            if (parent == null && !useOrigin) {
-
-                // Get the partials at the root
-                beagle.getPartials(partialBufferHelper.getOffsetIndex(node.getNr()), Beagle.NONE, conditionalProbabilities);
-                
-                // Get the root frequencies to multiply by the partials
-                double[] rootFrequencies = rootFrequenciesInput.get() == null ? substitutionModel.getFrequencies() : rootFrequenciesInput.get().getFreqs();
-                for (int i = 0; i < stateCount; i++) {
-                    conditionalProbabilities[i] *= rootFrequencies[i];
-                }
-
-                // Sample the root state
-                reconstructedStates[nodeNum][0] = Randomizer.randomChoicePDF(conditionalProbabilities);
-            } else {
-                // This is an internal node (not the root) or it is the root but there is an origin so the root has a transition probability matrix
-                double[] partialLikelihood = new double[stateCount];
-                beagle.getPartials(partialBufferHelper.getOffsetIndex(node.getNr()), Beagle.NONE, partialLikelihood);
-
-                // If this is the root then we need to sample the parent state at the origin since it is null
-                if (parent == null && useOrigin) {
-
-                    // Get the origin partials
-                    double[] oPs = new double[m_nStateCount];
-                    System.arraycopy(originPartials, 0, oPs, 0, originPartials.length);
-
-                    // Get the root frequencies to multiply by the partials
-                    double[] rootFrequencies = rootFrequenciesInput.get() == null ? substitutionModel.getFrequencies() : rootFrequenciesInput.get().getFreqs();
-                    for (int i = 0; i < stateCount; i++) {
-                        oPs[i] *= rootFrequencies[i];
-                    }
-
-                    // Sample the parent state at the origin
-                    parentState = Randomizer.randomChoicePDF(oPs);
-
-                    // Use the stored transition matrix from the origin to the root
-                    probabilities = rootTransitionMatrix;
-                } else {
-                    beagle.getTransitionMatrix(matrixBufferHelper.getOffsetIndex(nodeNum), probabilities);
-                }
-
-                // Calculate the conditional probabilities for the state based on the partials at the node and transition matrix from the parent to the node
-                int parentIndex = parentState * stateCount;
-
-                for (int i = 0; i < stateCount; i++) {
-                    // conditional probabilities come from the prob of transitioning to the stte from the parent known state (one row of trasition prob matrix) * the partial likelihood of the state at the node determined from the tree below
-                    conditionalProbabilities[i] = partialLikelihood[i] * probabilities[parentIndex + i];
-                }
-
-                // Sample the node state
-                reconstructedStates[nodeNum][0] = Randomizer.randomChoicePDF(conditionalProbabilities);
-            }
-
-            // Traverse down the two child nodes
-            Node child1 = node.getChild(0);
-            traverseSample(tree, child1, reconstructedStates[nodeNum][0]);
-
-            Node child2 = node.getChild(1);
-            traverseSample(tree, child2, reconstructedStates[nodeNum][0]);
+            handleInternalNode(node, parent, parentState, conditionalProbabilities);
         } else {
-            // This is an external leaf
-            System.arraycopy(tipStates[nodeNum], 0, reconstructedStates[nodeNum], 0, reconstructedStates[nodeNum].length);
+            handleLeafNode(node);
         }
     }
 
-    protected DataType dataType;
-    private int[][] reconstructedStates;
-    private int[][] storedReconstructedStates;
-    private String tag;
-    private boolean areStatesRedrawn = false;
-    private boolean storedAreStatesRedrawn = false;
-    int stateCount;
-    int state;
-    int[][] tipStates;
+    private void handleInternalNode(Node node, Node parent, int parentState, double[] conditionalProbabilities) {
+        int nodeNum = node.getNr();
 
-    public static final String STATES_KEY = "states";
+        if (parent == null && !useOrigin) {
+            handleRootNode(node, conditionalProbabilities);
+        } else {
+            handleNonRootInternalNode(node, parent, parentState, conditionalProbabilities);
+        }
+
+        traverseChildren(node);
+    }
+
+    private void handleRootNode(Node node, double[] conditionalProbabilities) {
+        beagle.getPartials(partialBufferHelper.getOffsetIndex(node.getNr()), Beagle.NONE, conditionalProbabilities);
+        double[] rootFrequencies = getRootFrequencies();
+        applyRootFrequencies(conditionalProbabilities, rootFrequencies);
+        reconstructedStates[node.getNr()][0] = Randomizer.randomChoicePDF(conditionalProbabilities);
+    }
+
+    private void handleNonRootInternalNode(Node node, Node parent, int parentState, double[] conditionalProbabilities) {
+        double[] partialLikelihood = new double[stateCount];
+        beagle.getPartials(partialBufferHelper.getOffsetIndex(node.getNr()), Beagle.NONE, partialLikelihood);
+
+        if (parent == null && useOrigin) {
+            parentState = handleOriginNode(node);
+        } else {
+            beagle.getTransitionMatrix(matrixBufferHelper.getOffsetIndex(node.getNr()), probabilities);
+        }
+
+        calculateConditionalProbabilities(partialLikelihood, parentState, conditionalProbabilities);
+        reconstructedStates[node.getNr()][0] = Randomizer.randomChoicePDF(conditionalProbabilities);
+    }
+
+    private double[] getRootFrequencies() {
+        return rootFrequenciesInput.get() == null ? 
+                substitutionModel.getFrequencies() : 
+                rootFrequenciesInput.get().getFreqs();
+    }
+
+    private void applyRootFrequencies(double[] probabilities, double[] frequencies) {
+        for (int i = 0; i < stateCount; i++) {
+            probabilities[i] *= frequencies[i];
+        }
+    }
+
+    private int handleOriginNode(Node node) {
+        double[] oPs = new double[m_nStateCount];
+        System.arraycopy(originPartials, 0, oPs, 0, originPartials.length);
+        
+        double[] rootFrequencies = getRootFrequencies();
+        applyRootFrequencies(oPs, rootFrequencies);
+        
+        int parentState = Randomizer.randomChoicePDF(oPs);
+        probabilities = rootTransitionMatrix;
+        
+        return parentState;
+    }
+
+    private void calculateConditionalProbabilities(double[] partialLikelihood, int parentState, double[] conditionalProbabilities) {
+        int parentIndex = parentState * stateCount;
+        for (int i = 0; i < stateCount; i++) {
+            conditionalProbabilities[i] = partialLikelihood[i] * probabilities[parentIndex + i];
+        }
+    }
+
+    private void traverseChildren(Node node) {
+        Node child1 = node.getChild(0);
+        traverseSample(treeInput.get(), child1, reconstructedStates[node.getNr()][0]);
+
+        Node child2 = node.getChild(1);
+        traverseSample(treeInput.get(), child2, reconstructedStates[node.getNr()][0]);
+    }
+
+    private void handleLeafNode(Node node) {
+        System.arraycopy(tipStates[node.getNr()], 0, reconstructedStates[node.getNr()], 0, reconstructedStates[node.getNr()].length);
+    }
 }
