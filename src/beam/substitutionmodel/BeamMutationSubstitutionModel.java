@@ -1,6 +1,7 @@
 package beam.substitutionmodel;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -68,51 +69,39 @@ public class BeamMutationSubstitutionModel extends SubstitutionModel.Base {
         frequencies[0] = 1;
     }
 
+
     @Override
     public void getTransitionProbabilities(Node node, double startTime, double endTime, double rate, double[] matrix) {
         // we only get here if either the silencing rate or the time has changed, so we need to recalculate the matrix
         // edit rates must be fixed hyperparameters for this setup
 
-        // silencing rate can change so get it each time
+        // Calculate key parameters
         double silencingRate = silencingRate_.getValue();
-
-        // calculate the branch time and scale it by the joint site model rate and clock rate
         double delta = (startTime - endTime) * rate;
-
-        // calculate probability of no loss
         double expOfDeltaLoss = Math.exp(-delta * silencingRate);
-
-        // compute a constant across all edit states
         double c = expOfDeltaLoss * (1 - Math.exp(-delta));
 
-        // fill the transition probability matrix
-        for (int i=0; i<nrOfStates; i++){
-            for (int j=0; j<nrOfStates; j++){
-                if ( i==j ){
-                    // setup the diagonal elements
-                    if (i == 0) {
-                        // top left corner
-                        matrix[i] = Math.exp(-delta * (1 + silencingRate)); // assumes the edit rates sum to 1, which is checked in initAndValidate
-                    } else if (i == nrOfStates - 1) {
-                        // bottom right corner
-                        matrix[i * nrOfStates + j] = 1; // absorbing loss state
-                    } else {
-                        // all other diagonal elements
-                        matrix[i * nrOfStates + j] = expOfDeltaLoss;
-                    }
-                }else if(j == nrOfStates - 1){
-                    // final column
-                    matrix[i * nrOfStates + j] = 1 - expOfDeltaLoss;    // probability of loss
-                }else if (i == 0){
-                    // first row (excluding top left corner and top right corner)
-                    matrix[j] = editRates[j - 1] * c;   // edit probabilities
-                }else{
-                    // all other elements
-                    matrix[i*nrOfStates + j] = 0;
-                }
-            }
+        // Initialize matrix to zeros
+        Arrays.fill(matrix, 0.0);
+
+        // Set diagonal elements
+        matrix[0] = Math.exp(-delta * (1 + silencingRate));  // top left corner
+        for (int i = 1; i < nrOfStates - 1; i++) {
+            matrix[i * nrOfStates + i] = expOfDeltaLoss;  // middle diagonal elements
+        }
+        matrix[nrOfStates * nrOfStates - 1] = 1.0;  // bottom right corner (absorbing state)
+
+        // Set loss probabilities (final column)
+        for (int i = 0; i < nrOfStates - 1; i++) {
+            matrix[i * nrOfStates + (nrOfStates - 1)] = 1 - expOfDeltaLoss;
+        }
+
+        // Set edit probabilities (first row)
+        for (int j = 1; j < nrOfStates - 1; j++) {
+            matrix[j] = editRates[j - 1] * c;
         }
     }
+
 
     @Override
     public void store() {
