@@ -14,25 +14,47 @@ import beast.base.evolution.substitutionmodel.SubstitutionModel;
 import beast.base.evolution.tree.Node;
 import beast.base.inference.parameter.RealParameter;
 
-
 /**
+ * TideTree substitution model that can be used with the modified BEAGLE tree likelihood
+ * under the assumption that editing happens during the entire experiment.
+ *
  * @author Stephen Staklinski
- **/
+ */
 @Description("TideTree substitution model that can be used with the modified BEAGLE tree likelihood" +
             "under the assumption that editing happens during the entire experiment.")
 public class BeamMutationSubstitutionModel extends SubstitutionModel.Base {
 
-    final public Input<List<RealParameter>> editRatesInput = new Input<>("editRates",
-                "Rates at which edits are introduced into the genomic barcode during the editing window", new ArrayList<>(), Input.Validate.REQUIRED);
+    /** Input for edit rates during the editing window */
+    public final Input<List<RealParameter>> editRatesInput = new Input<>("editRates",
+            "Rates at which edits are introduced into the genomic barcode during the editing window",
+            new ArrayList<>(), Input.Validate.REQUIRED);
 
-        final public Input<RealParameter> silencingRateInput = new Input<>("silencingRate",
-                "Rate at which barcodes are silenced throughout the entire experiment", Input.Validate.REQUIRED);
+    /** Input for the silencing rate throughout the experiment */
+    public final Input<RealParameter> silencingRateInput = new Input<>("silencingRate",
+            "Rate at which barcodes are silenced throughout the entire experiment",
+            Input.Validate.REQUIRED);
 
+    /** Frequencies of states */
+    private double[] frequencies;
 
-     @Override
+    /** Edit rate parameter */
+    private RealParameter editRate_;
+
+    /** Silencing rate parameter */
+    private RealParameter silencingRate_;
+
+    /** Array of edit rates */
+    private Double[] editRates;
+
+    /** State representing missing data */
+    private int missingDataState;
+
+    /** Stored silencing rate for dirty state checking */
+    private double storedSilencingRate;
+
+    @Override
     public void initAndValidate() {
-
-        // one state for each edit type + unedited + lost
+        // One state for each edit type + unedited + lost
         nrOfStates = editRatesInput.get().get(0).getDimension() + 2;
 
         editRate_ = editRatesInput.get().get(0);
@@ -41,11 +63,11 @@ public class BeamMutationSubstitutionModel extends SubstitutionModel.Base {
             editRates[i] = editRate_.getValue(i);
         }
 
-        // add edit rates to rate matrix
+        // Add edit rates to rate matrix
         Double editRateSum = 0.0;
         for (double editRate : editRates) {
             if (editRate < 0) {
-            throw new RuntimeException("All edit rates must be positive!");
+                throw new RuntimeException("All edit rates must be positive!");
             }
             editRateSum += editRate;
         }
@@ -61,20 +83,17 @@ public class BeamMutationSubstitutionModel extends SubstitutionModel.Base {
             throw new RuntimeException("Loss rate must be positive!");
         }
 
-        // missing data state is the last edit
+        // Missing data state is the last edit
         missingDataState = nrOfStates - 1;
 
-        // center root frequency on the unedited first state, irregardless of input frequencies as this is a property of the barcodes
+        // Center root frequency on the unedited first state, regardless of input frequencies
+        // as this is a property of the barcodes
         frequencies = new double[nrOfStates];
         frequencies[0] = 1;
     }
 
-
     @Override
     public void getTransitionProbabilities(Node node, double startTime, double endTime, double rate, double[] matrix) {
-        // we only get here if either the silencing rate or the time has changed, so we need to recalculate the matrix
-        // edit rates must be fixed hyperparameters for this setup
-
         // Calculate key parameters
         double silencingRate = silencingRate_.getValue();
         double delta = (startTime - endTime) * rate;
@@ -84,16 +103,14 @@ public class BeamMutationSubstitutionModel extends SubstitutionModel.Base {
         // Initialize matrix to zeros
         Arrays.fill(matrix, 0.0);
 
-        // Set diagonal elements
-        matrix[0] = Math.exp(-delta * (1 + silencingRate));  // top left corner
-        for (int i = 1; i < nrOfStates - 1; i++) {
-            matrix[i * nrOfStates + i] = expOfDeltaLoss;  // middle diagonal elements
-        }
-        matrix[nrOfStates * nrOfStates - 1] = 1.0;  // bottom right corner (absorbing state)
+        // Set absorbing state (bottom right corner)
+        matrix[nrOfStates * nrOfStates - 1] = 1.0;
 
-        // Set loss probabilities (final column)
+        // Set diagonal elements and loss probabilities in one pass
         for (int i = 0; i < nrOfStates - 1; i++) {
-            matrix[i * nrOfStates + (nrOfStates - 1)] = 1 - expOfDeltaLoss;
+            int rowOffset = i * nrOfStates;
+            matrix[rowOffset + i] = (i == 0) ? Math.exp(-delta * (1 + silencingRate)) : expOfDeltaLoss;
+            matrix[rowOffset + (nrOfStates - 1)] = 1 - expOfDeltaLoss;
         }
 
         // Set edit probabilities (first row)
@@ -102,37 +119,33 @@ public class BeamMutationSubstitutionModel extends SubstitutionModel.Base {
         }
     }
 
-
     @Override
     public void store() {
         storedSilencingRate = silencingRate_.getValue();
         super.store();
     }
 
-
     @Override
     public void restore() {
         super.restore();
-
     }
 
     @Override
     protected boolean requiresRecalculation() {
-        // since edit rates are fixed hyperparemeters, the only thing that can change is the silencing rate
-        if (silencingRate_.getValue() != storedSilencingRate) {
-            return true;
-        }
-        return false;
+        // Since edit rates are fixed hyperparameters, the only thing that can change is the silencing rate
+        return silencingRate_.getValue() != storedSilencingRate;
     }
 
-    // return true for BEAGLE compatibility
     @Override
     public boolean canReturnComplexDiagonalization() {
+        // Return true for BEAGLE compatibility
         return true;
     }
 
     @Override
-    public EigenDecomposition getEigenDecomposition(Node node) {return null;}
+    public EigenDecomposition getEigenDecomposition(Node node) {
+        return null;
+    }
 
     @Override
     public boolean canHandleDataType(DataType dataType) {
@@ -144,17 +157,13 @@ public class BeamMutationSubstitutionModel extends SubstitutionModel.Base {
         return frequencies;
     }
 
+    /**
+     * Returns the state representing missing data.
+     *
+     * @return The missing data state
+     */
     public int getMissingState() {
         return missingDataState;
     }
-
-
-    double[] frequencies;
-    RealParameter editRate_;
-    RealParameter silencingRate_;
-    Double[] editRates;
-    int missingDataState;
-
-    private double storedSilencingRate;
 }
 

@@ -19,58 +19,99 @@ import beam.substitutionmodel.BeamMutationSubstitutionModel;
 import java.util.Arrays;
 
 /**
+ * Calculates the tree likelihood while considering the origin of the cell division process
+ * and using a simplified pruning algorithm to save on computations given the irreversible
+ * assumptions of the substitution model.
+ *
  * @author Stephen Staklinski
- **/
+ */
 @Description("Calculates the tree likelihood while considering the origin of the cell division process " +
-                "and using a simplified pruning algorithm to save on computations given the irreversible " +
-                "assumptions of the substitution model.")
+            "and using a simplified pruning algorithm to save on computations given the irreversible " +
+            "assumptions of the substitution model.")
 public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
 
+    /** Input for the origin time of the cell division process */
+    public Input<RealParameter> originInput = new Input<>("origin",
+            "Start of the cell division process, usually start of the experiment.",
+            Input.Validate.OPTIONAL);
 
-    public Input<RealParameter> originInput = new Input<>("origin", "Start of the cell division process, usually start of the experiment.",Input.Validate.OPTIONAL);
-    
+    /** Alignment data */
+    protected Alignment data;
+
+    /** Height of the origin node */
+    protected Double originHeight;
+
+    /** Substitution model for mutations */
+    protected BeamMutationSubstitutionModel substitutionModel;
+
+    /** State representing missing data */
+    protected int missingDataState;
+
+    /** Number of patterns in the alignment */
+    protected int nrOfPatterns;
+
+    /** Transition probability matrix */
+    protected double[] probabilities;
+
+    /** Core likelihood calculation engine */
+    protected IrreversibleLikelihoodCore likelihoodCore;
+
+    /**
+     * Flag indicating the state of the tree:
+     * <ul>
+     *   <li>CLEAN=0: nothing needs to be recalculated for the node</li>
+     *   <li>DIRTY=1: node partial needs to be recalculated</li>
+     *   <li>FILTHY=2: indices for the node need to be recalculated</li>
+     * </ul>
+     */
+    protected int hasDirt;
 
     @Override
     public void initAndValidate() {
-        
+        // Get and validate inputs
         data = dataInput.get();
-        
-        if (data.getTaxonCount() != treeInput.get().getLeafNodeCount() || originInput.get() == null || branchRateModelInput.get() == null || !(siteModelInput.get() instanceof SiteModel.Base)) {
-            throw new IllegalArgumentException("Invalid input: Ensure the number of nodes in the tree matches the number of sequences, the experiment origin time is specified, the branch rate model is specified, and the siteModel input is of type SiteModel.Base.");
+        if (data.getTaxonCount() != treeInput.get().getLeafNodeCount()) {
+            throw new IllegalArgumentException("Number of taxa in alignment does not match number of leaves in tree");
+        }
+        if (originInput.get() == null || branchRateModelInput.get() == null) {
+            throw new IllegalArgumentException("Origin time and branch rate model must be specified");
+        }
+        if (!(siteModelInput.get() instanceof SiteModel.Base)) {
+            throw new IllegalArgumentException("Site model must be of type SiteModel.Base");
         }
 
+        // Initialize model parameters
         originHeight = originInput.get().getValue();
         substitutionModel = (BeamMutationSubstitutionModel) ((SiteModel.Base) siteModelInput.get()).substModelInput.get();
         missingDataState = substitutionModel.getMissingState();
-        int nrOfStates = substitutionModel.getStateCount();
-        nrOfPatterns = dataInput.get().getPatternCount();
-        probabilities = new double[(nrOfStates) * (nrOfStates)];
+        nrOfPatterns = data.getPatternCount();
 
+        // Initialize likelihood core
+        int nrOfStates = substitutionModel.getStateCount();
+        probabilities = new double[nrOfStates * nrOfStates];
         likelihoodCore = new IrreversibleLikelihoodCore(treeInput.get().getNodeCount() + 1, nrOfStates, nrOfPatterns, missingDataState);
 
+        // Set initial states
         setStates(treeInput.get().getRoot());
     }
 
-        /**
-     * set the data at the tips in the likelihood core
+    /**
+     * Sets the data at the tips in the likelihood core.
+     *
+     * @param node The node to process
      */
     protected void setStates(Node node) {
         if (node.isLeaf()) {
             int taxonIndex = data.getTaxonIndex(node.getID());
-
             if (taxonIndex == -1) {
                 throw new RuntimeException("Could not find sequence " + node.getID() + " in the alignment");
             }
 
+            // Get states directly without intermediate array
             int[] states = new int[nrOfPatterns];
-
             for (int i = 0; i < nrOfPatterns; i++) {
-                int code = data.getPattern(taxonIndex, i);
-                int[] statesForCode = data.getDataType().getStatesForCode(code);
-                states[i] = statesForCode[0];
+                states[i] = data.getDataType().getStatesForCode(data.getPattern(taxonIndex, i))[0];
             }
-
-            // this just sets the known state partials and initializes the possible ancestral states feeder sets for the leaf
             likelihoodCore.setNodePartials(node.getNr(), states);
         } else {
             setStates(node.getLeft());
@@ -78,88 +119,68 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
         }
     }
 
-
-    /**
-     * Calculate the log likelihood of the current state.
-     *
-     * @return the log likelihood.
-     */
     @Override
     public double calculateLogP() {
-
         Node root = treeInput.get().getRoot();
-
-        // return -infinity if the tree is larger than the experiment start time specified as the origin
+        
+        // Return -infinity if tree exceeds origin time
         if (root.getHeight() >= originHeight) {
             return Double.NEGATIVE_INFINITY;
         }
 
-        // calculate logP after updating relevant matrices
+        // Calculate likelihood with optional scaling
         traverse(root);
-
-        // if there is numeric instability, turn on scaling and recalculate the likelihood
         if (logP == Double.NEGATIVE_INFINITY) {
-
             likelihoodCore.setUseScaling(true);
-
-            // re-calculate logP with scaling
             traverse(root);
-
             if (logP == Double.NEGATIVE_INFINITY) {
-                throw new RuntimeException("Likelihood is still negative infinity after turning on scaling.");
+                throw new RuntimeException("Likelihood is still negative infinity after scaling");
             }
         }
 
         return logP;
     }
 
-
     /**
-     * Computed the transition pre-order, then does a post-order traversal
+     * Computes the transition pre-order, then does a post-order traversal
      * calculating the partial likelihoods by a modified pruning algorithm
      * taking advantage of the irreversibility of the substitution model
      * to reduce the number of ancestral states to propagate partial
      * likelihoods for.
+     *
+     * @param node The node to traverse
+     * @return The update status of the node
      */
     protected int traverse(Node node) {
-
-        int update = (node.isDirty() | hasDirt);
         final int nodeIndex = node.getNr();
+        int update = (node.isDirty() | hasDirt);
 
-        // first update the transition probability matrix for this branch, for all nodes except the final root or origin
+        // Update transition probabilities if needed
         if (update != Tree.IS_CLEAN) {
-
             double parentHeight = node.isRoot() ? originHeight : node.getParent().getHeight();
-            substitutionModel.getTransitionProbabilities(node, parentHeight, node.getHeight(), branchRateModelInput.get().getRateForBranch(node), probabilities);
+            substitutionModel.getTransitionProbabilities(node, parentHeight, node.getHeight(), 
+                    branchRateModelInput.get().getRateForBranch(node), probabilities);
             likelihoodCore.setNodeMatrix(nodeIndex, 0, probabilities);
             update |= Tree.IS_DIRTY;
         }
 
-        // If the node is internal, update the partial likelihoods.
+        // Process internal nodes
         if (!node.isLeaf()) {
+            Node child1 = node.getLeft();
+            Node child2 = node.getRight();
+            int update1 = traverse(child1);
+            int update2 = traverse(child2);
 
-            // Traverse down the two child nodes
-            final Node child1 = node.getLeft();
-            final int update1 = traverse(child1);
-
-            final Node child2 = node.getRight();
-            final int update2 = traverse(child2);
-
-            // calculate the partials at this node given it's children.
-            // currently always does the calculation since children will always be dirty.
+            // Calculate partials if either child is dirty
             if (update1 != Tree.IS_CLEAN || update2 != Tree.IS_CLEAN) {
-
                 int childIndex1 = child1.getNr();
                 int childIndex2 = child2.getNr();
-
-                // update possible ancestral states at the nodes for more efficient pruning algorithm in traverse to get the partial likelihoods
+                
                 likelihoodCore.setPossibleAncestralStates(childIndex1, childIndex2, nodeIndex);
                 likelihoodCore.calculatePartials(childIndex1, childIndex2, nodeIndex);
 
-                // if we are already back to the root in the post-order traversal, then propagate the partials to the origin
+                // Calculate origin partials at root
                 if (node.isRoot()) {
-
-                    // Calculate the origin partials and gets the logLikelihoods in an efficient way that assumes the origin frequencies are known as the unedited state
                     logP = likelihoodCore.calculateLogLikelihoods(nodeIndex, nodeIndex + 1);
                 }
 
@@ -170,13 +191,11 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
         return update;
     }
 
-
     @Override
     public void store() {
         super.store();
         likelihoodCore.store();
     }
-
 
     @Override
     public void restore() {
@@ -184,40 +203,22 @@ public class BeamIrreversibleTreeLikelihood extends GenericTreeLikelihood {
         likelihoodCore.restore();
     }
 
-
     @Override
     protected boolean requiresRecalculation() {
-        hasDirt = Tree.IS_CLEAN;
-
+        // Check site model first (most common case)
         if (((SiteModel.Base) siteModelInput.get()).isDirtyCalculation()) {
             hasDirt = Tree.IS_DIRTY;
             return true;
         }
 
+        // Check branch rate model
         if (branchRateModelInput.get().isDirtyCalculation()) {
             hasDirt = Tree.IS_FILTHY;
             return true;
         }
 
+        // Check tree last (least common case)
+        hasDirt = Tree.IS_CLEAN;
         return treeInput.get().somethingIsDirty();
     }
-
-
-    protected Alignment data;
-    protected Double originHeight;
-    protected BeamMutationSubstitutionModel substitutionModel;
-    protected int missingDataState;
-    protected int nrOfPatterns;
-    protected double[] probabilities;
-    protected IrreversibleLikelihoodCore likelihoodCore;
-
-    /**
-     * flag to indicate the
-     * // when CLEAN=0, nothing needs to be recalculated for the node
-     * // when DIRTY=1 indicates a node partial needs to be recalculated
-     * // when FILTHY=2 indicates the indices for the node need to be recalculated
-     * // (often not necessary while node partial recalculation is required)
-     */
-    protected int hasDirt;
-    
 }
