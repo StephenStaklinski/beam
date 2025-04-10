@@ -13,6 +13,7 @@ java -cp beam.jar beast.pkgmgmt.PackageManager -add NS
 java -cp beam.jar beast.pkgmgmt.PackageManager -add BEAST_CLASSIC
 java -cp beam.jar beast.pkgmgmt.PackageManager -add BEASTLabs
 java -cp beam.jar beast.pkgmgmt.PackageManager -add feast
+java -cp beam.jar beast.pkgmgmt.PackageManager -add BDSKY
 
 # specify path to the repo
 REPO_DIR="/Users/staklins/projects/crispr-barcode-cancer-metastasis/beam_dev/beam"
