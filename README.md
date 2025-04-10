@@ -6,9 +6,14 @@ BEAM is a BEAST2 package for Bayesian cancer migration graph inference from CRIS
 
 ## Inference
 
-Install java+fx 17.0.9 and BEAGLE and set the path to it in `BEAGLE_LIB_PATH`. Then, the provided `beam.jar` file is all that is needed to run the method with:
+Install java+fx 17.0.9 and BEAGLE and set the path to it in `BEAGLE_LIB_PATH`. Then, the provided `beam.jar` file is all that is needed to run the method after installing dependent packages:
 
 ```
+java -cp beam.jar beast.pkgmgmt.PackageManager -add NS
+java -cp beam.jar beast.pkgmgmt.PackageManager -add BEAST_CLASSIC
+java -cp beam.jar beast.pkgmgmt.PackageManager -add BEASTLabs
+java -cp beam.jar beast.pkgmgmt.PackageManager -add feast
+
 # specify path to the repo
 REPO_DIR="/Users/staklins/projects/crispr-barcode-cancer-metastasis/beam_dev/beam"
 
