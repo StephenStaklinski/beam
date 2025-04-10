@@ -36,12 +36,12 @@
 
     
 <!-- input data -->
-<data  id="alignment" spec="feast.fileio.AlignmentFromFasta" fileName="/Users/staklins/projects/crispr-barcode-cancer-metastasis/beam/examples/quinn_cp26/5k_26.fasta">
+<data  id="alignment" spec="feast.fileio.AlignmentFromFasta" fileName="/grid/siepel/home/staklins/beam/examples/quinn_cp26/5k_26.fasta">
     <userDataType spec="tidetree.evolution.datatype.EditData" nrOfStates="96"/>
 </data>
 
 <data id="tissue" spec="beastclassic.evolution.alignment.AlignmentFromTrait">
-    <traitSet id="traitset" spec="feast.fileio.TraitSetFromXSV" fileName="/Users/staklins/projects/crispr-barcode-cancer-metastasis/beam/examples/quinn_cp26/5k_26_tip_tissues.csv" taxa="@taxonset" taxonNameCol="0" skipFirstRow="false" sep="," traitname="discrete"/>
+    <traitSet id="traitset" spec="feast.fileio.TraitSetFromXSV" fileName="/grid/siepel/home/staklins/beam/examples/quinn_cp26/5k_26_tip_tissues.csv" taxa="@taxonset" taxonNameCol="0" skipFirstRow="false" sep="," traitname="discrete"/>
     <userDataType id="codeMap" spec="beast.base.evolution.datatype.UserDataType" codeMap="LL=0,Liv=1,M=2,RL=3,? = 0 1 2 3 " codelength="-1" states="4"/>
 </data>
 
@@ -59,8 +59,8 @@
             <parameter id="traitClockRate" spec="parameter.RealParameter" name="stateNode">0.01</parameter>
             <parameter id="piPrimaryTissueFreq" spec="parameter.RealParameter" dimension="1" estimate="true" lower="0.0" upper="1.0" name="stateNode">0.50</parameter>
 
-            <parameter id="birthRate" spec="parameter.RealParameter" dimension="1" lower="0.0" name="stateNode" upper="5">0.006</parameter>
-            <parameter id="deathRate" spec="parameter.RealParameter" dimension="1" lower="0.0" name="stateNode" upper="5">0.0001</parameter>
+            <parameter id="birthRate" spec="parameter.RealParameter" dimension="1" lower="0.0" name="stateNode" upper="10000">0.006</parameter>
+            <parameter id="deathRate" spec="parameter.RealParameter" dimension="1" lower="0.0" name="stateNode" upper="1">0.0001</parameter>
 
         </state>
         
@@ -69,10 +69,10 @@
             
             <distribution id="prior" spec="CompoundDistribution">
 
-                <distribution id="birthDeathSamplingModel" spec="bdsky.evolution.speciation.BirthDeathSkylineModel"
-                          conditionOnSurvival="True" tree="@tree" origin="54.0001" contemp="true"
-                          birthRate="@birthRate" deathRate="@deathRate" rho="1.0"
-                          samplingRate="0.0" >
+                <distribution id="birthDeathSamplingModel" spec="beast.base.evolution.speciation.BirthDeathGernhard08Model"
+                          tree="@tree"
+                          birthDiffRate="@birthRate" 
+                          relativeDeathRate="@deathRate">
                 </distribution>
 
                 <prior id="silencingRatePrior" name="distribution" x="@silencingRate">
@@ -104,11 +104,11 @@
                 </prior>
 
                 <prior id="birthRatePrior" name="distribution" x="@birthRate">
-                    <Uniform name="distr" lower="0.0" upper="1.0"/>
+                    <Uniform name="distr" lower="0.0" upper="1000"/>
                 </prior>
                 
                 <prior id="deathRatePrior" name="distribution" x="@deathRate">
-                    <Uniform name="distr" lower="0.0" upper="1.0"/>
+                    <Uniform name="distr"/>
                 </prior>
 
 
