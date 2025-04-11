@@ -1,12 +1,5 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<package name="BEAM" version="1.0.0">
-  <depends on="BEAST.base" atleast="2.7.7"/>
-  <depends on="BEAST.app" atleast="2.7.7"/>
-  <depends on="BEAST_CLASSIC" atleast="1.6.0"/>
-  <depends on="BEASTLabs" atleast="2.0.0"/>
-  <depends on="feast" atleast="10.0.0"/>
-  <depends on="BDSKY" atleast="1.5.1"/>
-  <depends on="tidetree" atleast="1.0.1"/>
+<package name="beam" version="1.0.0">
+  <depends on="beast2" atleast="2.7.7"/>
 
   <service type="beast.base.core.BEASTInterface">
     <!-- Tree-related providers -->
