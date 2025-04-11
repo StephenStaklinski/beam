@@ -1,28 +1,47 @@
-# Bayesian Evolutionary Analysis of Metastasis (BEAM)
-![BEAM Logo](logo.jpg)
+# Bayesian Evolutionary Analysis of Metastasis (beam)
+![beam Logo](logo.jpg)
 
-BEAM is a BEAST2 package for Bayesian cancer migration graph inference from CRISPR cell lineage tracing data. BEAM provides a joint model of lineage reconstruction and migration history inference from the raw data, avoiding the need to condition on a single phylogeny while instead inferring a distribution of migration graphs.
+beam is a BEAST2 package for Bayesian cancer migration graph inference from CRISPR cell lineage tracing data. beam provides a joint model of lineage reconstruction and migration history inference from the raw data, avoiding the need to condition on a single phylogeny while instead inferring a distribution of migration graphs.
 
 
 ## Installation
 
-1. Install beast2 from [beast2.org](https://www.beast2.org/)
-1. Install beagle from [beagle-dev.github.io](https://beagle-dev.github.io/)
-1. Use beast2 package manager to install any packages used in xml declaration. The examples depend on NS, BDSKY, BEAST_CLASSIC, and feast.
-1. Install tidetree from source code by obtaining the zip file from [tidetree github](https://github.com/seidels/tidetree/releases). Find where beast2 packages are installed, which should be indicated from `packagemanager -list` and then move to that directory, run `mkdir tidetree && cd tidetree`, and unzip the release zip file here.
-1. Install beam zip file in the same way into a beam directory in the packages directory.
+1. Install BEAST2 from [BEAST2.org](https://www.beast2.org/)
+2. Install BEAGLE from [BEAGLE-dev.github.io](https://beagle-dev.github.io/)
+3. Install required BEAST2 packages:
+   ```bash
+   packagemanager -add NS
+   packagemanager -add BDSKY
+   packagemanager -add BEAST_CLASSIC
+   packagemanager -add FEAST
+   ```
+4. Install tidetree:
+   - Download the latest release from [tidetree GitHub](https://github.com/seidels/tidetree/releases)
+   - Find your BEAST2 packages directory (check with `packagemanager -list`)
+   - Create and set up tidetree in that directory:
+     ```bash
+     mkdir tidetree
+     cd tidetree
+     unzip <tidetree-release-file>.zip
+     ```
+5. Install beam:
+   - Create a `beam` directory in your BEAST2 packages directory
+   - Extract the beam release zip file contents into this directory in the same way as with tidetree.
 
-Now, both beam and tidetree should be listed when running `packagemanager -list`.
+Verify installation by running `packagemanager -list`. Both beam and tidetree should appear in the list.
 
-## Inference
+## Usage
 
-Several examples are provides in `examples/` but here is one of them:
-```
+### Basic Usage
+
+Run beam using the BEAST2 command line interface:
+
+```bash
 beast \
--seed 12345 \
--threads 5 \
--overwrite \
--working \
-examples/quinn_cp26/1.xml
+  -seed 12345 \
+  -threads 5 \
+  -overwrite \
+  -working \
+  examples/quinn_cp26/1.xml
 ```
 
