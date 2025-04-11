@@ -6,14 +6,14 @@ beam is a BEAST2 package for Bayesian cancer migration graph inference from CRIS
 
 ## Installation
 
-1. Install BEAST2 from [BEAST2.org](https://www.beast2.org/)
-2. Install BEAGLE from [BEAGLE-dev.github.io](https://beagle-dev.github.io/)
-3. Install required BEAST2 packages:
+1. Install BEAST2 from [beast2.org](https://www.beast2.org/)
+2. Install BEAGLE from [beagle-dev.github.io](https://beagle-dev.github.io/)
+3. Install required BEAST2 packages based on xml declaration. The examples use the following:
    ```bash
    packagemanager -add NS
    packagemanager -add BDSKY
    packagemanager -add BEAST_CLASSIC
-   packagemanager -add FEAST
+   packagemanager -add feast
    ```
 4. Install tidetree:
    - Download the latest release from [tidetree GitHub](https://github.com/seidels/tidetree/releases)
