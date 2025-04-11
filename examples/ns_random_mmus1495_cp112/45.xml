@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+
+<beast beautitemplate='MultiTypeBirthDeath' beautistatus='' namespace="beast.core:beast.evolution.alignment
+    :beast.evolution.tree.coalescent:beast.core.util
+    :beast.evolution.nuc
+    :beast.evolution.operators
+    :beast.evolution.sitemodel
+    :beast.evolution.substitutionmodel
+    :beast.base.evolution.alignment
+    :beast.pkgmgmt
+    :beast.base.core
+    :beast.base.inference
+    :beast.base.evolution.tree.coalescent
+    :beast.base.core
+    :beast.base.inference.util
+    :beast.evolution.nuc
+    :beast.base.evolution.operator
+    :beast.base.inference.operator
+    :beast.base.evolution.sitemodel
+    :beast.base.evolution.substitutionmodel
+    :beast.base.evolution.likelihood
+    :beam
+    :tidetree" required="BEAST.base" version="2.7">
+
+<!-- syntactic sugar -->
+<map name="Uniform" >beast.base.inference.distribution.Uniform</map>
+<map name="Exponential" >beast.base.inference.distribution.Exponential</map>
+<map name="LogNormal" >beast.base.inference.distribution.LogNormalDistributionModel</map>
+<map name="Normal" >beast.base.inference.distribution.Normal</map>
+<map name="Beta" >beast.base.inference.distribution.Beta</map>
+<map name="Gamma" >beast.base.inference.distribution.Gamma</map>
+<map name="LaplaceDistribution" >beast.base.inference.distribution.LaplaceDistribution</map>
+<map name="prior" >beast.base.inference.distribution.Prior</map>
+<map name="InverseGamma" >beast.base.inference.distribution.InverseGamma</map>
+<map name="OneOnX" >beast.base.inference.distribution.OneOnX</map>
+
+    
+<!-- input data -->
+<data  id="alignment" spec="feast.fileio.AlignmentFromFasta" fileName="./examples/ns_random_mmus1495_cp112/CP112.fasta">
+    <userDataType spec="tidetree.evolution.datatype.EditData" nrOfStates="4"/>
+</data>
+
+<data id="tissue" spec="beastclassic.evolution.alignment.AlignmentFromTrait">
+    <traitSet id="traitset" spec="feast.fileio.TraitSetFromXSV" fileName="./examples/ns_random_mmus1495_cp112/CP112_tip_tissues.csv" taxa="@taxonset" taxonNameCol="0" skipFirstRow="false" sep="," traitname="discrete"/>
+    <userDataType id="codeMap" spec="beast.base.evolution.datatype.UserDataType" codeMap="PRL=0,LVM=1,? = 0 1 " codelength="-1" states="2"/>
+</data>
+
+
+<run id="mcmc" spec="beast.gss.NS" chainLength="100000000" particleCount="1" subChainLength="10000" epsilon="1e-10">
+        <state id="state" spec="State" storeEvery="5000">
+            <stateNode id="tree" spec="beam.tree.BeamStartingTreeFromNewick" taxa="@alignment" IsLabelledNewick="true" adjustTipHeights="true" newick="(ASV0606:135.3310184810896,(ASV0248_0:11.188678857479857,ASV0248_1:11.188678857479857):124.14233962360973):228.6689815189104">
+                <taxonset id="taxonset" spec="TaxonSet" alignment="@alignment"/>
+            </stateNode>
+
+            <parameter id="editRate" spec="parameter.RealParameter" estimate="false" name="stateNode" lower="0.0" dimension="2">.7500000000 .2500000000</parameter>
+            <parameter id="silencingRate" spec="parameter.RealParameter" dimension="1" lower="0.0" name="stateNode" upper="1000">0.001</parameter>
+            <parameter id="clockRate.c" spec="parameter.RealParameter" name="stateNode">0.01</parameter>
+
+            <parameter id="relativeGeoRates.s:tissue" spec="parameter.RealParameter" lower="0.0" dimension="1" name="stateNode">1.0</parameter>
+            <parameter id="traitClockRate" spec="parameter.RealParameter" name="stateNode">0.01</parameter>
+            <parameter id="piPrimaryTissueFreq" spec="parameter.RealParameter" dimension="1" estimate="true" lower="0.0" upper="1.0" name="stateNode">0.50</parameter>
+
+            <parameter id="birthRate" spec="parameter.RealParameter" dimension="1" lower="0.0" name="stateNode" upper="5">0.006</parameter>
+            <parameter id="deathRate" spec="parameter.RealParameter" dimension="1" lower="0.0" name="stateNode" upper="5">0.0001</parameter>
+
+        </state>
+        
+        
+        <distribution id="posterior" spec="CompoundDistribution">
+            
+            <distribution id="prior" spec="CompoundDistribution">
+
+                <distribution id="birthDeathSamplingModel" spec="bdsky.evolution.speciation.BirthDeathSkylineModel"
+                          conditionOnSurvival="True" tree="@tree" origin="364.0001" contemp="true"
+                          birthRate="@birthRate" deathRate="@deathRate" rho="1.0"
+                          samplingRate="0.0" >
+                </distribution>
+
+                <prior id="silencingRatePrior" name="distribution" x="@silencingRate">
+                    <Exponential name="distr">
+                        <parameter spec="parameter.RealParameter" estimate="false" name="mean">0.1</parameter>
+                    </Exponential>
+                </prior>
+
+                <prior id="ClockPrior.c" name="distribution" x="@clockRate.c">
+                    <Exponential name="distr">
+                        <parameter spec="parameter.RealParameter" estimate="false" name="mean">0.1</parameter>
+                    </Exponential>
+                </prior>
+
+                <prior id="piPrimaryTissueFreqPrior" name="distribution" x="@piPrimaryTissueFreq">
+                    <Uniform name="distr" lower="0.0" upper="1.0"/>
+                </prior>
+
+                <prior id="birthRatePrior" name="distribution" x="@birthRate">
+                    <Uniform name="distr" lower="0.0" upper="1.0"/>
+                </prior>
+                
+                <prior id="deathRatePrior" name="distribution" x="@deathRate">
+                    <Uniform name="distr" lower="0.0" upper="1.0"/>
+                </prior>
+
+
+            </distribution>
+            
+            
+            <distribution id="likelihood" spec="CompoundDistribution" useThreads="true">
+                
+                <distribution id="treeLikelihood" spec="beam.likelihood.BeamIrreversibleTreeLikelihood" origin="364.0001" data="@alignment" tree="@tree">
+                    <siteModel spec="SiteModel" id="siteModel" mutationRate="1.0" gammaCategoryCount="1">
+                        <substModel id="substModel" spec="beam.substitutionmodel.BeamMutationSubstitutionModel" editRates="@editRate" silencingRate="@silencingRate">
+                            <frequencies spec="beast.base.evolution.substitutionmodel.Frequencies" frequencies="1.0 0 0" estimate="false"/>
+                        </substModel>
+                    </siteModel>
+                    <branchRateModel spec="beast.base.evolution.branchratemodel.StrictClockModel" clock.rate="@clockRate.c"/>
+                </distribution>
+                
+                <distribution id="traitLikelihood" spec="beam.likelihood.BeamBeagleAncestralTissueLikelihood" origin="364.0001" tag="location" tree="@tree" data="@tissue">
+                    <siteModel id="geoSiteModel.s:tissue" spec="SiteModel" gammaCategoryCount="1" mutationRate="1.0">
+                        <substModel id="substModelMigration" spec="beam.substitutionmodel.BeamRandomTissueSubstitutionModel" rates="@relativeGeoRates.s:tissue" pi="@piPrimaryTissueFreq">
+                            <frequencies id="traitfreqs.s:tissue" spec="Frequencies">
+                                <parameter id="traitfrequencies.s:tissue" spec="parameter.RealParameter" dimension="2" name="frequencies">1 0</parameter>
+                            </frequencies>
+                        </substModel>
+                    </siteModel>
+                    <branchRateModel id="StrictClockModel.c:tissue" spec="beast.base.evolution.branchratemodel.StrictClockModel" clock.rate="@traitClockRate"/>
+                </distribution>
+                
+            </distribution>
+            
+        </distribution>
+        
+    <!-- tree operators -->
+    <operator  spec="Uniform" tree="@tree" weight="30.0"/>
+    <operator  spec="SubtreeSlide" tree="@tree" weight="3.0"/>
+    <operator spec="SubtreeSlide" tree="@tree" weight="3.0" size="30"/>
+    <operator  spec="Exchange" isNarrow="false" tree="@tree" weight="30.0"/>
+
+    <!-- operators on phylogenetic parameters-->
+    <operator id="clockRateScaler" spec="ScaleOperator" parameter="@clockRate.c" scaleFactor="0.8" weight="3.0"/>
+    <operator id="silencingRateScaler" spec="ScaleOperator" parameter="@silencingRate" scaleFactor="0.8" weight="3.0"/>
+
+    <!-- operators on ancestral state model sparameters -->
+    <operator id="piPrimaryTissueFreqScaler" spec="ScaleOperator" parameter="@piPrimaryTissueFreq" scaleFactor="0.8" weight="3.0"/>
+
+    <!-- Operators on phylodynamic parameters -->
+    <operator id="birthRateScaler" spec="ScaleOperator" parameter="@birthRate" scaleFactor="0.8" weight="3.0"/>
+    <operator id="deathRateScaler" spec="ScaleOperator" parameter="@deathRate" scaleFactor="0.8" weight="3.0"/>
+
+    <operator id="updownBD" spec="UpDownOperator" scaleFactor="0.8" weight="30.0">
+         <up idref="birthRate"/>
+         <down idref="deathRate"/>
+    </operator>
+
+
+    <!-- loggers -->
+        <logger id="tracelog" spec="Logger" fileName="chain_45.log" logEvery="10000" model="@posterior" sanitiseHeaders="true" sort="smart">
+            <log idref="posterior"/>
+            <log idref="likelihood"/>
+            <log idref="prior"/>
+            <log id="treeHeight" spec="beast.base.evolution.tree.TreeHeightLogger" tree="@tree"/>
+            <log idref="silencingRate" />
+            <log idref="clockRate.c"/>
+            <log idref="relativeGeoRates.s:tissue"/>
+            <log idref="traitClockRate"/>
+            <log id="tissueSubstModelLogger" spec="beam.substitutionmodel.BeamTissueSubstitutionModelLogger" dataType="@codeMap" model="@substModelMigration"/>
+            <log idref="treeLikelihood"/>
+            <log idref="traitLikelihood"/>
+            <log idref="birthRate"/>
+            <log idref="deathRate"/>
+            <log idref="piPrimaryTissueFreq"/>
+        </logger>
+
+        <logger id="screenlog" spec="Logger" logEvery="10000">
+            <log idref="posterior"/>
+            <log id="ESS" spec="util.ESS" arg="@posterior"/>
+            <log idref="likelihood"/>
+            <log idref="prior"/>
+        </logger>
+
+        <logger id="treeWithTraitLogger" spec="Logger" fileName="chain_45.trees" logEvery="10000" mode="tree">
+                <log id="treeWithTraitLoggerItem" spec="beastclassic.evolution.tree.TreeWithTraitLogger" tree="@tree">
+                    <metadata idref="traitLikelihood"/>
+                </log>
+        </logger>
+
+    <operatorschedule id="OperatorSchedule" spec="OperatorSchedule"/>
+</run>
+
+</beast>
