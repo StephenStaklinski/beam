@@ -20,7 +20,7 @@
     :beast.base.evolution.substitutionmodel
     :beast.base.evolution.likelihood
     :beam
-    :tidetree" required="BEAST.base v2.7.6:FixedTreeAnalysis v0.0.2:BEAST_CLASSIC v1.6.3" version="2.7">
+    :tidetree" required="BEAST.base" version="2.7">
 
 <!-- syntactic sugar -->
 <map name="Uniform" >beast.base.inference.distribution.Uniform</map>
@@ -36,12 +36,12 @@
 
     
 <!-- input data -->
-<data  id="alignment" spec="feast.fileio.AlignmentFromFasta" fileName="/Users/staklins/projects/crispr-barcode-cancer-metastasis/beam_dev/beam/examples/mmus1875_cp01/CP01.fasta">
+<data  id="alignment" spec="feast.fileio.AlignmentFromFasta" fileName="examples/mmus1875_cp01/CP01.fasta">
     <userDataType spec="tidetree.evolution.datatype.EditData" nrOfStates="182"/>
 </data>
 
 <data id="tissue" spec="beastclassic.evolution.alignment.AlignmentFromTrait">
-    <traitSet id="traitset" spec="feast.fileio.TraitSetFromXSV" fileName="/Users/staklins/projects/crispr-barcode-cancer-metastasis/beam_dev/beam/examples/mmus1875_cp01/CP01_tip_tissues.csv" taxa="@taxonset" taxonNameCol="0" skipFirstRow="false" sep="," traitname="discrete"/>
+    <traitSet id="traitset" spec="feast.fileio.TraitSetFromXSV" fileName="examples/mmus1875_cp01/CP01_tip_tissues.csv" taxa="@taxonset" taxonNameCol="0" skipFirstRow="false" sep="," traitname="discrete"/>
     <userDataType id="codeMap" spec="beast.base.evolution.datatype.UserDataType" codeMap="PRL=0,LGL=1,LGR=2,? = 0 1 2" codelength="-1" states="3"/>
 </data>
 

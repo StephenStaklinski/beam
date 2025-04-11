@@ -20,7 +20,7 @@
     :beast.base.evolution.substitutionmodel
     :beast.base.evolution.likelihood
     :beam
-    :tidetree" required="BEAST.base v2.7.6:FixedTreeAnalysis v0.0.2:BEAST_CLASSIC v1.6.3" version="2.7">
+    :tidetree" required="BEAST.base" version="2.7">
 
 <!-- syntactic sugar -->
 <map name="Uniform" >beast.base.inference.distribution.Uniform</map>

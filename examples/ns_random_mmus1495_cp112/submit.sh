@@ -1,6 +1,6 @@
 #!/bin/bash
 
-java -Djava.library.path=$BEAGLE_LIB_PATH -Xmx10g -jar beam.jar \
+beast \
 -seed 12345 \
 -threads 5 \
 -overwrite \

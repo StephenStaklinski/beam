@@ -4,34 +4,25 @@
 BEAM is a BEAST2 package for Bayesian cancer migration graph inference from CRISPR cell lineage tracing data. BEAM provides a joint model of lineage reconstruction and migration history inference from the raw data, avoiding the need to condition on a single phylogeny while instead inferring a distribution of migration graphs.
 
 
+## Installation
+
+1. Install beast2 from [beast2.org](https://www.beast2.org/)
+1. Install beagle from [beagle-dev.github.io](https://beagle-dev.github.io/)
+1. Use beast2 package manager to install any packages used in xml declaration. The examples depend on NS, BDSKY, BEAST_CLASSIC, and feast.
+1. Install tidetree from source code by obtaining the zip file from [tidetree github](https://github.com/seidels/tidetree/releases). Find where beast2 packages are installed, which should be indicated from `packagemanager -list` and then move to that directory, run `mkdir tidetree && cd tidetree`, and unzip the release zip file here.
+1. Install beam zip file in the same way into a beam directory in the packages directory.
+
+Now, both beam and tidetree should be listed when running `packagemanager -list`.
+
 ## Inference
 
-Install java+fx 17.0.9 and BEAGLE and set the path to it in `BEAGLE_LIB_PATH`. Then, the provided `beam.jar` file is all that is needed to run the method after installing dependent packages:
-
+Several examples are provides in `examples/` but here is one of them:
 ```
-java -cp beam.jar beast.pkgmgmt.PackageManager -add NS
-java -cp beam.jar beast.pkgmgmt.PackageManager -add BEAST_CLASSIC
-java -cp beam.jar beast.pkgmgmt.PackageManager -add BEASTLabs
-java -cp beam.jar beast.pkgmgmt.PackageManager -add feast
-java -cp beam.jar beast.pkgmgmt.PackageManager -add BDSKY
-
-# specify path to the repo
-REPO_DIR="/Users/staklins/projects/crispr-barcode-cancer-metastasis/beam_dev/beam"
-
-# submit example data to run
-java -Djava.library.path=$BEAGLE_LIB_PATH -jar beam.jar \
--seed 1724005224593 \
--D repo=$REPO_DIR \
+beast \
+-seed 12345 \
+-threads 5 \
 -overwrite \
--working examples/pR_298.xml
+-working \
+examples/quinn_cp26/1.xml
 ```
-
-## Development
-
-An initial install will obtain dependencies for developing on the code base by running the following:
-```
-ant
-```
-
-
 
