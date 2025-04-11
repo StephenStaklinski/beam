@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <package name="BEAM" version="1.0.0">
-  <depends on="BEAST.base" atleast="2.7.0" atmost="2.7.9"/>
-  <depends on="BEAST.app" atleast="2.7.0" atmost="2.7.9"/>
-  <depends on="BEAST-Classic" atleast="1.6.0" atmost="1.6.9"/>
-  <depends on="BEASTLabs" atleast="2.0.0" atmost="2.0.9"/>
-  <depends on="Tidetree" atleast="1.0.1" atmost="1.0.9"/>
-  <depends on="Feast" atleast="10.4.0" atmost="10.4.9"/>
+  <depends on="BEAST.base" atleast="2.7.7"/>
+  <depends on="BEAST.app" atleast="2.7.7"/>
+  <depends on="BEAST_CLASSIC" atleast="1.6.0"/>
+  <depends on="BEASTLabs" atleast="2.0.0"/>
+  <depends on="feast" atleast="10.0.0"/>
+  <depends on="BDSKY" atleast="1.5.1"/>
+  <depends on="tidetree" atleast="1.0.1"/>
 
   <service type="beast.base.core.BEASTInterface">
     <!-- Tree-related providers -->
@@ -28,7 +29,5 @@
     <provider classname="beam.substitutionmodel.BeamPrimaryMetReseedingAllTissueSubstitutionModel"/>
     <provider classname="beam.substitutionmodel.BeamTissueSubstitutionModelLogger"/>
 
-    <!-- Tidetree-related providers -->
-    <provider classname="tidetree.evolution.datatype.EditData"/>
   </service>
 </package> 
