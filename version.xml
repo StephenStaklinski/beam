@@ -1,32 +1,34 @@
-<package name="beam" version="1.0.0">
-  <depends on="BEAST.base" atleast="2.7.4"/>
-  <depends on="BEAST.app" atleast="2.7.4"/>
+<?xml version="1.0" encoding="UTF-8"?>
+<package name="BEAM" version="1.0.0">
+  <depends on="BEAST.base" atleast="2.7.0" atmost="2.7.9"/>
+  <depends on="BEAST.app" atleast="2.7.0" atmost="2.7.9"/>
+  <depends on="BEAST-Classic" atleast="1.6.0" atmost="1.6.9"/>
+  <depends on="BEASTLabs" atleast="2.0.0" atmost="2.0.9"/>
+  <depends on="Tidetree" atleast="1.0.1" atmost="1.0.9"/>
+  <depends on="Feast" atleast="10.4.0" atmost="10.4.9"/>
 
   <service type="beast.base.core.BEASTInterface">
+    <!-- Tree-related providers -->
     <provider classname="beam.tree.BeamStartingTreeFromNewick"/>
 
+    <!-- Likelihood-related providers -->
     <provider classname="beam.likelihood.BeamIrreversibleTreeLikelihood"/>
     <provider classname="beam.likelihood.IrreversibleLikelihoodCore"/>
-
     <provider classname="beam.likelihood.BeamBeagleTreeLikelihood"/>
     <provider classname="beam.likelihood.BeamBeagleAncestralTissueLikelihood"/>
 
+    <!-- Substitution model providers -->
     <provider classname="beam.substitutionmodel.BeamMutationSubstitutionModel"/>
     <provider classname="beam.substitutionmodel.BeamRandomTissueSubstitutionModel"/>
     <provider classname="beam.substitutionmodel.BeamNoDirectSeedingSpecifiedTissueGTRTissueSubstitutionModel"/>
     <provider classname="beam.substitutionmodel.BeamGtiTissueSubstitutionModel"/>
     <provider classname="beam.substitutionmodel.BeamGtrTissueSubstitutionModel"/>
-
     <provider classname="beam.substitutionmodel.BeamPrimaryOnlyTissueSubstitutionModel"/>
     <provider classname="beam.substitutionmodel.BeamPrimaryMetOnlyTissueSubstitutionModel"/>
     <provider classname="beam.substitutionmodel.BeamPrimaryMetReseedingAllTissueSubstitutionModel"/>
-    
     <provider classname="beam.substitutionmodel.BeamTissueSubstitutionModelLogger"/>
 
+    <!-- Tidetree-related providers -->
     <provider classname="tidetree.evolution.datatype.EditData"/>
-    <provider classname="tidetree.substitutionmodel.EditAndSilencingModel"/>
-    <provider classname="tidetree.tree.StartingTree"/>
-    <provider classname="tidetree.distributions.TreeLikelihoodWithEditWindow"/>
-    <provider classname="tidetree.simulation.SimulatedAlignment"/>
   </service>
-</package>
+</package> 

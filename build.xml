@@ -127,7 +127,7 @@
                 <attribute name="Main-Class" value="feast.app.FeastMain"/>
                 <attribute name="Class-Path" value="."/>
             </manifest>
-            <fileset dir="${dir.buildfile}/src" includes="beast_services.xml"/>
+            <fileset dir="${dir.buildfile}" includes="version.xml"/>
             <fileset dir="${dir.buildfile}/build"/>
             
             <!-- Include extracted dependencies -->
