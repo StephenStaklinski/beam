@@ -26,7 +26,13 @@ beam is a BEAST2 package for Bayesian cancer migration graph inference from CRIS
      ```
 5. Install beam:
    - Create a `beam` directory in your BEAST2 packages directory
-   - Extract the beam release zip file contents into this directory in the same way as with tidetree.
+   - Extract the beam release zip file contents into this directory:
+   ```bash
+     mkdir beam
+     cd beam
+     unzip <beam-release-file>.zip
+     ```
+   ```
 
 Verify installation by running `packagemanager -list`. Both beam and tidetree should appear in the list.
 
