@@ -1,4 +1,4 @@
-<project default="build" basedir=".">
+<project default="build-and-clean" basedir=".">
 
     <property environment="env"/>
 
@@ -169,6 +169,7 @@
                 <fileset dir="${beastfx-source-root}/locallib" includes="**/*.jar"/>
                 <pathelement path="${build-beastfx}"/>
                 <fileset dir="${env.JAVA_FX_HOME}" includes="**/*.jar"/>
+                <fileset dir="${env.HOME}/.beast/2.7/BEAST_CLASSIC" includes="**/*.jar"/>
             </classpath>
         </javac>
     </target>
@@ -314,6 +315,10 @@
 
     <target name="build" depends="build-jar,build-package"/>
 
+    <!-- Build and then clean up -->
+    <target name="build-and-clean" depends="build">
+        <antcall target="clean"/>
+    </target>
 
     <!-- Revert to pristine state. -->
     <target name="clean">
@@ -322,7 +327,7 @@
         <delete dir="${build-beastfx}" />
         <delete dir="${beast-source-root}" />
         <delete dir="${beastfx-source-root}" />
-        <delete dir="${dist}" />
+        <!-- <delete dir="${dist}" /> -->
         <delete dir="${build-test}" />
         <delete dir="${test-reports}" />
         <delete dir="${jddir}"/>

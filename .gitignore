@@ -3,3 +3,4 @@
 *.state
 .DS_Store
 build
+dist
