@@ -18,23 +18,23 @@ BEAM is a BEAST2 package for Bayesian cancer migration graph inference from CRIS
    packagemanager -add BEAST_CLASSIC
    packagemanager -add feast
    ```
-4. Install tidetree:
-   - Download the latest release from [tidetree GitHub](https://github.com/seidels/tidetree/releases)
+4. Install TiDeTree:
+   - Download the latest release from [TiDeTree GitHub releases](https://github.com/seidels/tidetree/releases)
    - Find your BEAST2 packages directory (check with `packagemanager -list`)
-   - Create and set up tidetree in that directory:
+   - Create and set up TiDeTree in that directory (replace \<tidetree-release-file\> with the release file name):
      ```bash
-     mkdir tidetree
-     cd tidetree
+     mkdir tidetree && cd tidetree
+     wget https://github.com/seidels/tidetree/releases/<tidetree-release-file>.zip
      unzip <tidetree-release-file>.zip
      ```
-5. Install beam:
-   - Create a `beam` directory in your BEAST2 packages directory
-   - Extract the beam release zip file contents into this directory:
+5. Install BEAM:
+   - Download the latest release from [BEAM GitHub releases](https://github.com/StephenStaklinski/beam/releases)
+   - Find your BEAST2 packages directory (check with `packagemanager -list`)
+   - Create and set up BEAM in that directory (replace \<beam-release-file\> with the release file name)
    ```bash
-     mkdir beam
-     cd beam
+     mkdir beam && cd beam
+     wget https://github.com/StephenStaklinski/beam/releases/<beam-release-file>.zip
      unzip <beam-release-file>.zip
-     ```
    ```
 
 Verify installation by running `packagemanager -list`. Both beam and tidetree should appear in the list.
@@ -46,11 +46,6 @@ Verify installation by running `packagemanager -list`. Both beam and tidetree sh
 Run BEAM using the BEAST2 command line interface:
 
 ```bash
-beast \
-  -seed 12345 \
-  -threads 5 \
-  -overwrite \
-  -working \
-  examples/quinn_cp26/1.xml
+beast -working examples/quinn_cp26/1.xml
 ```
 
