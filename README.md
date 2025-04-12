@@ -1,7 +1,10 @@
-# Bayesian Evolutionary Analysis of Metastasis (beam)
-![beam Logo](logo.jpg){ width=50% height=auto }
+# Bayesian Evolutionary Analysis of Metastasis (BEAM)
 
-beam is a BEAST2 package for Bayesian cancer migration graph inference from CRISPR cell lineage tracing data. beam provides a joint model of lineage reconstruction and migration history inference from the raw data, avoiding the need to condition on a single phylogeny while instead inferring a distribution of migration graphs.
+<div style="text-align: left;">
+  <img src="logo.jpg" alt="BEAM logo" width="250"/>
+</div>
+
+BEAM is a BEAST2 package for Bayesian cancer migration graph inference from CRISPR cell lineage tracing data. BEAM provides a joint model of lineage reconstruction and migration history inference from the raw data, avoiding the need to condition on a single phylogeny while instead inferring a distribution of migration graphs.
 
 
 ## Installation
@@ -40,7 +43,7 @@ Verify installation by running `packagemanager -list`. Both beam and tidetree sh
 
 ### Basic Usage
 
-Run beam using the BEAST2 command line interface:
+Run BEAM using the BEAST2 command line interface:
 
 ```bash
 beast \
