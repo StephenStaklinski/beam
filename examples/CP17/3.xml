@@ -19,8 +19,7 @@
     :beast.base.evolution.sitemodel
     :beast.base.evolution.substitutionmodel
     :beast.base.evolution.likelihood
-    :beam
-    :tidetree" required="BEAST.base" version="2.7">
+    :beam" required="BEAST.base" version="2.7">
 
 <!-- syntactic sugar -->
 <map name="Uniform" >beast.base.inference.distribution.Uniform</map>
@@ -37,7 +36,7 @@
     
 <!-- input data -->
 <data  id="alignment" spec="feast.fileio.AlignmentFromFasta" fileName="$(fileDir)/CP17.fasta">
-    <userDataType spec="tidetree.evolution.datatype.EditData" nrOfStates="14"/>
+    <userDataType spec="beam.datatype.EditData" nrOfStates="14"/>
 </data>
 
 <data id="tissue" spec="beastclassic.evolution.alignment.AlignmentFromTrait">

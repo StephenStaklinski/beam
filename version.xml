@@ -24,5 +24,8 @@
     <provider classname="beam.substitutionmodel.BeamPrimaryMetReseedingAllTissueSubstitutionModel"/>
     <provider classname="beam.substitutionmodel.BeamTissueSubstitutionModelLogger"/>
 
+    <!-- Datatype providers -->
+    <provider classname="beam.datatype.EditData"/>
+
   </service>
 </package> 
