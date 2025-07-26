@@ -37,6 +37,6 @@ Verify installation by running `packagemanager -list`. Beam should appear in the
 Run BEAM using the BEAST2 command line interface:
 
 ```bash
-beast -working examples/quinn_cp26/1.xml
+beast -working examples/input.xml
 ```
 

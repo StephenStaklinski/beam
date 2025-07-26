@@ -35,12 +35,12 @@
 
     
 <!-- input data -->
-<data  id="alignment" spec="feast.fileio.AlignmentFromFasta" fileName="examples/quinn_cp26/5k_26.fasta">
+<data  id="alignment" spec="feast.fileio.AlignmentFromFasta" fileName="examples/barcodes.fasta">
     <userDataType spec="beam.datatype.EditData" nrOfStates="96"/>
 </data>
 
 <data id="tissue" spec="beastclassic.evolution.alignment.AlignmentFromTrait">
-    <traitSet id="traitset" spec="feast.fileio.TraitSetFromXSV" fileName="examples/quinn_cp26/5k_26_tip_tissues.csv" taxa="@taxonset" taxonNameCol="0" skipFirstRow="false" sep="," traitname="discrete"/>
+    <traitSet id="traitset" spec="feast.fileio.TraitSetFromXSV" fileName="examples/tissues.csv" taxa="@taxonset" taxonNameCol="0" skipFirstRow="false" sep="," traitname="discrete"/>
     <userDataType id="codeMap" spec="beast.base.evolution.datatype.UserDataType" codeMap="LL=0,Liv=1,M=2,RL=3,? = 0 1 2 3 " codelength="-1" states="4"/>
 </data>
 
@@ -169,7 +169,7 @@
 
 
     <!-- loggers -->
-        <logger id="tracelog" spec="Logger" fileName="5k_cp26.log" logEvery="10000" model="@posterior" sanitiseHeaders="true" sort="smart">
+        <logger id="tracelog" spec="Logger" fileName="result.log" logEvery="10000" model="@posterior" sanitiseHeaders="true" sort="smart">
             <log idref="posterior"/>
             <log idref="likelihood"/>
             <log idref="prior"/>
@@ -193,7 +193,7 @@
             <log idref="prior"/>
         </logger>
 
-        <logger id="treeWithTraitLogger" spec="Logger" fileName="5k_cp26.trees" logEvery="10000" mode="tree">
+        <logger id="treeWithTraitLogger" spec="Logger" fileName="result.trees" logEvery="10000" mode="tree">
                 <log id="treeWithTraitLoggerItem" spec="beastclassic.evolution.tree.TreeWithTraitLogger" tree="@tree">
                     <metadata idref="traitLikelihood"/>
                 </log>
